@@ -1,0 +1,121 @@
+{
+  "name": "copilot-workflow-guide",
+  "displayName": "Copilot Workflow Guide",
+  "description": "Guida gli sviluppatori in un workflow standardizzato (analisi, implementazione, review, test, commit) integrato con GitHub Copilot Chat e traccia ogni step in un file versionato nel repository.",
+  "version": "0.1.0",
+  "publisher": "davidetriso",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "categories": [
+    "Other",
+    "AI"
+  ],
+  "extensionDependencies": [
+    "GitHub.copilot-chat"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "copilotWorkflow",
+          "title": "Workflow",
+          "icon": "media/workflow.svg"
+        }
+      ]
+    },
+    "views": {
+      "copilotWorkflow": [
+        {
+          "type": "webview",
+          "id": "copilotWorkflow.workflowView",
+          "name": "Workflow"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "copilotWorkflow.captureAnalysis",
+        "title": "Cattura requisiti e piano dalla chat",
+        "category": "Copilot Workflow"
+      },
+      {
+        "command": "copilotWorkflow.startReview",
+        "title": "Avvia review AI",
+        "category": "Copilot Workflow"
+      },
+      {
+        "command": "copilotWorkflow.captureReviewResponse",
+        "title": "Cattura l'ultima risposta come review",
+        "category": "Copilot Workflow"
+      },
+      {
+        "command": "copilotWorkflow.startStyleCheck",
+        "title": "Avvia verifica stilistica AI",
+        "category": "Copilot Workflow"
+      },
+      {
+        "command": "copilotWorkflow.stageSessionFile",
+        "title": "Aggiungi il file di workflow allo stage",
+        "category": "Copilot Workflow"
+      },
+      {
+        "command": "copilotWorkflow.installCommitGuard",
+        "title": "Installa la guardia pre-commit",
+        "category": "Copilot Workflow"
+      },
+      {
+        "command": "copilotWorkflow.openSessionFile",
+        "title": "Apri il file di workflow",
+        "category": "Copilot Workflow"
+      }
+    ],
+    "configuration": {
+      "title": "Copilot Workflow Guide",
+      "properties": {
+        "copilotWorkflow.outputFolder": {
+          "type": "string",
+          "default": ".copilot-workflow",
+          "markdownDescription": "Cartella (relativa alla root del repository) in cui vengono salvati i file di workflow. Ogni sessione di chat Copilot genera un file."
+        },
+        "copilotWorkflow.autoCaptureAnalysis": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Cattura automaticamente requisiti e piano dalla chat quando, dopo la modalità Plan, viene avviata l'implementazione."
+        },
+        "copilotWorkflow.planModeNamePattern": {
+          "type": "string",
+          "default": "plan",
+          "markdownDescription": "Espressione regolare (case-insensitive) confrontata con il nome della modalità di chat per riconoscere la modalità Plan."
+        },
+        "copilotWorkflow.maxDiffCharacters": {
+          "type": "number",
+          "default": 80000,
+          "minimum": 1000,
+          "markdownDescription": "Dimensione massima (in caratteri) del `git diff` incluso nel prompt di review."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit",
+    "test": "vitest run",
+    "package": "npm run typecheck && npm test && node esbuild.mjs --production && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "^1.105.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
