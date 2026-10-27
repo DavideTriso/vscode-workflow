@@ -1,0 +1,13 @@
+body { padding: 12px; color: var(--vscode-foreground); font-family: var(--vscode-font-family); }
+section { border-top: 1px solid var(--vscode-widget-border); margin-top: 16px; }
+h2 { font-size: 16px; }
+h3 { font-size: 13px; }
+p { line-height: 1.5; }
+label { display: block; margin: 10px 0 6px; }
+textarea { box-sizing: border-box; width: 100%; resize: vertical; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, transparent); font-family: inherit; }
+button { display: block; width: 100%; padding: 6px; margin: 6px 0; color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 1px solid var(--vscode-button-border, transparent); cursor: pointer; }
+button:hover { background: var(--vscode-button-hoverBackground); }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 2px; }
+#session { overflow-wrap: anywhere; }
+#message { position: sticky; bottom: 0; padding: 6px; background: var(--vscode-sideBar-background); }

@@ -1,0 +1,66 @@
+{
+  "name": "vscode-workflow",
+  "displayName": "Development Workflow",
+  "description": "Workflow di sviluppo tracciabile in GitHub Copilot Chat.",
+  "version": "0.1.0",
+  "publisher": "DavideTriso",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/DavideTriso/vscode-workflow.git" },
+  "engines": { "vscode": "^1.100.0" },
+  "categories": ["Other", "Chat"],
+  "main": "./out/extension.js",
+  "extensionDependencies": ["GitHub.copilot-chat"],
+  "capabilities": {
+    "untrustedWorkspaces": { "supported": false },
+    "virtualWorkspaces": { "supported": false }
+  },
+  "contributes": {
+    "views": {
+      "explorer": [
+        { "id": "developmentWorkflow.panel", "name": "Development Workflow", "type": "webview" }
+      ]
+    },
+    "commands": [
+      { "command": "developmentWorkflow.open", "title": "Workflow: Apri pannello" },
+      { "command": "developmentWorkflow.new", "title": "Workflow: Nuova sessione" },
+      { "command": "developmentWorkflow.capture", "title": "Workflow: Acquisisci piano" },
+      { "command": "developmentWorkflow.implement", "title": "Workflow: Avvia implementazione Copilot" },
+      { "command": "developmentWorkflow.review", "title": "Workflow: Review funzionale" },
+      { "command": "developmentWorkflow.style", "title": "Workflow: Verifica stile" },
+      { "command": "developmentWorkflow.commit", "title": "Workflow: Prepara commit" }
+    ],
+    "chatParticipants": [
+      {
+        "id": "developmentWorkflow.chat",
+        "name": "workflow",
+        "fullName": "Development Workflow",
+        "description": "Pianifica e verifica l’implementazione, salvando gli esiti nel repository.",
+        "isSticky": true,
+        "commands": [
+          { "name": "plan", "description": "Analizza i requisiti e crea un piano senza modificare il codice" },
+          { "name": "capture", "description": "Salva requisiti e ultimo piano della conversazione" },
+          { "name": "implement", "description": "Acquisisci il piano e passa all’agente Copilot" },
+          { "name": "review", "description": "Confronta piano e codice, poi esegui una code review" },
+          { "name": "style", "description": "Verifica lo stile senza salvare l’output" }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc -p ./ --noEmit && node --check media/panel.js",
+    "test": "npm run compile && node --test out/test/*.test.js",
+    "package": "vsce package"
+  },
+  "overrides": {
+    "@azure/msal-node": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/vscode": "1.100.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "^6.0.3"
+  }
+}
