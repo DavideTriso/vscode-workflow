@@ -1,0 +1,108 @@
+body {
+  padding: 0 12px 16px;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 6px;
+  font-size: 1.05em;
+}
+
+.badge {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--vscode-descriptionForeground);
+  opacity: 0.5;
+}
+
+.badge.done {
+  background: var(--vscode-testing-iconPassed, #3fb950);
+  opacity: 1;
+}
+
+.badge.pending {
+  background: var(--vscode-editorWarning-foreground, #d29922);
+  opacity: 1;
+}
+
+.hint,
+.status,
+.notice {
+  margin: 4px 0 8px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.status:empty {
+  display: none;
+}
+
+button {
+  margin: 2px 6px 2px 0;
+  padding: 4px 10px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground);
+}
+
+button.secondary {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 4px 0 10px;
+  padding: 4px;
+  resize: vertical;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  font-family: inherit;
+}
+
+textarea:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.missing {
+  margin: 4px 0;
+  padding-left: 18px;
+  color: var(--vscode-editorWarning-foreground, #d29922);
+}
+
+.missing:empty {
+  display: none;
+}
+
+footer {
+  margin-top: 20px;
+}
