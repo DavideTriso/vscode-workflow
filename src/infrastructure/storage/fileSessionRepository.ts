@@ -9,22 +9,31 @@ export interface FileSessionRepositoryOptions {
   onCorruptedFile: (filePath: string, error: unknown) => void;
 }
 
-function isWorkflowSession(value: unknown): value is WorkflowSession {
+/** Validates the file and fills the fields that older files (one per chat) do not have. */
+function parseWorkflowSession(value: unknown): WorkflowSession | undefined {
   if (typeof value !== 'object' || value === null) {
-    return false;
+    return undefined;
   }
   const candidate = value as Partial<WorkflowSession>;
-  return (
+  const isValid =
     candidate.schemaVersion === 1 &&
     typeof candidate.id === 'string' &&
-    typeof candidate.chatSessionId === 'string' &&
     typeof candidate.createdAt === 'string' &&
     Array.isArray(candidate.reviews) &&
     Array.isArray(candidate.styleChecks) &&
     typeof candidate.automatedTests === 'object' &&
     typeof candidate.manualTests === 'object' &&
-    typeof candidate.finalNotes === 'string'
-  );
+    typeof candidate.finalNotes === 'string';
+  if (!isValid) {
+    return undefined;
+  }
+  const session = candidate as WorkflowSession;
+  return {
+    ...session,
+    taskId: typeof candidate.taskId === 'string' ? candidate.taskId : session.id,
+    status: candidate.status === 'active' ? 'active' : 'paused',
+    chatSessionId: typeof candidate.chatSessionId === 'string' && candidate.chatSessionId !== '' ? candidate.chatSessionId : undefined,
+  };
 }
 
 export function buildSessionFileName(session: Pick<WorkflowSession, 'id' | 'createdAt'>): string {
@@ -35,31 +44,31 @@ export function buildSessionFileName(session: Pick<WorkflowSession, 'id' | 'crea
 export class FileSessionRepository implements SessionRepository {
   constructor(private readonly options: FileSessionRepositoryOptions) {}
 
-  async findByChatSessionId(chatSessionId: string): Promise<StoredSession | undefined> {
+  async listAll(): Promise<StoredSession[]> {
     const directory = this.outputDirectory();
     let fileNames: string[];
     try {
       fileNames = await fileSystem.readdir(directory);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return undefined;
+        return [];
       }
       throw error;
     }
 
-    const matches: StoredSession[] = [];
+    const stored: StoredSession[] = [];
     for (const fileName of fileNames.filter((name) => name.endsWith('.json'))) {
       const filePath = path.join(directory, fileName);
       try {
-        const parsed: unknown = JSON.parse(await fileSystem.readFile(filePath, 'utf8'));
-        if (isWorkflowSession(parsed) && parsed.chatSessionId === chatSessionId) {
-          matches.push({ session: parsed, filePath });
+        const session = parseWorkflowSession(JSON.parse(await fileSystem.readFile(filePath, 'utf8')));
+        if (session) {
+          stored.push({ session, filePath });
         }
       } catch (error) {
         this.options.onCorruptedFile(filePath, error);
       }
     }
-    return matches.sort((a, b) => b.session.createdAt.localeCompare(a.session.createdAt))[0];
+    return stored.sort((a, b) => a.session.createdAt.localeCompare(b.session.createdAt));
   }
 
   async save(session: WorkflowSession): Promise<StoredSession> {

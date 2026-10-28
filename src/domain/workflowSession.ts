@@ -36,10 +36,15 @@ export interface TestRecord {
   notes: string;
 }
 
+export type WorkflowStatus = 'active' | 'paused';
+
 export interface WorkflowSession {
   schemaVersion: 1;
   id: string;
-  chatSessionId: string;
+  taskId: string;
+  status: WorkflowStatus;
+  /** Bound lazily, when the first capture from a Copilot chat happens. */
+  chatSessionId?: string;
   createdAt: string;
   updatedAt: string;
   analysis?: AnalysisRecord;
@@ -53,14 +58,18 @@ export interface WorkflowSession {
 
 export interface NewSessionParameters {
   id: string;
-  chatSessionId: string;
+  taskId: string;
   now: string;
+  chatSessionId?: string;
+  status?: WorkflowStatus;
 }
 
 export function createSession(parameters: NewSessionParameters): WorkflowSession {
   return {
     schemaVersion: 1,
     id: parameters.id,
+    taskId: parameters.taskId,
+    status: parameters.status ?? 'active',
     chatSessionId: parameters.chatSessionId,
     createdAt: parameters.now,
     updatedAt: parameters.now,
@@ -70,6 +79,10 @@ export function createSession(parameters: NewSessionParameters): WorkflowSession
     manualTests: { executed: false, notes: '' },
     finalNotes: '',
   };
+}
+
+export function withStatus(session: WorkflowSession, status: WorkflowStatus, now: string): WorkflowSession {
+  return touch({ ...session, status }, now);
 }
 
 export function withAnalysis(session: WorkflowSession, analysis: AnalysisRecord): WorkflowSession {

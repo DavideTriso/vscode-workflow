@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // VS Code stores the chat sessions next to the extension storage of the same workspace.
   const chatSessionsDirectory = (): string | undefined =>
     context.storageUri ? path.join(path.dirname(context.storageUri.fsPath), 'chatSessions') : undefined;
-  const transcriptSource = new FileChatTranscriptSource(chatSessionsDirectory);
+  const transcriptSource = new FileChatTranscriptSource(chatSessionsDirectory, logger);
 
   const service = workspaceRoot
     ? new WorkflowService({

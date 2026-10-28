@@ -1,6 +1,6 @@
 import { promises as fileSystem } from 'node:fs';
 import * as path from 'node:path';
-import type { ChatTranscriptSource } from '../../application/ports';
+import type { ChatTranscriptSource, Logger } from '../../application/ports';
 import type { ChatTranscript } from '../../domain/chatTranscript';
 import { mapChatSession } from './chatSessionMapper';
 import { parseChatSessionFile } from './mutationLog';
@@ -19,11 +19,17 @@ const MAX_CANDIDATES = 3;
  * so this adapter is the single place that depends on that on-disk format.
  */
 export class FileChatTranscriptSource implements ChatTranscriptSource {
-  constructor(private readonly chatSessionsDirectory: () => string | undefined) {}
+  private lastDiagnostic: string | undefined;
+
+  constructor(
+    private readonly chatSessionsDirectory: () => string | undefined,
+    private readonly logger?: Logger,
+  ) {}
 
   async readLatest(): Promise<ChatTranscript | undefined> {
     const directory = this.chatSessionsDirectory();
     if (!directory) {
+      this.report('No workspace storage available: chat sessions cannot be read.');
       return undefined;
     }
     const files = await this.listSessionFiles(directory);
@@ -33,6 +39,7 @@ export class FileChatTranscriptSource implements ChatTranscriptSource {
         return transcript;
       }
     }
+    this.report(`No readable chat found in ${directory} (${files.length} session file(s) listed).`);
     return undefined;
   }
 
@@ -44,6 +51,14 @@ export class FileChatTranscriptSource implements ChatTranscriptSource {
     }
     const newest = (await this.listSessionFiles(directory))[0];
     return newest ? `${newest.fileName}:${newest.modifiedAtMs}:${newest.size}` : '';
+  }
+
+  /** Logs each distinct diagnostic once, to avoid flooding the output channel on every poll. */
+  private report(message: string): void {
+    if (message !== this.lastDiagnostic) {
+      this.lastDiagnostic = message;
+      this.logger?.info(message);
+    }
   }
 
   private async listSessionFiles(directory: string): Promise<SessionFileInfo[]> {
@@ -76,8 +91,9 @@ export class FileChatTranscriptSource implements ChatTranscriptSource {
       const content = await fileSystem.readFile(path.join(directory, file.fileName), 'utf8');
       const fallbackSessionId = file.fileName.replace(/\.jsonl?$/, '');
       return mapChatSession(parseChatSessionFile(content, file.fileName), fallbackSessionId);
-    } catch {
+    } catch (error) {
       // The file may be mid-write: the next poll retries.
+      this.logger?.error(`Unable to parse chat session file ${file.fileName}.`, error);
       return undefined;
     }
   }

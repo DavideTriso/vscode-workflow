@@ -18,7 +18,7 @@ The UI is in English (primary language), with Italian and German translations. T
 | 6. Final notes | Optional free text. |
 | 7. Commit | **Add workflow file to stage** (enabled only with analysis, ≥1 review and a style check). Optional: **Install pre-commit guard** (git hook that blocks commits without a workflow file; bypass with `--no-verify`). |
 
-Each Copilot chat session generates a `.copilot-workflow/<YYYYMMDD-HHMMSS>-<id>.json` file (JSON with LF line endings, stable diffs across operating systems).
+In the **Workflow** tab, enter a **Task ID** and press **Start**: the `.copilot-workflow/<YYYYMMDD-HHMMSS>-<id>.json` file is created immediately (JSON with LF line endings, stable diffs across operating systems). Several workflows can be open at once: all of them are listed (until their file is committed), and selecting one pauses the others. Details and actions of the selected workflow are shown below the list. A Copilot chat is bound to a workflow at its first capture and is never shared between workflows.
 
 ## Settings
 

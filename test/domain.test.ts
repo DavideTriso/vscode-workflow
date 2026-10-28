@@ -9,7 +9,7 @@ import {
 } from '../src/domain/workflowSession';
 
 const NOW = '2026-01-01T10:00:00.000Z';
-const baseSession = () => createSession({ id: 'abc12345', chatSessionId: 'chat-1', now: NOW });
+const baseSession = () => createSession({ id: 'abc12345', taskId: 'TASK-1', chatSessionId: 'chat-1', now: NOW });
 
 describe('commit readiness', () => {
   it('lists every missing requirement for a new session', () => {
