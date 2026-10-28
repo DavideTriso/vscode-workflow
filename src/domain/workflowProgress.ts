@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import type { WorkflowSession } from './workflowSession';
 
 export type StepId = 'analysis' | 'implementation' | 'review' | 'styleCheck' | 'tests' | 'finalNotes' | 'commit';
@@ -20,13 +21,13 @@ export interface CommitReadiness {
 export function evaluateCommitReadiness(session: WorkflowSession): CommitReadiness {
   const missingRequirements: string[] = [];
   if (!session.analysis) {
-    missingRequirements.push('Requisiti e piano non ancora catturati');
+    missingRequirements.push(t('missing.analysis'));
   }
   if (!session.reviews.some((review) => review.status === 'captured')) {
-    missingRequirements.push('Nessuna review AI catturata');
+    missingRequirements.push(t('missing.review'));
   }
   if (session.styleChecks.length === 0) {
-    missingRequirements.push('Verifica stilistica non eseguita');
+    missingRequirements.push(t('missing.styleCheck'));
   }
   return { isReady: missingRequirements.length === 0, missingRequirements };
 }
@@ -39,19 +40,19 @@ export function buildSteps(session: WorkflowSession, fileState: SessionFileState
     session.manualTests.notes.trim() !== '';
 
   return [
-    { id: 'analysis', title: 'Analisi', status: session.analysis ? 'done' : 'pending' },
-    { id: 'implementation', title: 'Implementazione', status: 'optional' },
+    { id: 'analysis', title: t('step.analysis'), status: session.analysis ? 'done' : 'pending' },
+    { id: 'implementation', title: t('step.implementation'), status: 'optional' },
     {
       id: 'review',
-      title: 'Test e review funzionali',
+      title: t('step.review'),
       status: session.reviews.some((review) => review.status === 'captured') ? 'done' : 'pending',
     },
-    { id: 'styleCheck', title: 'Verifica stilistica', status: session.styleChecks.length > 0 ? 'done' : 'pending' },
-    { id: 'tests', title: 'Test finali', status: testsRecorded ? 'done' : 'optional' },
-    { id: 'finalNotes', title: 'Note finali', status: session.finalNotes.trim() !== '' ? 'done' : 'optional' },
+    { id: 'styleCheck', title: t('step.styleCheck'), status: session.styleChecks.length > 0 ? 'done' : 'pending' },
+    { id: 'tests', title: t('step.tests'), status: testsRecorded ? 'done' : 'optional' },
+    { id: 'finalNotes', title: t('step.finalNotes'), status: session.finalNotes.trim() !== '' ? 'done' : 'optional' },
     {
       id: 'commit',
-      title: 'Commit',
+      title: t('step.commit'),
       status: fileState === 'committed' ? 'done' : 'pending',
     },
   ];

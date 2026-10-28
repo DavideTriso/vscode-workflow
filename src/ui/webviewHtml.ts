@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import * as vscode from 'vscode';
+import { getLocale, t } from '../i18n';
 
 function button(id: string, label: string, isSecondary = false): string {
   return `<button id="${id}" class="${isSecondary ? 'secondary' : ''}">${label}</button>`;
@@ -20,52 +21,52 @@ export function renderWebviewHtml(webview: vscode.Webview, extensionUri: vscode.
   const steps = [
     step(
       'analysis',
-      '1. Analisi',
-      `<p class="hint">Definisci requisiti e piano con Copilot in modalità <strong>Plan</strong>. Le informazioni vengono catturate con il pulsante oppure <span id="autoCaptureHint">automaticamente all'avvio dell'implementazione</span>.</p>
-       ${button('captureAnalysis', 'Cattura requisiti e piano')}
+      t('step.analysis'),
+      `<p class="hint">${t('analysis.hint')}</p>
+       ${button('captureAnalysis', t('analysis.captureButton'))}
        <p class="status" id="analysisStatus"></p>`,
     ),
-    step('implementation', '2. Implementazione', `<p class="hint">Implementa a mano, con Copilot o in modo misto.</p>`),
+    step('implementation', t('step.implementation'), `<p class="hint">${t('implementation.hint')}</p>`),
     step(
       'review',
-      '3. Test e review funzionali',
-      `<p class="hint">L'agente confronta piano e stato attuale (git diff) e poi esegue la code review. Ripetibile dopo ogni correzione.</p>
-       ${button('startReview', 'Avvia review AI')}
-       ${button('captureReviewResponse', 'Cattura ultima risposta', true)}
+      t('step.review'),
+      `<p class="hint">${t('review.hint')}</p>
+       ${button('startReview', t('review.startButton'))}
+       ${button('captureReviewResponse', t('review.captureButton'), true)}
        <p class="status" id="reviewStatus"></p>`,
     ),
     step(
       'styleCheck',
-      '4. Verifica stilistica',
-      `<p class="hint">L'agente verifica l'allineamento stilistico con il codice esistente. L'esito resta nella chat.</p>
-       ${button('startStyleCheck', 'Avvia verifica stilistica')}
+      t('step.styleCheck'),
+      `<p class="hint">${t('styleCheck.hint')}</p>
+       ${button('startStyleCheck', t('styleCheck.startButton'))}
        <p class="status" id="styleCheckStatus"></p>`,
     ),
     step(
       'tests',
-      '5. Test finali',
-      `<label class="check"><input type="checkbox" id="automatedExecuted"> Ho eseguito i test automatici</label>
-       <textarea id="automatedNotes" rows="3" placeholder="Note opzionali: quali test (intera suite, solo una classe...) e perché"></textarea>
-       <label class="check"><input type="checkbox" id="manualExecuted"> Ho eseguito i test manuali</label>
-       <textarea id="manualNotes" rows="3" placeholder="Note opzionali: quali test manuali hai eseguito"></textarea>`,
+      t('step.tests'),
+      `<label class="check"><input type="checkbox" id="automatedExecuted"> ${t('tests.automatedExecuted')}</label>
+       <textarea id="automatedNotes" rows="3" placeholder="${t('tests.automatedPlaceholder')}"></textarea>
+       <label class="check"><input type="checkbox" id="manualExecuted"> ${t('tests.manualExecuted')}</label>
+       <textarea id="manualNotes" rows="3" placeholder="${t('tests.manualPlaceholder')}"></textarea>`,
     ),
     step(
       'finalNotes',
-      '6. Note finali',
-      `<textarea id="finalNotes" rows="4" placeholder="Note finali opzionali sull'implementazione"></textarea>`,
+      t('step.finalNotes'),
+      `<textarea id="finalNotes" rows="4" placeholder="${t('finalNotes.placeholder')}"></textarea>`,
     ),
     step(
       'commit',
-      '7. Commit',
+      t('step.commit'),
       `<ul class="missing" id="missingRequirements"></ul>
        <p class="status" id="commitStatus"></p>
-       ${button('stageSessionFile', 'Aggiungi il file di workflow allo stage')}
-       ${button('openSourceControl', 'Apri Source Control', true)}`,
+       ${button('stageSessionFile', t('commit.stageButton'))}
+       ${button('openSourceControl', t('commit.openSourceControl'), true)}`,
     ),
   ].join('\n');
 
   return `<!DOCTYPE html>
-<html lang="it">
+<html lang="${getLocale()}">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
@@ -73,13 +74,13 @@ export function renderWebviewHtml(webview: vscode.Webview, extensionUri: vscode.
   <link rel="stylesheet" href="${styleUri}">
 </head>
 <body>
-  <p class="notice" id="noChatNotice">Nessuna chat Copilot trovata. Avvia una conversazione con Copilot Chat (modalità Plan) per iniziare.</p>
+  <p class="notice" id="noChatNotice">${t('view.noChat')}</p>
   <div id="content" hidden>
     <p class="status" id="sessionFile"></p>
     ${steps}
     <footer>
-      ${button('openSessionFile', 'Apri file di workflow', true)}
-      ${button('installCommitGuard', 'Installa guardia pre-commit', true)}
+      ${button('openSessionFile', t('view.openSessionFile'), true)}
+      ${button('installCommitGuard', t('view.installCommitGuard'), true)}
     </footer>
   </div>
   <script nonce="${nonce}" src="${scriptUri}"></script>

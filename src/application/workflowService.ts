@@ -1,4 +1,5 @@
 import type { ChatTranscript } from '../domain/chatTranscript';
+import { t } from '../i18n';
 import { buildSteps, evaluateCommitReadiness, type SessionFileState } from '../domain/workflowProgress';
 import {
   createSession,
@@ -102,7 +103,7 @@ export class WorkflowService {
     return this.mutate(async (transcript, stored) => {
       const analysis = stored?.session.analysis;
       if (!stored || !analysis) {
-        throw new WorkflowError('Cattura prima requisiti e piano (step Analisi).');
+        throw new WorkflowError(t('error.captureAnalysisFirst'));
       }
       const { maxDiffCharacters, outputFolder } = this.dependencies.settings();
       const changeSet = await this.dependencies.git.readChangeSet(maxDiffCharacters, outputFolder);
@@ -162,7 +163,7 @@ export class WorkflowService {
       const transcript = await this.dependencies.transcriptSource.readLatest();
       const stored = transcript ? await this.dependencies.repository.findByChatSessionId(transcript.sessionId) : undefined;
       if (!stored) {
-        throw new WorkflowError('Nessun file di workflow da aggiungere al commit.');
+        throw new WorkflowError(t('error.noSessionFileToStage'));
       }
       const readiness = evaluateCommitReadiness(stored.session);
       if (!readiness.isReady) {
@@ -191,7 +192,7 @@ export class WorkflowService {
     return this.queue.run(async () => {
       const transcript = await this.dependencies.transcriptSource.readLatest();
       if (!transcript) {
-        throw new WorkflowError('Nessuna chat Copilot trovata: avvia una conversazione con Copilot Chat.');
+        throw new WorkflowError(t('error.noChat'));
       }
       const stored = await this.dependencies.repository.findByChatSessionId(transcript.sessionId);
       const outcome = await operation(transcript, stored);
@@ -224,7 +225,7 @@ export class WorkflowService {
         implementationStartIndex === undefined ? undefined : extractAnalysis(transcript, planModePattern, implementationStartIndex);
       if (extracted && stored?.session.analysis?.sourceRequestId !== extracted.sourceRequestId) {
         stored = await this.saveAnalysis(transcript, stored, extracted, 'automatic');
-        this.dependencies.logger.info(`Analisi catturata automaticamente (richiesta ${extracted.sourceRequestId}).`);
+        this.dependencies.logger.info(`Analysis captured automatically (request ${extracted.sourceRequestId}).`);
       }
     }
     return stored;
@@ -305,7 +306,7 @@ export class WorkflowService {
     try {
       return await this.dependencies.git.readFileState(filePath);
     } catch (error) {
-      this.dependencies.logger.error('Impossibile leggere lo stato git del file di workflow.', error);
+      this.dependencies.logger.error('Unable to read the git status of the workflow file.', error);
       return 'unknown';
     }
   }

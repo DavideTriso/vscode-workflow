@@ -126,7 +126,7 @@ describe('WorkflowService', () => {
       sessionId: 'chat-1',
       turns: [
         ...(transcript?.turns ?? []),
-        turn('2', 'ask', `${buildReviewMarker(reviewId)} review`, '### Piano finale e divergenze\nFP\n### Code review\nCR', false),
+        turn('2', 'ask', `${buildReviewMarker(reviewId)} review`, '### Final plan and divergences\nFP\n### Code review\nCR', false),
       ],
     };
     await service.refresh();
