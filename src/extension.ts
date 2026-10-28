@@ -2,6 +2,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { WorkflowError } from './application/support';
 import { WorkflowService } from './application/workflowService';
+import { resolveLocale, setLocale, t } from './i18n';
 import { ChatChangePoller } from './infrastructure/chat/chatChangePoller';
 import { FileChatTranscriptSource } from './infrastructure/chat/fileChatTranscriptSource';
 import { CommitGuardInstaller } from './infrastructure/git/commitGuardInstaller';
@@ -17,6 +18,7 @@ import {
 import { WorkflowViewProvider } from './ui/workflowViewProvider';
 
 export function activate(context: vscode.ExtensionContext): void {
+  setLocale(resolveLocale(vscode.env.language));
   const outputChannel = vscode.window.createOutputChannel('Copilot Workflow Guide');
   const logger = new OutputChannelLogger(outputChannel);
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -26,7 +28,7 @@ export function activate(context: vscode.ExtensionContext): void {
       void vscode.window.showWarningMessage(error.message);
       return;
     }
-    logger.error('Operazione non riuscita.', error);
+    logger.error('Operation failed.', error);
     void vscode.window.showErrorMessage(`Copilot Workflow Guide: ${error instanceof Error ? error.message : String(error)}`);
   };
 
@@ -40,7 +42,7 @@ export function activate(context: vscode.ExtensionContext): void {
         repository: new FileSessionRepository({
           workspaceRoot,
           outputFolder: () => readWorkflowSettings().outputFolder,
-          onCorruptedFile: (filePath, error) => logger.error(`File di workflow non leggibile: ${filePath}.`, error),
+          onCorruptedFile: (filePath, error) => logger.error(`Unreadable workflow file: ${filePath}.`, error),
         }),
         transcriptSource,
         git: new GitCliGateway(workspaceRoot),
@@ -78,28 +80,28 @@ export function activate(context: vscode.ExtensionContext): void {
     const { usedFallback } = await service.captureAnalysis();
     void vscode.window.showInformationMessage(
       usedFallback
-        ? 'Catturata l\'ultima risposta della chat: nessun turno in modalità Plan riconosciuto.'
-        : 'Requisiti e piano catturati.',
+        ? t('message.analysisCapturedFallback')
+        : t('message.analysisCaptured'),
     );
   });
   registerCommand('copilotWorkflow.startReview', () => service.startReview());
   registerCommand('copilotWorkflow.captureReviewResponse', async () => {
     await service.captureLastResponseAsReview();
-    void vscode.window.showInformationMessage('Review catturata.');
+    void vscode.window.showInformationMessage(t('message.reviewCaptured'));
   });
   registerCommand('copilotWorkflow.startStyleCheck', () => service.startStyleCheck());
   registerCommand('copilotWorkflow.stageSessionFile', async () => {
     await service.stageSessionFile();
-    void vscode.window.showInformationMessage('File di workflow aggiunto allo stage.');
+    void vscode.window.showInformationMessage(t('message.sessionFileStaged'));
   });
   registerCommand('copilotWorkflow.installCommitGuard', async () => {
     const hookPath = await commitGuardInstaller.install();
-    void vscode.window.showInformationMessage(`Guardia pre-commit installata: ${hookPath}`);
+    void vscode.window.showInformationMessage(t('message.commitGuardInstalled', hookPath));
   });
   registerCommand('copilotWorkflow.openSessionFile', async () => {
     const filePath = service.getSessionFilePath();
     if (!filePath) {
-      throw new WorkflowError('Il file di workflow non è ancora stato creato.');
+      throw new WorkflowError(t('error.sessionFileNotCreated'));
     }
     await vscode.window.showTextDocument(vscode.Uri.file(filePath));
   });

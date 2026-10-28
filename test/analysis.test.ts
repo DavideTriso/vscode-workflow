@@ -72,12 +72,12 @@ describe('compilePlanModePattern', () => {
 
 describe('parseReviewOutput', () => {
   it('splits the two requested sections', () => {
-    const parsed = parseReviewOutput('### Piano finale e divergenze\nFinal\n- gap\n\n### Code review\nBug in X');
+    const parsed = parseReviewOutput('### Final plan and divergences\nFinal\n- gap\n\n### Code review\nBug in X');
     expect(parsed).toEqual({ finalPlan: 'Final\n- gap', codeReview: 'Bug in X' });
   });
 
   it('supports the sections in reverse order', () => {
-    const parsed = parseReviewOutput('## Code review\nBug\n## Piano finale e divergenze\nPlan');
+    const parsed = parseReviewOutput('## Code review\nBug\n## Final plan and divergences\nPlan');
     expect(parsed).toEqual({ finalPlan: 'Plan', codeReview: 'Bug' });
   });
 

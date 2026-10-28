@@ -1,7 +1,7 @@
 {
   "name": "copilot-workflow-guide",
   "displayName": "Copilot Workflow Guide",
-  "description": "Guida gli sviluppatori in un workflow standardizzato (analisi, implementazione, review, test, commit) integrato con GitHub Copilot Chat e traccia ogni step in un file versionato nel repository.",
+  "description": "%extension.description%",
   "version": "0.1.0",
   "publisher": "davidetriso",
   "license": "MIT",
@@ -42,37 +42,37 @@
     "commands": [
       {
         "command": "copilotWorkflow.captureAnalysis",
-        "title": "Cattura requisiti e piano dalla chat",
+        "title": "%command.captureAnalysis%",
         "category": "Copilot Workflow"
       },
       {
         "command": "copilotWorkflow.startReview",
-        "title": "Avvia review AI",
+        "title": "%command.startReview%",
         "category": "Copilot Workflow"
       },
       {
         "command": "copilotWorkflow.captureReviewResponse",
-        "title": "Cattura l'ultima risposta come review",
+        "title": "%command.captureReviewResponse%",
         "category": "Copilot Workflow"
       },
       {
         "command": "copilotWorkflow.startStyleCheck",
-        "title": "Avvia verifica stilistica AI",
+        "title": "%command.startStyleCheck%",
         "category": "Copilot Workflow"
       },
       {
         "command": "copilotWorkflow.stageSessionFile",
-        "title": "Aggiungi il file di workflow allo stage",
+        "title": "%command.stageSessionFile%",
         "category": "Copilot Workflow"
       },
       {
         "command": "copilotWorkflow.installCommitGuard",
-        "title": "Installa la guardia pre-commit",
+        "title": "%command.installCommitGuard%",
         "category": "Copilot Workflow"
       },
       {
         "command": "copilotWorkflow.openSessionFile",
-        "title": "Apri il file di workflow",
+        "title": "%command.openSessionFile%",
         "category": "Copilot Workflow"
       }
     ],
@@ -82,23 +82,23 @@
         "copilotWorkflow.outputFolder": {
           "type": "string",
           "default": ".copilot-workflow",
-          "markdownDescription": "Cartella (relativa alla root del repository) in cui vengono salvati i file di workflow. Ogni sessione di chat Copilot genera un file."
+          "markdownDescription": "%config.outputFolder%"
         },
         "copilotWorkflow.autoCaptureAnalysis": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Cattura automaticamente requisiti e piano dalla chat quando, dopo la modalità Plan, viene avviata l'implementazione."
+          "markdownDescription": "%config.autoCaptureAnalysis%"
         },
         "copilotWorkflow.planModeNamePattern": {
           "type": "string",
           "default": "plan",
-          "markdownDescription": "Espressione regolare (case-insensitive) confrontata con il nome della modalità di chat per riconoscere la modalità Plan."
+          "markdownDescription": "%config.planModeNamePattern%"
         },
         "copilotWorkflow.maxDiffCharacters": {
           "type": "number",
           "default": 80000,
           "minimum": 1000,
-          "markdownDescription": "Dimensione massima (in caratteri) del `git diff` incluso nel prompt di review."
+          "markdownDescription": "%config.maxDiffCharacters%"
         }
       }
     }

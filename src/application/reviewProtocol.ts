@@ -1,5 +1,5 @@
 export const REVIEW_MARKER_PREFIX = 'workflow-review:';
-export const FINAL_PLAN_HEADING = 'Piano finale e divergenze';
+export const FINAL_PLAN_HEADING = 'Final plan and divergences';
 export const CODE_REVIEW_HEADING = 'Code review';
 
 export function buildReviewMarker(reviewId: string): string {

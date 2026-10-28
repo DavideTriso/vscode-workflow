@@ -1,0 +1,14 @@
+{
+  "extension.description": "Guides developers through a standardized workflow (analysis, implementation, review, tests, commit) integrated with GitHub Copilot Chat and records each step in a versioned file in the repository.",
+  "command.captureAnalysis": "Capture requirements and plan from the chat",
+  "command.startReview": "Start AI review",
+  "command.captureReviewResponse": "Capture the last response as review",
+  "command.startStyleCheck": "Start AI style check",
+  "command.stageSessionFile": "Add workflow file to stage",
+  "command.installCommitGuard": "Install pre-commit guard",
+  "command.openSessionFile": "Open workflow file",
+  "config.outputFolder": "Folder (relative to the repository root) where workflow files are saved. Each Copilot chat session generates one file.",
+  "config.autoCaptureAnalysis": "Automatically capture requirements and plan from the chat when implementation starts after Plan mode.",
+  "config.planModeNamePattern": "Regular expression (case-insensitive) matched against the chat mode name to recognize Plan mode.",
+  "config.maxDiffCharacters": "Maximum size (in characters) of the `git diff` included in the review prompt."
+}

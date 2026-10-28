@@ -1,6 +1,7 @@
 import { promises as fileSystem } from 'node:fs';
 import * as path from 'node:path';
 import { WorkflowError } from '../../application/support';
+import { t } from '../../i18n';
 import { GitCommandRunner } from './gitCommandRunner';
 
 const HOOK_MARKER = '# copilot-workflow-guide:managed-hook';
@@ -24,7 +25,7 @@ export function buildPreCommitHook(outputFolder: string): string {
     '  exit 0',
     'fi',
     '',
-    `echo "Commit bloccato: includi il file di workflow di '${outputFolder}' (Copilot Workflow Guide)." >&2`,
+    `echo "${t('hook.blocked', outputFolder)}" >&2`,
     'exit 1',
     '',
   ].join('\n');
@@ -47,7 +48,7 @@ export class CommitGuardInstaller {
 
     const existing = await this.readIfExists(hookPath);
     if (existing !== undefined && !existing.includes(HOOK_MARKER)) {
-      throw new WorkflowError(`Esiste già un hook pre-commit non gestito dall'estensione (${hookPath}): non viene sovrascritto.`);
+      throw new WorkflowError(t('error.hookAlreadyExists', hookPath));
     }
 
     await fileSystem.mkdir(hooksDirectory, { recursive: true });

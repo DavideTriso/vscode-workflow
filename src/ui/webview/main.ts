@@ -1,3 +1,4 @@
+import { resolveLocale, setLocale, t } from '../../i18n';
 import type { WorkflowViewState } from '../../application/viewState';
 import type { ExtensionToWebviewMessage, TestKind, WebviewToExtensionMessage } from '../messages';
 
@@ -8,6 +9,7 @@ declare function acquireVsCodeApi(): VsCodeApi;
 
 const NOTES_DEBOUNCE_MS = 600;
 const vscode = acquireVsCodeApi();
+setLocale(resolveLocale(document.documentElement.lang));
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);
@@ -94,10 +96,10 @@ function render(state: WorkflowViewState): void {
     return;
   }
 
-  setText('sessionFile', state.sessionFilePath ? `File: ${state.sessionFilePath}` : 'Il file di workflow verrà creato alla prima cattura.');
+  setText('sessionFile', state.sessionFilePath ? t('view.sessionFile', state.sessionFilePath) : t('view.sessionFileMissing'));
   element('autoCaptureHint').textContent = state.isAutoCaptureEnabled
-    ? "automaticamente all'avvio dell'implementazione"
-    : "(cattura automatica disattivata nelle impostazioni)";
+    ? t('analysis.autoCaptureOn')
+    : t('analysis.autoCaptureOff');
 
   state.steps.forEach((step) => {
     const badge = document.getElementById(`badge-${step.id}`);
@@ -109,18 +111,22 @@ function render(state: WorkflowViewState): void {
   setText(
     'analysisStatus',
     state.analysisCapturedAt
-      ? `Catturato il ${formatDate(state.analysisCapturedAt)} (${state.analysisTrigger === 'automatic' ? 'automatico' : 'manuale'}).`
+      ? t(
+          'analysis.captured',
+          formatDate(state.analysisCapturedAt),
+          state.analysisTrigger === 'automatic' ? t('analysis.triggerAutomatic') : t('analysis.triggerManual'),
+        )
       : '',
   );
   const reviewStatusParts: string[] = [];
   if (state.reviewCount > 0 && state.lastReviewCapturedAt) {
-    reviewStatusParts.push(`Review catturate: ${state.reviewCount} (ultima il ${formatDate(state.lastReviewCapturedAt)}).`);
+    reviewStatusParts.push(t('review.captured', state.reviewCount, formatDate(state.lastReviewCapturedAt)));
   }
   if (state.pendingReviewCount > 0) {
-    reviewStatusParts.push('In attesa della risposta dell\'agente...');
+    reviewStatusParts.push(t('review.pending'));
   }
   setText('reviewStatus', reviewStatusParts.join(' '));
-  setText('styleCheckStatus', state.styleCheckCount > 0 ? `Verifiche richieste: ${state.styleCheckCount}.` : '');
+  setText('styleCheckStatus', state.styleCheckCount > 0 ? t('styleCheck.requested', state.styleCheckCount) : '');
 
   fields.automatedExecuted.checked = state.automatedTests.executed;
   fields.manualExecuted.checked = state.manualTests.executed;
@@ -146,12 +152,12 @@ function render(state: WorkflowViewState): void {
 function commitStatusText(state: WorkflowViewState): string {
   switch (state.fileState) {
     case 'staged':
-      return 'Il file di workflow è nello stage: puoi eseguire il commit.';
+      return t('commit.staged');
     case 'committed':
-      return 'Il file di workflow è già stato committato.';
+      return t('commit.committed');
     case 'untracked':
     case 'modified':
-      return 'Il file di workflow non è ancora nello stage.';
+      return t('commit.notStaged');
     default:
       return '';
   }
