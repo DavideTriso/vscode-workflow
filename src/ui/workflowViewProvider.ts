@@ -56,6 +56,12 @@ export class WorkflowViewProvider implements vscode.WebviewViewProvider, vscode.
         case 'command':
           await vscode.commands.executeCommand(COMMAND_IDS[message.command]);
           break;
+        case 'startWorkflow':
+          await this.service.startWorkflow(message.taskId);
+          break;
+        case 'selectWorkflow':
+          await this.service.selectWorkflow(message.workflowId);
+          break;
         case 'updateTests': {
           const record = { executed: message.executed, notes: message.notes };
           await (message.kind === 'automated' ? this.service.updateAutomatedTests(record) : this.service.updateManualTests(record));

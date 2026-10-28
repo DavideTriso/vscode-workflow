@@ -106,3 +106,40 @@ textarea:focus {
 footer {
   margin-top: 20px;
 }
+
+.start-row {
+  display: flex;
+  gap: 6px;
+}
+
+.start-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+}
+
+.workflow-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workflow-list li + li {
+  margin-top: 4px;
+}
+
+button.workflow-choice {
+  width: 100%;
+  text-align: left;
+  color: var(--vscode-foreground);
+  background: transparent;
+  border: 1px solid var(--vscode-panel-border, transparent);
+}
+
+button.workflow-choice.selected {
+  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--vscode-list-activeSelectionBackground);
+}

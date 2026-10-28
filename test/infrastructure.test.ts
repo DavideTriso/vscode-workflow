@@ -27,24 +27,35 @@ describe('FileSessionRepository', () => {
   const repositoryFor = () =>
     new FileSessionRepository({ workspaceRoot: root, outputFolder: () => OUTPUT_FOLDER, onCorruptedFile: () => undefined });
 
-  it('saves with stable naming and finds sessions by chat id', async () => {
-    const session = createSession({ id: 'abc12345', chatSessionId: 'chat-9', now: '2026-03-04T05:06:07.000Z' });
+  it('saves with stable naming and lists the saved workflows', async () => {
+    const session = createSession({ id: 'abc12345', taskId: 'TASK-9', now: '2026-03-04T05:06:07.000Z' });
     const repository = repositoryFor();
     const saved = await repository.save(session);
 
     expect(path.basename(saved.filePath)).toBe('20260304-050607-abc12345.json');
     expect(buildSessionFileName(session)).toBe('20260304-050607-abc12345.json');
     expect(readFileSync(saved.filePath, 'utf8').endsWith('}\n')).toBe(true);
-    expect((await repository.findByChatSessionId('chat-9'))?.session.id).toBe('abc12345');
-    expect(await repository.findByChatSessionId('other')).toBeUndefined();
+    const listed = await repository.listAll();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.session).toMatchObject({ id: 'abc12345', taskId: 'TASK-9', status: 'active' });
   });
 
-  it('returns undefined when the folder does not exist and skips corrupted files', async () => {
+  it('upgrades legacy files without task id and status', async () => {
     const repository = repositoryFor();
-    expect(await repository.findByChatSessionId('x')).toBeUndefined();
+    const legacy = { ...createSession({ id: 'old1', taskId: 'x', now: '2026-01-01T00:00:00.000Z' }), chatSessionId: 'chat-1' } as Record<string, unknown>;
+    delete legacy.taskId;
+    delete legacy.status;
+    mkdirSync(path.join(root, OUTPUT_FOLDER));
+    writeFileSync(path.join(root, OUTPUT_FOLDER, 'legacy.json'), JSON.stringify(legacy));
+    expect((await repository.listAll())[0]?.session).toMatchObject({ taskId: 'old1', status: 'paused', chatSessionId: 'chat-1' });
+  });
+
+  it('returns nothing when the folder does not exist and skips corrupted files', async () => {
+    const repository = repositoryFor();
+    expect(await repository.listAll()).toEqual([]);
     mkdirSync(path.join(root, OUTPUT_FOLDER));
     writeFileSync(path.join(root, OUTPUT_FOLDER, 'broken.json'), '{not json');
-    expect(await repository.findByChatSessionId('x')).toBeUndefined();
+    expect(await repository.listAll()).toEqual([]);
   });
 });
 

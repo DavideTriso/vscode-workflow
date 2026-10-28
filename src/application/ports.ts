@@ -8,7 +8,7 @@ export interface StoredSession {
 }
 
 export interface SessionRepository {
-  findByChatSessionId(chatSessionId: string): Promise<StoredSession | undefined>;
+  listAll(): Promise<StoredSession[]>;
   save(session: WorkflowSession): Promise<StoredSession>;
 }
 

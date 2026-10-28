@@ -1,4 +1,12 @@
 import type { SessionFileState, WorkflowStep } from '../domain/workflowProgress';
+import type { WorkflowStatus } from '../domain/workflowSession';
+
+export interface WorkflowSummary {
+  id: string;
+  taskId: string;
+  status: WorkflowStatus;
+  createdAt: string;
+}
 
 export interface TestRecordView {
   executed: boolean;
@@ -6,7 +14,8 @@ export interface TestRecordView {
 }
 
 export interface WorkflowViewState {
-  hasChatSession: boolean;
+  workflows: WorkflowSummary[];
+  selectedWorkflowId?: string;
   isAutoCaptureEnabled: boolean;
   sessionFilePath?: string;
   fileState: SessionFileState;
@@ -25,7 +34,7 @@ export interface WorkflowViewState {
 }
 
 export const EMPTY_VIEW_STATE: WorkflowViewState = {
-  hasChatSession: false,
+  workflows: [],
   isAutoCaptureEnabled: true,
   fileState: 'unknown',
   steps: [],

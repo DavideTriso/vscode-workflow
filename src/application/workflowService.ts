@@ -10,6 +10,7 @@ import {
   withFinalNotes,
   withManualTests,
   withPendingReview,
+  withStatus,
   withStyleCheck,
   type CaptureTrigger,
   type TestRecord,
@@ -36,7 +37,7 @@ import type {
 } from './ports';
 import { containsReviewMarker, parseReviewOutput } from './reviewProtocol';
 import { SerialQueue, WorkflowError } from './support';
-import { EMPTY_VIEW_STATE, type WorkflowViewState } from './viewState';
+import { EMPTY_VIEW_STATE, type WorkflowSummary, type WorkflowViewState } from './viewState';
 
 export interface WorkflowServiceDependencies {
   repository: SessionRepository;
@@ -51,6 +52,11 @@ export interface WorkflowServiceDependencies {
 
 export interface CaptureAnalysisResult {
   usedFallback: boolean;
+}
+
+interface OpenWorkflow {
+  stored: StoredSession;
+  fileState: SessionFileState;
 }
 
 export type StateListener = (state: WorkflowViewState) => void;
@@ -71,38 +77,73 @@ export class WorkflowService {
     return { dispose: () => this.listeners.delete(listener) };
   }
 
-  /** Re-reads the chat, applies the automatic capture rules and publishes the new state. */
+  /** Re-reads the workflows and the chat, applies the automatic capture rules and publishes the new state. */
   refresh(): Promise<void> {
     return this.queue.run(async () => {
-      const transcript = await this.dependencies.transcriptSource.readLatest();
-      if (!transcript) {
-        this.publish(await this.buildState(undefined, undefined));
-        return;
+      const selected = (await this.loadOpenWorkflows()).selected;
+      if (selected) {
+        const transcript = await this.dependencies.transcriptSource.readLatest();
+        if (transcript) {
+          await this.applyAutomaticCaptures(transcript, selected.stored.session);
+        }
       }
-      let stored = await this.dependencies.repository.findByChatSessionId(transcript.sessionId);
-      stored = await this.applyAutomaticCaptures(transcript, stored);
-      this.publish(await this.buildState(transcript, stored));
+      await this.publishFresh();
+    });
+  }
+
+  /** Creates the workflow file right away and pauses every other open workflow. */
+  startWorkflow(taskId: string): Promise<void> {
+    return this.queue.run(async () => {
+      const trimmedTaskId = taskId.trim();
+      if (trimmedTaskId === '') {
+        throw new WorkflowError(t('error.taskIdRequired'));
+      }
+      const { open } = await this.loadOpenWorkflows();
+      await this.pauseAll(open);
+      const now = this.dependencies.clock.nowIso();
+      await this.dependencies.repository.save(
+        createSession({ id: this.dependencies.idGenerator.next(), taskId: trimmedTaskId, now, status: 'active' }),
+      );
+      await this.publishFresh();
+    });
+  }
+
+  /** Makes the workflow the selected one; every other open workflow is paused. */
+  selectWorkflow(workflowId: string): Promise<void> {
+    return this.queue.run(async () => {
+      const { open } = await this.loadOpenWorkflows();
+      const target = open.find((candidate) => candidate.stored.session.id === workflowId);
+      if (!target) {
+        throw new WorkflowError(t('error.workflowNotFound'));
+      }
+      await this.pauseAll(open.filter((candidate) => candidate !== target));
+      if (target.stored.session.status !== 'active') {
+        await this.dependencies.repository.save(
+          withStatus(target.stored.session, 'active', this.dependencies.clock.nowIso()),
+        );
+      }
+      await this.publishFresh();
     });
   }
 
   captureAnalysis(): Promise<CaptureAnalysisResult> {
-    return this.mutate(async (transcript, stored) => {
+    return this.mutateWithChat(async (transcript, stored) => {
       const planModePattern = compilePlanModePattern(this.dependencies.settings().planModeNamePattern);
       let extracted = extractAnalysis(transcript, planModePattern);
       const usedFallback = extracted === undefined;
       extracted ??= extractAnalysisFromLastTurn(transcript);
       if (!extracted) {
-        throw new WorkflowError('Nessuna risposta completa trovata nella chat Copilot corrente.');
+        throw new WorkflowError(t('error.noCompleteResponse'));
       }
-      const updated = await this.saveAnalysis(transcript, stored, extracted, 'manual');
+      const updated = await this.saveAnalysis(transcript, stored.session, extracted, 'manual');
       return { stored: updated, result: { usedFallback } };
     });
   }
 
   startReview(): Promise<void> {
-    return this.mutate(async (transcript, stored) => {
-      const analysis = stored?.session.analysis;
-      if (!stored || !analysis) {
+    return this.mutate(async (stored) => {
+      const analysis = stored.session.analysis;
+      if (!analysis) {
         throw new WorkflowError(t('error.captureAnalysisFirst'));
       }
       const { maxDiffCharacters, outputFolder } = this.dependencies.settings();
@@ -118,13 +159,10 @@ export class WorkflowService {
 
   /** Manual fallback of the automatic review capture: uses the last complete answer of the chat. */
   captureLastResponseAsReview(): Promise<void> {
-    return this.mutate(async (transcript, stored) => {
-      if (!stored) {
-        throw new WorkflowError('Avvia prima una review AI.');
-      }
+    return this.mutateWithChat(async (transcript, stored) => {
       const lastTurn = [...transcript.turns].reverse().find((turn) => turn.isComplete && !turn.isCanceled && turn.responseText.trim() !== '');
       if (!lastTurn) {
-        throw new WorkflowError('Nessuna risposta completa trovata nella chat Copilot corrente.');
+        throw new WorkflowError(t('error.noCompleteResponse'));
       }
       const pendingReview = findPendingReviews(stored.session).at(-1);
       let session = stored.session;
@@ -138,10 +176,9 @@ export class WorkflowService {
   }
 
   startStyleCheck(): Promise<void> {
-    return this.mutate(async (transcript, stored) => {
+    return this.mutate(async (stored) => {
       await this.dependencies.chatLauncher.open(buildStyleCheckPrompt(), 'ask');
-      const session = stored?.session ?? this.newSession(transcript);
-      const saved = await this.dependencies.repository.save(withStyleCheck(session, this.dependencies.clock.nowIso()));
+      const saved = await this.dependencies.repository.save(withStyleCheck(stored.session, this.dependencies.clock.nowIso()));
       return { stored: saved, result: undefined };
     });
   }
@@ -159,18 +196,13 @@ export class WorkflowService {
   }
 
   stageSessionFile(): Promise<void> {
-    return this.queue.run(async () => {
-      const transcript = await this.dependencies.transcriptSource.readLatest();
-      const stored = transcript ? await this.dependencies.repository.findByChatSessionId(transcript.sessionId) : undefined;
-      if (!stored) {
-        throw new WorkflowError(t('error.noSessionFileToStage'));
-      }
+    return this.mutate(async (stored) => {
       const readiness = evaluateCommitReadiness(stored.session);
       if (!readiness.isReady) {
-        throw new WorkflowError(`Workflow incompleto:\n- ${readiness.missingRequirements.join('\n- ')}`);
+        throw new WorkflowError(`${t('error.workflowIncomplete')}\n- ${readiness.missingRequirements.join('\n- ')}`);
       }
       await this.dependencies.git.stage(stored.filePath);
-      this.publish(await this.buildState(transcript, stored));
+      return { stored, result: undefined };
     });
   }
 
@@ -179,56 +211,72 @@ export class WorkflowService {
   }
 
   private updateSession(update: (session: WorkflowSession, now: string) => WorkflowSession): Promise<void> {
-    return this.mutate(async (transcript, stored) => {
-      const session = stored?.session ?? this.newSession(transcript);
-      const saved = await this.dependencies.repository.save(update(session, this.dependencies.clock.nowIso()));
+    return this.mutate(async (stored) => {
+      const saved = await this.dependencies.repository.save(update(stored.session, this.dependencies.clock.nowIso()));
       return { stored: saved, result: undefined };
     });
   }
 
   private async mutate<T>(
-    operation: (transcript: ChatTranscript, stored: StoredSession | undefined) => Promise<{ stored: StoredSession; result: T }>,
+    operation: (stored: StoredSession) => Promise<{ stored: StoredSession; result: T }>,
   ): Promise<T> {
     return this.queue.run(async () => {
-      const transcript = await this.dependencies.transcriptSource.readLatest();
-      if (!transcript) {
-        throw new WorkflowError(t('error.noChat'));
+      const selected = (await this.loadOpenWorkflows()).selected;
+      if (!selected) {
+        throw new WorkflowError(t('error.noActiveWorkflow'));
       }
-      const stored = await this.dependencies.repository.findByChatSessionId(transcript.sessionId);
-      const outcome = await operation(transcript, stored);
-      this.publish(await this.buildState(transcript, outcome.stored));
+      const outcome = await operation(selected.stored);
+      await this.publishFresh();
       return outcome.result;
     });
   }
 
-  private async applyAutomaticCaptures(transcript: ChatTranscript, initial: StoredSession | undefined): Promise<StoredSession | undefined> {
-    let stored = initial;
+  private mutateWithChat<T>(
+    operation: (transcript: ChatTranscript, stored: StoredSession) => Promise<{ stored: StoredSession; result: T }>,
+  ): Promise<T> {
+    return this.mutate(async (stored) => {
+      const transcript = await this.dependencies.transcriptSource.readLatest();
+      if (!transcript) {
+        throw new WorkflowError(t('error.noChat'));
+      }
+      return operation(transcript, stored);
+    });
+  }
 
-    if (stored) {
-      let session = stored.session;
-      for (const review of findPendingReviews(session)) {
-        const turn = transcript.turns.find((candidate) => containsReviewMarker(candidate.userText, review.id));
-        if (turn && turn.isComplete && !turn.isCanceled && turn.responseText.trim() !== '') {
-          session = this.captureReview(session, review.id, turn.responseText, 'automatic');
-        }
+  private async applyAutomaticCaptures(transcript: ChatTranscript, initial: WorkflowSession): Promise<void> {
+    let session = initial;
+
+    for (const review of findPendingReviews(session)) {
+      const turn = transcript.turns.find((candidate) => containsReviewMarker(candidate.userText, review.id));
+      if (turn && turn.isComplete && !turn.isCanceled && turn.responseText.trim() !== '') {
+        session = this.captureReview(session, review.id, turn.responseText, 'automatic');
       }
-      if (session !== stored.session) {
-        stored = await this.dependencies.repository.save(session);
-      }
+    }
+    if (session !== initial) {
+      await this.dependencies.repository.save(session);
     }
 
     const settings = this.dependencies.settings();
-    if (settings.isAutoCaptureEnabled) {
-      const planModePattern = compilePlanModePattern(settings.planModeNamePattern);
-      const implementationStartIndex = findImplementationStartIndex(transcript, planModePattern);
-      const extracted =
-        implementationStartIndex === undefined ? undefined : extractAnalysis(transcript, planModePattern, implementationStartIndex);
-      if (extracted && stored?.session.analysis?.sourceRequestId !== extracted.sourceRequestId) {
-        stored = await this.saveAnalysis(transcript, stored, extracted, 'automatic');
-        this.dependencies.logger.info(`Analysis captured automatically (request ${extracted.sourceRequestId}).`);
-      }
+    if (!settings.isAutoCaptureEnabled || !(await this.canUseChat(session, transcript.sessionId))) {
+      return;
     }
-    return stored;
+    const planModePattern = compilePlanModePattern(settings.planModeNamePattern);
+    const implementationStartIndex = findImplementationStartIndex(transcript, planModePattern);
+    const extracted =
+      implementationStartIndex === undefined ? undefined : extractAnalysis(transcript, planModePattern, implementationStartIndex);
+    if (extracted && session.analysis?.sourceRequestId !== extracted.sourceRequestId) {
+      await this.saveAnalysis(transcript, session, extracted, 'automatic');
+      this.dependencies.logger.info(`Analysis captured automatically (request ${extracted.sourceRequestId}).`);
+    }
+  }
+
+  /** A chat feeds a workflow only if it is bound to it, or if it is not bound to any workflow yet. */
+  private async canUseChat(session: WorkflowSession, chatSessionId: string): Promise<boolean> {
+    if (session.chatSessionId !== undefined) {
+      return session.chatSessionId === chatSessionId;
+    }
+    const all = await this.dependencies.repository.listAll();
+    return !all.some((candidate) => candidate.session.chatSessionId === chatSessionId);
   }
 
   private captureReview(session: WorkflowSession, reviewId: string, output: string, trigger: CaptureTrigger): WorkflowSession {
@@ -245,45 +293,59 @@ export class WorkflowService {
 
   private saveAnalysis(
     transcript: ChatTranscript,
-    stored: StoredSession | undefined,
+    session: WorkflowSession,
     extracted: ExtractedAnalysis,
     trigger: CaptureTrigger,
   ): Promise<StoredSession> {
-    const session = stored?.session ?? this.newSession(transcript);
     return this.dependencies.repository.save(
-      withAnalysis(session, { ...extracted, capturedAt: this.dependencies.clock.nowIso(), trigger }),
+      withAnalysis({ ...session, chatSessionId: transcript.sessionId }, { ...extracted, capturedAt: this.dependencies.clock.nowIso(), trigger }),
     );
   }
 
-  private newSession(transcript: ChatTranscript): WorkflowSession {
-    return createSession({
-      id: this.dependencies.idGenerator.next(),
-      chatSessionId: transcript.sessionId,
-      now: this.dependencies.clock.nowIso(),
-    });
+  /** Open = not committed yet. The selected workflow is the active one (most recently updated if several). */
+  private async loadOpenWorkflows(): Promise<{ open: OpenWorkflow[]; selected: OpenWorkflow | undefined }> {
+    const all = await this.dependencies.repository.listAll();
+    const withState = await Promise.all(
+      all.map(async (stored): Promise<OpenWorkflow> => ({ stored, fileState: await this.readFileStateSafely(stored.filePath) })),
+    );
+    const open = withState.filter((workflow) => workflow.fileState !== 'committed');
+    const selected = open
+      .filter((workflow) => workflow.stored.session.status === 'active')
+      .sort((a, b) => b.stored.session.updatedAt.localeCompare(a.stored.session.updatedAt))[0];
+    return { open, selected };
   }
 
-  private async buildState(transcript: ChatTranscript | undefined, stored: StoredSession | undefined): Promise<WorkflowViewState> {
+  private async pauseAll(workflows: OpenWorkflow[]): Promise<void> {
+    for (const { stored } of workflows) {
+      if (stored.session.status === 'active') {
+        await this.dependencies.repository.save(withStatus(stored.session, 'paused', this.dependencies.clock.nowIso()));
+      }
+    }
+  }
+
+  private async publishFresh(): Promise<void> {
+    const { open, selected } = await this.loadOpenWorkflows();
+    this.publish(this.buildState(open, selected));
+  }
+
+  private buildState(open: OpenWorkflow[], selected: OpenWorkflow | undefined): WorkflowViewState {
     const isAutoCaptureEnabled = this.dependencies.settings().isAutoCaptureEnabled;
-    if (!transcript) {
-      return { ...EMPTY_VIEW_STATE, isAutoCaptureEnabled };
+    const workflows = open.map(({ stored }): WorkflowSummary => ({
+      id: stored.session.id,
+      taskId: stored.session.taskId,
+      status: stored.session.id === selected?.stored.session.id ? 'active' : 'paused',
+      createdAt: stored.session.createdAt,
+    }));
+    if (!selected) {
+      return { ...EMPTY_VIEW_STATE, isAutoCaptureEnabled, workflows };
     }
-    if (!stored) {
-      const blankSession = this.newSession(transcript);
-      return {
-        ...EMPTY_VIEW_STATE,
-        hasChatSession: true,
-        isAutoCaptureEnabled,
-        steps: buildSteps(blankSession, 'unknown'),
-        missingRequirements: evaluateCommitReadiness(blankSession).missingRequirements,
-      };
-    }
-    const { session, filePath } = stored;
-    const fileState = await this.readFileStateSafely(filePath);
+    const { session, filePath } = selected.stored;
+    const { fileState } = selected;
     const readiness = evaluateCommitReadiness(session);
     const capturedReviews = session.reviews.filter((review) => review.status === 'captured');
     return {
-      hasChatSession: true,
+      workflows,
+      selectedWorkflowId: session.id,
       isAutoCaptureEnabled,
       sessionFilePath: filePath,
       fileState,
@@ -298,7 +360,7 @@ export class WorkflowService {
       manualTests: { ...session.manualTests },
       finalNotes: session.finalNotes,
       missingRequirements: readiness.missingRequirements,
-      canStage: readiness.isReady && fileState !== 'staged' && fileState !== 'committed',
+      canStage: readiness.isReady && fileState !== 'staged',
     };
   }
 

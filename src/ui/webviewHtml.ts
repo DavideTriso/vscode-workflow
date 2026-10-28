@@ -74,7 +74,15 @@ export function renderWebviewHtml(webview: vscode.Webview, extensionUri: vscode.
   <link rel="stylesheet" href="${styleUri}">
 </head>
 <body>
-  <p class="notice" id="noChatNotice">${t('view.noChat')}</p>
+  <section class="workflows">
+    <h2>${t('workflow.listTitle')}</h2>
+    <div class="start-row">
+      <input type="text" id="taskId" placeholder="${t('workflow.taskIdPlaceholder')}" aria-label="${t('workflow.taskIdLabel')}">
+      ${button('startWorkflow', t('workflow.startButton'))}
+    </div>
+    <ul class="workflow-list" id="workflowList"></ul>
+    <p class="notice" id="noWorkflowNotice">${t('workflow.noneOpen')}</p>
+  </section>
   <div id="content" hidden>
     <p class="status" id="sessionFile"></p>
     ${steps}

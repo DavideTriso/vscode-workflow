@@ -38,6 +38,52 @@ const buttons = {
   openSourceControl: bindCommand('openSourceControl', 'openSourceControl'),
 };
 
+const taskIdInput = element<HTMLInputElement>('taskId');
+const startWorkflowButton = element<HTMLButtonElement>('startWorkflow');
+
+function startWorkflow(): void {
+  const taskId = taskIdInput.value.trim();
+  if (taskId === '') {
+    return;
+  }
+  vscode.postMessage({ type: 'startWorkflow', taskId });
+  taskIdInput.value = '';
+  startWorkflowButton.disabled = true;
+}
+
+taskIdInput.addEventListener('input', () => {
+  startWorkflowButton.disabled = taskIdInput.value.trim() === '';
+});
+taskIdInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    startWorkflow();
+  }
+});
+startWorkflowButton.addEventListener('click', startWorkflow);
+startWorkflowButton.disabled = true;
+
+function renderWorkflowList(state: WorkflowViewState): void {
+  element('noWorkflowNotice').hidden = state.workflows.length > 0;
+  element('workflowList').replaceChildren(
+    ...state.workflows.map((workflow) => {
+      const item = document.createElement('li');
+      const choice = document.createElement('button');
+      const isSelected = workflow.id === state.selectedWorkflowId;
+      choice.className = `workflow-choice${isSelected ? ' selected' : ''}`;
+      choice.setAttribute('aria-pressed', String(isSelected));
+      choice.title = formatDate(workflow.createdAt);
+      choice.textContent = `${workflow.taskId} · ${workflow.status === 'active' ? t('workflow.statusActive') : t('workflow.statusPaused')}`;
+      choice.addEventListener('click', () => {
+        if (!isSelected) {
+          vscode.postMessage({ type: 'selectWorkflow', workflowId: workflow.id });
+        }
+      });
+      item.append(choice);
+      return item;
+    }),
+  );
+}
+
 const fields = {
   automatedExecuted: element<HTMLInputElement>('automatedExecuted'),
   automatedNotes: element<HTMLTextAreaElement>('automatedNotes'),
@@ -90,13 +136,14 @@ function setText(id: string, text: string): void {
 }
 
 function render(state: WorkflowViewState): void {
-  element('noChatNotice').hidden = state.hasChatSession;
-  element('content').hidden = !state.hasChatSession;
-  if (!state.hasChatSession) {
+  renderWorkflowList(state);
+  const selected = state.workflows.find((workflow) => workflow.id === state.selectedWorkflowId);
+  element('content').hidden = !selected;
+  if (!selected) {
     return;
   }
 
-  setText('sessionFile', state.sessionFilePath ? t('view.sessionFile', state.sessionFilePath) : t('view.sessionFileMissing'));
+  setText('sessionFile', `${selected.taskId} — ${t('view.sessionFile', state.sessionFilePath ?? '')}`);
   element('autoCaptureHint').textContent = state.isAutoCaptureEnabled
     ? t('analysis.autoCaptureOn')
     : t('analysis.autoCaptureOff');
