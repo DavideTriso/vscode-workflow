@@ -1,0 +1,9 @@
+services:
+  dev:
+    image: node:22-bookworm
+    working_dir: /workspace
+    init: true
+    volumes:
+      - .:/workspace
+      - ./node_modules:/workspace/node_modules
+    command: sh -c "npm ci && exec sleep infinity"

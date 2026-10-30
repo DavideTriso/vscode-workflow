@@ -1,121 +1,54 @@
 {
-  "name": "copilot-workflow-guide",
-  "displayName": "Copilot Workflow Guide",
-  "description": "%extension.description%",
-  "version": "0.1.0",
-  "publisher": "davidetriso",
-  "license": "MIT",
-  "private": true,
-  "engines": {
-    "vscode": "^1.105.0"
-  },
-  "categories": [
-    "Other",
-    "AI"
-  ],
-  "extensionDependencies": [
-    "GitHub.copilot-chat"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "viewsContainers": {
-      "secondarySidebar": [
-        {
-          "id": "copilotWorkflow",
-          "title": "Workflow",
-          "icon": "media/workflow.svg"
-        }
-      ]
+    "name": "vscode-extension-starter",
+    "displayName": "VS Code Extension Starter",
+    "description": "A minimal VS Code extension starter.",
+    "version": "0.1.0",
+    "publisher": "davidetriso",
+    "license": "MIT",
+    "private": true,
+    "engines": {
+        "vscode": "^1.105.0"
     },
-    "views": {
-      "copilotWorkflow": [
-        {
-          "type": "webview",
-          "id": "copilotWorkflow.workflowView",
-          "name": "Workflow"
-        }
-      ]
-    },
-    "commands": [
-      {
-        "command": "copilotWorkflow.captureAnalysis",
-        "title": "%command.captureAnalysis%",
-        "category": "Copilot Workflow"
-      },
-      {
-        "command": "copilotWorkflow.startReview",
-        "title": "%command.startReview%",
-        "category": "Copilot Workflow"
-      },
-      {
-        "command": "copilotWorkflow.captureReviewResponse",
-        "title": "%command.captureReviewResponse%",
-        "category": "Copilot Workflow"
-      },
-      {
-        "command": "copilotWorkflow.startStyleCheck",
-        "title": "%command.startStyleCheck%",
-        "category": "Copilot Workflow"
-      },
-      {
-        "command": "copilotWorkflow.stageSessionFile",
-        "title": "%command.stageSessionFile%",
-        "category": "Copilot Workflow"
-      },
-      {
-        "command": "copilotWorkflow.installCommitGuard",
-        "title": "%command.installCommitGuard%",
-        "category": "Copilot Workflow"
-      },
-      {
-        "command": "copilotWorkflow.openSessionFile",
-        "title": "%command.openSessionFile%",
-        "category": "Copilot Workflow"
-      }
+    "categories": [
+        "Other",
+        "AI"
     ],
-    "configuration": {
-      "title": "Copilot Workflow Guide",
-      "properties": {
-        "copilotWorkflow.outputFolder": {
-          "type": "string",
-          "default": ".copilot-workflow",
-          "markdownDescription": "%config.outputFolder%"
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "starter",
+                    "title": "Starter",
+                    "icon": "media/sidebar.svg"
+                }
+            ]
         },
-        "copilotWorkflow.autoCaptureAnalysis": {
-          "type": "boolean",
-          "default": true,
-          "markdownDescription": "%config.autoCaptureAnalysis%"
-        },
-        "copilotWorkflow.planModeNamePattern": {
-          "type": "string",
-          "default": "plan",
-          "markdownDescription": "%config.planModeNamePattern%"
-        },
-        "copilotWorkflow.maxDiffCharacters": {
-          "type": "number",
-          "default": 80000,
-          "minimum": 1000,
-          "markdownDescription": "%config.maxDiffCharacters%"
+        "views": {
+            "starter": [
+                {
+                    "id": "starter.sidebar",
+                    "name": "Starter"
+                }
+            ]
         }
-      }
+    },
+    "scripts": {
+        "build": "node esbuild.mjs",
+        "watch": "node esbuild.mjs --watch",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "test": "vitest run --passWithNoTests",
+        "package": "npm run typecheck && npm test && node esbuild.mjs --production && vsce package"
+    },
+    "devDependencies": {
+        "@types/node": "^22.0.0",
+        "@types/vscode": "^1.105.0",
+        "@vscode/vsce": "^3.0.0",
+        "esbuild": "^0.25.0",
+        "typescript": "^5.9.0",
+        "vitest": "^3.2.0"
     }
-  },
-  "scripts": {
-    "build": "node esbuild.mjs",
-    "watch": "node esbuild.mjs --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit",
-    "test": "vitest run",
-    "package": "npm run typecheck && npm test && node esbuild.mjs --production && vsce package"
-  },
-  "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/vscode": "^1.105.0",
-    "@vscode/vsce": "^3.0.0",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.9.0",
-    "vitest": "^3.2.0"
-  }
 }
