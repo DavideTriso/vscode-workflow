@@ -20,9 +20,20 @@ const extensionOptions = {
     external: ['vscode'],
 };
 
+const webviewOptions = {
+    ...sharedOptions,
+    entryPoints: ['src/ui/tasks/main.ts'],
+    outfile: 'dist/tasksView.js',
+    platform: 'browser',
+    format: 'iife',
+    target: 'es2022',
+};
+
+const configurations = [extensionOptions, webviewOptions];
+
 if (isWatch) {
-    const context = await esbuild.context(extensionOptions);
-    await context.watch();
+    const contexts = await Promise.all(configurations.map((options) => esbuild.context(options)));
+    await Promise.all(contexts.map((context) => context.watch()));
 } else {
-    await esbuild.build(extensionOptions);
+    await Promise.all(configurations.map((options) => esbuild.build(options)));
 }

@@ -21,17 +21,35 @@
         "viewsContainers": {
             "activitybar": [
                 {
-                    "id": "starter",
-                    "title": "Starter",
+                    "id": "tasks",
+                    "title": "Tasks",
                     "icon": "media/sidebar.svg"
                 }
             ]
         },
         "views": {
-            "starter": [
+            "tasks": [
                 {
-                    "id": "starter.sidebar",
-                    "name": "Starter"
+                    "type": "webview",
+                    "id": "tasks.list",
+                    "name": "Tasks"
+                }
+            ]
+        },
+        "commands": [
+            {
+                "command": "tasks.addTask",
+                "title": "Add Task",
+                "category": "Tasks",
+                "icon": "$(add)"
+            }
+        ],
+        "menus": {
+            "view/title": [
+                {
+                    "command": "tasks.addTask",
+                    "when": "view == tasks.list && tasks.repositoryAvailable",
+                    "group": "navigation"
                 }
             ]
         }
@@ -39,7 +57,7 @@
     "scripts": {
         "build": "node esbuild.mjs",
         "watch": "node esbuild.mjs --watch",
-        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit",
         "test": "vitest run --passWithNoTests",
         "package": "npm run typecheck && npm test && node esbuild.mjs --production && vsce package"
     },

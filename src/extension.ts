@@ -1,15 +1,16 @@
 import * as vscode from 'vscode';
-
-const emptySidebarProvider: vscode.TreeDataProvider<vscode.TreeItem> = {
-    getTreeItem: (item) => item,
-    getChildren: () => [],
-};
+import { TasksViewProvider } from './tasks/tasksViewProvider';
 
 export function activate(context: vscode.ExtensionContext): void {
-    console.log('Extension Starter is active.');
+    const tasksViewProvider = new TasksViewProvider(context.extensionUri);
     context.subscriptions.push(
-        vscode.window.registerTreeDataProvider('starter.sidebar', emptySidebarProvider),
+        tasksViewProvider,
+        vscode.window.registerWebviewViewProvider(TasksViewProvider.viewType, tasksViewProvider, {
+            webviewOptions: { retainContextWhenHidden: true },
+        }),
+        vscode.commands.registerCommand('tasks.addTask', () => tasksViewProvider.openCreateForm()),
     );
+    void vscode.commands.executeCommand('setContext', 'tasks.repositoryAvailable', false);
 }
 
 export function deactivate(): void { }
