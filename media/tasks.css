@@ -18,6 +18,105 @@ body {
     border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
 }
 
+#selected-task-panel {
+    margin-bottom: 12px;
+    padding: 4px 2px 12px;
+    border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+#selected-task-name {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: 1.05em;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#selected-task-header {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+#selected-task-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 2px;
+}
+
+#selected-task-actions .task-action {
+    width: 26px;
+    height: 26px;
+    opacity: 1;
+}
+
+#selected-task-actions .task-action:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.time-tracking-toggle.is-playing {
+    color: var(--vscode-debugIcon-startForeground, #89d185);
+}
+
+.time-tracking-toggle.is-paused {
+    color: var(--vscode-editorWarning-foreground, #cca700);
+}
+
+.task-status-toggle.is-completion {
+    color: var(--vscode-testing-iconPassed, #73c991);
+}
+
+#selected-task-actions .task-action:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+#task-action-error {
+    margin: 0 0 8px;
+    color: var(--vscode-errorForeground);
+    font-size: 0.9em;
+}
+
+#selected-task-description {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+#selected-task-description.is-collapsed {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+#selected-task-description.is-expanded {
+    display: block;
+}
+
+#description-toggle {
+    margin-top: 6px;
+    padding: 0;
+    color: var(--vscode-textLink-foreground);
+    background: transparent;
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+#description-toggle:hover {
+    color: var(--vscode-textLink-activeForeground);
+}
+
+#description-toggle:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
 #create-task-heading {
     margin: 0 0 10px;
     font-size: 1em;
@@ -107,9 +206,17 @@ body {
     cursor: default;
 }
 
+.task-search-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 #task-search {
     box-sizing: border-box;
-    width: 100%;
+    width: auto;
+    min-width: 0;
+    flex: 1;
     min-height: 28px;
     padding: 4px 7px;
     color: var(--vscode-input-foreground);
@@ -124,15 +231,139 @@ body {
     outline-offset: -1px;
 }
 
+.creator-filter-toggle {
+    display: grid;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    padding: 5px;
+    place-items: center;
+    color: var(--vscode-icon-foreground);
+    background: transparent;
+    border: 0;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.creator-filter-toggle.is-active {
+    color: var(--vscode-textLink-foreground);
+}
+
+.creator-filter-toggle:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.creator-filter-toggle:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.creator-filter-toggle svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+}
+
 #task-list {
     margin: 8px 0 0;
     padding: 0;
     list-style: none;
 }
 
+.tasks-accordion-header {
+    display: flex;
+    min-height: 28px;
+    align-items: center;
+    gap: 4px;
+}
+
+#tasks-accordion-toggle {
+    display: flex;
+    min-width: 0;
+    min-height: 28px;
+    flex: 1;
+    align-items: center;
+    gap: 5px;
+    padding: 0 4px;
+    color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-foreground));
+    background: transparent;
+    border: 0;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+#tasks-accordion-toggle:hover {
+    background: var(--vscode-list-hoverBackground);
+}
+
+#tasks-accordion-toggle:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+#tasks-accordion-toggle svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+    transition: transform 100ms ease-out;
+}
+
+#tasks-accordion-toggle[aria-expanded="false"] svg {
+    transform: rotate(-90deg);
+}
+
+.accordion-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 2px;
+}
+
+.accordion-icon-button {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    padding: 4px;
+    place-items: center;
+    color: var(--vscode-icon-foreground);
+    background: transparent;
+    border: 0;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.accordion-icon-button:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.accordion-icon-button:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.accordion-icon-button svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+}
+
+#tasks-accordion-content {
+    padding-top: 6px;
+}
+
 .task-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 26px;
+    grid-template-columns: minmax(0, 1fr) 26px 26px 26px;
     align-items: center;
     min-height: 34px;
     border-radius: 2px;
@@ -140,6 +371,27 @@ body {
 
 .task-row:hover {
     background: var(--vscode-list-hoverBackground);
+}
+
+.task-row:has(.task-select[aria-current="true"]) {
+    background: var(--vscode-list-activeSelectionBackground);
+}
+
+.task-select {
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.task-select:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
 }
 
 .task-details {
@@ -154,12 +406,38 @@ body {
     overflow-wrap: anywhere;
 }
 
+.task-name-line {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.in-progress-icon {
+    display: inline-flex;
+    width: 14px;
+    height: 18px;
+    flex: 0 0 14px;
+    align-items: center;
+    color: var(--vscode-progressBar-background, var(--vscode-textLink-foreground));
+}
+
+.in-progress-icon svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.5;
+}
+
 .task-date {
     color: var(--vscode-descriptionForeground);
     font-size: 0.9em;
 }
 
-.delete-task {
+.task-action {
     display: grid;
     width: 24px;
     height: 24px;
@@ -174,20 +452,33 @@ body {
 }
 
 .task-row:hover .delete-task,
-.delete-task:focus-visible {
+.task-action:focus-visible {
     opacity: 1;
+}
+
+.task-row:hover .edit-task,
+.edit-task:focus-visible {
+    opacity: 1;
+}
+
+.task-row:hover .open-task-file,
+.open-task-file:focus-visible {
+    opacity: 1;
+}
+
+.task-action:hover {
+    background: var(--vscode-toolbar-hoverBackground);
 }
 
 .delete-task:hover {
     color: var(--vscode-errorForeground);
-    background: var(--vscode-toolbar-hoverBackground);
 }
 
-.delete-task:focus-visible {
+.task-action:focus-visible {
     outline: 1px solid var(--vscode-focusBorder);
 }
 
-.delete-task svg {
+.task-action svg {
     width: 16px;
     height: 16px;
     fill: none;
@@ -214,7 +505,7 @@ body {
 }
 
 @media (hover: none) {
-    .delete-task {
+    .task-action {
         opacity: 1;
     }
 }

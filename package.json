@@ -35,23 +35,6 @@
                     "name": "Tasks"
                 }
             ]
-        },
-        "commands": [
-            {
-                "command": "tasks.addTask",
-                "title": "Add Task",
-                "category": "Tasks",
-                "icon": "$(add)"
-            }
-        ],
-        "menus": {
-            "view/title": [
-                {
-                    "command": "tasks.addTask",
-                    "when": "view == tasks.list && tasks.repositoryAvailable",
-                    "group": "navigation"
-                }
-            ]
         }
     },
     "scripts": {
