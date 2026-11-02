@@ -29,6 +29,8 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
             <p id="task-action-error" role="alert" hidden></p>
             <p id="selected-task-description" class="is-collapsed"></p>
             <button id="description-toggle" type="button" aria-expanded="false" hidden>Show more</button>
+            <div id="agent-outputs" aria-label="Agent output"></div>
+            <p id="agent-output-error" role="alert" hidden></p>
         </section>
         <section id="task-panel" aria-label="Open tasks" hidden>
             <section id="create-task-panel" aria-labelledby="create-task-heading" hidden>
@@ -82,6 +84,48 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </div>
                     <ul id="task-list" aria-live="polite"></ul>
                     <p id="empty-message" role="status" hidden></p>
+                </div>
+            </section>
+            <section id="quick-reference-panel" aria-label="Agent quick reference">
+                <header class="tasks-accordion-header">
+                    <button id="quick-reference-toggle" class="tasks-accordion-toggle" type="button" aria-expanded="false" aria-controls="quick-reference-content">
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                        <span>Quick Reference</span>
+                    </button>
+                </header>
+                <div id="quick-reference-content" hidden>
+                    <section class="quick-reference-agent">
+                        <h3>Analyze and Plan</h3>
+                        <p>Use to clarify requirements, compare approaches, and save the selected implementation plan and initial TODOs without changing code.</p>
+                    </section>
+                    <section class="quick-reference-agent">
+                        <h3>Implement</h3>
+                        <p>Use to implement the selected work, maintain the task TODOs, and run functional and end-to-end checks.</p>
+                    </section>
+                    <section class="quick-reference-agent">
+                        <h3>Logic Review</h3>
+                        <p>Use to investigate changed behavior and report only confirmed bugs or regressions.</p>
+                        <p class="quick-reference-skills">Skills: <code>logic-review-default</code> validates findings before reporting.</p>
+                    </section>
+                    <section class="quick-reference-agent">
+                        <h3>Code Readability</h3>
+                        <p>Use to review clarity and maintainability and propose focused improvements before editing.</p>
+                        <p class="quick-reference-skills">Skills: <code>code-readability-default</code> guides the review.</p>
+                    </section>
+                    <section class="quick-reference-agent">
+                        <h3>Document</h3>
+                        <p>Use to update repository documentation to reflect verified code and workflow changes.</p>
+                        <p class="quick-reference-skills">Skills: <code>documentation-update-default</code> guides documentation updates.</p>
+                    </section>
+                    <section class="quick-reference-agent">
+                        <h3>Code Comments</h3>
+                        <p>Use for comment review or comment-only improvements; it does not change executable code.</p>
+                        <p class="quick-reference-skills">Skills: <code>code-comment-review</code> reports findings without edits. <code>code-comment-improve</code> applies safe comment-only changes.</p>
+                    </section>
+                    <section class="quick-reference-agent">
+                        <h3>Debug</h3>
+                        <p>Use to reproduce a bug, investigate its root cause, apply a minimal fix when requested, and verify it.</p>
+                    </section>
                 </div>
             </section>
         </section>

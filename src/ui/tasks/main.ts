@@ -1,7 +1,11 @@
 import { filterTasks, validateTaskInput } from '../../tasks/taskModel';
+import { outputAgents } from '../../tasks/taskProtocol';
 import type {
+    AgentOutputGroup,
     CreateTaskInput,
     ExtensionToWebviewMessage,
+    ImplementationTodoItem,
+    ImplementationTodoItemDraft,
     TaskFieldErrors,
     TaskSummary,
     WebviewToExtensionMessage,
@@ -18,12 +22,16 @@ const selectedTaskPanel = document.querySelector<HTMLElement>('#selected-task-pa
 const selectedTaskName = document.querySelector<HTMLHeadingElement>('#selected-task-name');
 const selectedTaskDescription = document.querySelector<HTMLParagraphElement>('#selected-task-description');
 const descriptionToggle = document.querySelector<HTMLButtonElement>('#description-toggle');
+const agentOutputsPanel = document.querySelector<HTMLElement>('#agent-outputs');
+const agentOutputError = document.querySelector<HTMLParagraphElement>('#agent-output-error');
 const timeTrackingToggle = document.querySelector<HTMLButtonElement>('#time-tracking-toggle');
 const taskStatusToggle = document.querySelector<HTMLButtonElement>('#task-status-toggle');
 const taskActionError = document.querySelector<HTMLParagraphElement>('#task-action-error');
 const taskListPanel = document.querySelector<HTMLElement>('#task-list-panel');
 const tasksAccordionToggle = document.querySelector<HTMLButtonElement>('#tasks-accordion-toggle');
 const tasksAccordionContent = document.querySelector<HTMLElement>('#tasks-accordion-content');
+const quickReferenceToggle = document.querySelector<HTMLButtonElement>('#quick-reference-toggle');
+const quickReferenceContent = document.querySelector<HTMLElement>('#quick-reference-content');
 const addTaskButton = document.querySelector<HTMLButtonElement>('#add-task-button');
 const reloadTasksButton = document.querySelector<HTMLButtonElement>('#reload-tasks-button');
 const searchInput = document.querySelector<HTMLInputElement>('#task-search');
@@ -55,11 +63,25 @@ let selectedTask: TaskSummary | undefined;
 let taskActionPending = false;
 let filterByCreator = true;
 let gitUserEmail: string | undefined;
+let outputTaskId: string | undefined;
+let agentOutputs: AgentOutputGroup[] = [];
+const expandedOutputAgents = new Set<string>();
+const selectedOutputFiles = new Map<string, string>();
+const pendingTodoChanges = new Map<string, boolean>();
+let draggedTodoItemId: string | undefined;
+let todoEditorState: { taskId: string; itemId?: string; groupName: string } | undefined;
+const todoIcons = {
+    view: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h9l5 5v13H5zM14 3v6h6M8 14h8M8 17h8"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.8 4.3 4.3-.8L20 7.5 16.5 4 4 16.5zM14.8 5.7l3.5 3.5"/></svg>',
+    remove: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 5v5m4-5v5"/></svg>',
+    add: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>',
+};
 
 if (
     repositoryMessage && taskPanel && selectedTaskPanel && selectedTaskName && selectedTaskDescription && descriptionToggle &&
     timeTrackingToggle && taskStatusToggle && taskActionError &&
-    taskListPanel && tasksAccordionToggle && tasksAccordionContent && addTaskButton && reloadTasksButton &&
+    taskListPanel && tasksAccordionToggle && tasksAccordionContent && quickReferenceToggle && quickReferenceContent &&
+    addTaskButton && reloadTasksButton &&
     searchInput && creatorFilterToggle && taskList && emptyMessage && createTaskPanel &&
     createTaskForm && taskNameInput && taskUrlInput && taskDescriptionInput && createTaskSubmit &&
     cancelCreateTask && createTaskError
@@ -67,6 +89,7 @@ if (
     window.addEventListener('message', (event: MessageEvent<ExtensionToWebviewMessage>) => {
         if (event.data.type === 'repositoryUnavailable') {
             taskPanel.hidden = true;
+            selectedTaskPanel.hidden = true;
             createTaskPanel.hidden = true;
             repositoryMessage.hidden = false;
             return;
@@ -79,6 +102,7 @@ if (
     creatorFilterToggle.addEventListener('click', toggleCreatorFilter);
     taskList.addEventListener('click', handleTaskListClick);
     tasksAccordionToggle.addEventListener('click', toggleTasksAccordion);
+    quickReferenceToggle.addEventListener('click', toggleQuickReferenceAccordion);
     addTaskButton.addEventListener('click', showCreateTaskForm);
     reloadTasksButton.addEventListener('click', () => vscode.postMessage({ type: 'refreshTasks' }));
     descriptionToggle.addEventListener('click', toggleDescription);
@@ -93,6 +117,53 @@ if (
 }
 
 function handleExtensionMessage(message: Exclude<ExtensionToWebviewMessage, { type: 'repositoryUnavailable' }>): void {
+    if (message.type === 'agentOutputs') {
+        if (selectedTask?.id === message.taskId) {
+            resetAgentOutputsForTask(message.taskId);
+            agentOutputs = message.groups;
+            if (agentOutputError) {
+                agentOutputError.textContent = message.error ?? '';
+                agentOutputError.hidden = !message.error;
+            }
+            renderAgentOutputs();
+        }
+        return;
+    }
+    if (message.type === 'todoStatusResult') {
+        if (selectedTask?.id !== message.taskId) {
+            return;
+        }
+        const previousChecked = pendingTodoChanges.get(message.itemId);
+        pendingTodoChanges.delete(message.itemId);
+        const checkbox = Array.from(document.querySelectorAll<HTMLInputElement>('.implementation-todo-checkbox'))
+            .find((candidate) => candidate.dataset.todoId === message.itemId);
+        if (checkbox) {
+            checkbox.disabled = false;
+            checkbox.checked = message.error ? previousChecked ?? !message.done : message.done;
+        }
+        if (agentOutputError) {
+            agentOutputError.textContent = message.error ?? '';
+            agentOutputError.hidden = !message.error;
+        }
+        return;
+    }
+    if (message.type === 'todoMutationResult') {
+        if (selectedTask?.id !== message.taskId) {
+            return;
+        }
+        if (!message.error) {
+            todoEditorState = undefined;
+            renderAgentOutputs(true);
+        }
+        document.querySelectorAll<HTMLButtonElement>('.implementation-todo-editor button').forEach((button) => {
+            button.disabled = false;
+        });
+        if (agentOutputError) {
+            agentOutputError.textContent = message.error ?? '';
+            agentOutputError.hidden = !message.error;
+        }
+        return;
+    }
     if (message.type === 'openEditForm') {
         showEditTaskForm(message.task);
         return;
@@ -313,7 +384,6 @@ function selectTask(taskId: string): void {
     if (!selectedTask) {
         return;
     }
-    setTasksAccordionExpanded(false);
     renderTasks();
     renderSelectedTask();
     vscode.postMessage({ type: 'selectTask', taskId });
@@ -325,6 +395,8 @@ function renderSelectedTask(): void {
     }
 
     selectedTaskPanel.hidden = !selectedTask;
+    resetAgentOutputsForTask(selectedTask?.id);
+    renderAgentOutputs();
     if (!selectedTask) {
         return;
     }
@@ -343,6 +415,443 @@ function renderSelectedTask(): void {
         }
         descriptionToggle.hidden = selectedTaskDescription.scrollHeight <= selectedTaskDescription.clientHeight + 1;
     });
+}
+
+function resetAgentOutputsForTask(taskId: string | undefined): void {
+    if (outputTaskId === taskId) {
+        return;
+    }
+    outputTaskId = taskId;
+    agentOutputs = [];
+    expandedOutputAgents.clear();
+    selectedOutputFiles.clear();
+    pendingTodoChanges.clear();
+    todoEditorState = undefined;
+    if (agentOutputError) {
+        agentOutputError.hidden = true;
+        agentOutputError.textContent = '';
+    }
+}
+
+function renderAgentOutputs(force = false): void {
+    if (!agentOutputsPanel) {
+        return;
+    }
+    const counter = agentOutputsPanel.querySelector<HTMLElement>('.implementation-todo-counter');
+    if (counter) {
+        counter.textContent = formatTodoCounter(agentOutputs.find((group) => group.id === 'implement'));
+    }
+    if (!force && todoEditorState && agentOutputsPanel.querySelector('.implementation-todo-editor')) {
+        return;
+    }
+    const groups = outputAgents.map((agent) => agentOutputs.find((group) => group.id === agent.id)
+        ?? { id: agent.id, name: agent.name, files: [] });
+    agentOutputsPanel.replaceChildren(...groups.map(createAgentOutputAccordion));
+}
+
+function createAgentOutputAccordion(group: AgentOutputGroup): HTMLElement {
+    const section = document.createElement('section');
+    section.className = 'agent-output-accordion';
+    const header = document.createElement('header');
+    header.className = 'agent-output-header';
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'agent-output-toggle';
+    toggle.disabled = group.files.length === 0 && group.id !== 'implement';
+    toggle.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
+    const title = document.createElement('span');
+    title.textContent = group.name;
+    toggle.append(title);
+    if (group.id === 'implement') {
+        const counter = document.createElement('span');
+        counter.className = 'implementation-todo-counter';
+        counter.textContent = formatTodoCounter(group);
+        counter.title = 'Completed / total TODOs';
+        toggle.append(counter);
+    }
+    const content = document.createElement('div');
+    content.id = `agent-output-${group.id}`;
+    content.className = 'agent-output-content';
+    toggle.setAttribute('aria-controls', content.id);
+    const expanded = !toggle.disabled && expandedOutputAgents.has(group.id);
+    toggle.setAttribute('aria-expanded', String(expanded));
+    content.hidden = !expanded;
+    toggle.addEventListener('click', () => {
+        const nextExpanded = content.hidden;
+        content.hidden = !nextExpanded;
+        toggle.setAttribute('aria-expanded', String(nextExpanded));
+        if (nextExpanded) {
+            expandedOutputAgents.add(group.id);
+        } else {
+            expandedOutputAgents.delete(group.id);
+        }
+    });
+
+    const viewButton = document.createElement('button');
+    viewButton.type = 'button';
+    viewButton.className = 'agent-output-view task-action';
+    viewButton.innerHTML = todoIcons.view;
+    viewButton.title = `Preview ${group.name} Markdown`;
+    viewButton.setAttribute('aria-label', viewButton.title);
+    viewButton.disabled = group.files.length === 0;
+    viewButton.hidden = group.files.length === 0;
+    const selectedFile = group.files.find((file) => file.fileName === selectedOutputFiles.get(group.id)) ?? group.files[0];
+    if (selectedFile) {
+        selectedOutputFiles.set(group.id, selectedFile.fileName);
+    }
+    viewButton.addEventListener('click', () => {
+        const fileName = selectedOutputFiles.get(group.id);
+        if (selectedTask && fileName) {
+            vscode.postMessage({ type: 'viewAgentOutput', taskId: selectedTask.id, fileName });
+        }
+    });
+    const summary = document.createElement('p');
+    summary.className = 'agent-output-summary';
+    summary.textContent = selectedFile?.summary || 'No summary available.';
+    const addTodoButton = document.createElement('button');
+    addTodoButton.type = 'button';
+    addTodoButton.className = 'agent-output-add accordion-icon-button';
+    addTodoButton.innerHTML = todoIcons.add;
+    addTodoButton.title = 'Add a user-owned TODO';
+    addTodoButton.setAttribute('aria-label', addTodoButton.title);
+    addTodoButton.hidden = group.id !== 'implement';
+    addTodoButton.addEventListener('click', () => {
+        showTodoEditor(undefined, 'Notes');
+    });
+    if (group.id === 'implement') {
+        if (group.error) {
+            const error = document.createElement('p');
+            error.className = 'agent-output-inline-error';
+            error.textContent = group.error;
+            content.append(error);
+        }
+        for (const todoGroup of group.todoGroups ?? []) {
+            const groupHeading = document.createElement('h3');
+            groupHeading.className = 'implementation-todo-group-heading';
+            groupHeading.textContent = todoGroup.name;
+            const items = document.createElement('ul');
+            items.className = 'implementation-todo-list';
+            items.dataset.todoGroup = todoGroup.name;
+            for (const item of todoGroup.items) {
+                items.append(createImplementationTodoItem(item, todoGroup.name, group.todoGroups ?? []));
+            }
+            items.addEventListener('dragover', (event) => {
+                if (!draggedTodoItemId) {
+                    return;
+                }
+                event.preventDefault();
+                items.classList.add('is-drop-target');
+            });
+            items.addEventListener('dragleave', (event) => {
+                if (!items.contains(event.relatedTarget as Node | null)) {
+                    items.classList.remove('is-drop-target');
+                }
+            });
+            items.addEventListener('drop', (event) => {
+                event.preventDefault();
+                items.classList.remove('is-drop-target');
+                if (draggedTodoItemId) {
+                    reorderTodoItem(draggedTodoItemId, todoGroup.name, undefined, false);
+                }
+            });
+            content.append(groupHeading, items);
+        }
+    }
+    if (group.files.length > 1) {
+        const label = document.createElement('label');
+        const selector = document.createElement('select');
+        selector.id = `agent-output-file-${group.id}`;
+        label.htmlFor = selector.id;
+        label.className = 'visually-hidden';
+        label.textContent = `${group.name} output file`;
+        selector.className = 'agent-output-file';
+        group.files.forEach((file) => {
+            const option = document.createElement('option');
+            option.value = file.fileName;
+            option.textContent = file.fileName;
+            selector.append(option);
+        });
+        selector.value = selectedFile?.fileName ?? '';
+        selector.addEventListener('change', () => {
+            selectedOutputFiles.set(group.id, selector.value);
+            summary.textContent = group.files.find((file) => file.fileName === selector.value)?.summary || 'No summary available.';
+        });
+        content.append(label, selector);
+    }
+    header.append(toggle);
+    if (group.id === 'implement') {
+        header.append(addTodoButton);
+    }
+    header.append(viewButton);
+    if (group.id !== 'implement') {
+        content.prepend(summary);
+    }
+    if (group.id === 'implement' && todoEditorState && todoEditorState.taskId === selectedTask?.id) {
+        const editingItem = group.todoGroups?.flatMap((todoGroup) => todoGroup.items)
+            .find((item) => item.id === todoEditorState?.itemId);
+        content.replaceChildren(createTodoEditor(editingItem, todoEditorState.groupName));
+        content.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+        addTodoButton.hidden = true;
+    }
+    section.append(header, content);
+    return section;
+}
+
+function formatTodoCounter(group: AgentOutputGroup | undefined): string {
+    const items = group?.todoGroups?.flatMap((todoGroup) => todoGroup.items) ?? [];
+    return `${items.filter((item) => item.done).length}/${items.length}`;
+}
+
+function createImplementationTodoItem(
+    item: ImplementationTodoItem,
+    groupName: string,
+    groups: NonNullable<AgentOutputGroup['todoGroups']>,
+): HTMLLIElement {
+    const row = document.createElement('li');
+    row.className = 'implementation-todo-item';
+    row.dataset.todoId = item.id;
+    row.draggable = true;
+    row.addEventListener('dragstart', (event) => {
+        draggedTodoItemId = item.id;
+        row.classList.add('is-dragging');
+        event.dataTransfer?.setData('text/plain', item.id);
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+        }
+    });
+    row.addEventListener('dragend', () => {
+        draggedTodoItemId = undefined;
+        row.classList.remove('is-dragging');
+        document.querySelectorAll('.is-drop-target').forEach((element) => element.classList.remove('is-drop-target'));
+    });
+    row.addEventListener('dragover', (event) => {
+        if (draggedTodoItemId && draggedTodoItemId !== item.id) {
+            event.preventDefault();
+            row.classList.add('is-drop-target');
+        }
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('is-drop-target'));
+    row.addEventListener('drop', (event) => {
+        if (!draggedTodoItemId || draggedTodoItemId === item.id) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const bounds = row.getBoundingClientRect();
+        const after = event.clientY > bounds.top + bounds.height / 2;
+        reorderTodoItem(draggedTodoItemId, groupName, item.id, after);
+        row.classList.remove('is-drop-target');
+    });
+    const label = document.createElement('label');
+    label.className = 'implementation-todo-label';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'implementation-todo-checkbox';
+    checkbox.dataset.todoId = item.id;
+    checkbox.checked = item.done;
+    checkbox.disabled = pendingTodoChanges.has(item.id);
+    checkbox.setAttribute('aria-label', `${item.done ? 'Reopen' : 'Complete'} ${item.title}`);
+    checkbox.addEventListener('change', () => {
+        if (!selectedTask) {
+            checkbox.checked = !checkbox.checked;
+            return;
+        }
+        pendingTodoChanges.set(item.id, !checkbox.checked);
+        checkbox.disabled = true;
+        vscode.postMessage({ type: 'setTodoStatus', taskId: selectedTask.id, itemId: item.id, done: checkbox.checked });
+    });
+    const title = document.createElement('span');
+    title.className = 'implementation-todo-title';
+    title.textContent = item.title;
+    title.title = item.title;
+    label.append(checkbox, title);
+    row.append(label);
+    if (item.alert) {
+        const alert = document.createElement('p');
+        alert.className = 'implementation-todo-alert';
+        alert.textContent = `Alert: ${item.alert}`;
+        row.append(alert);
+    }
+    const actions = document.createElement('div');
+    actions.className = 'implementation-todo-actions';
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.className = 'implementation-todo-edit task-action';
+    editButton.innerHTML = todoIcons.edit;
+    editButton.title = `Edit ${item.title}`;
+    editButton.setAttribute('aria-label', `Edit ${item.title}`);
+    editButton.addEventListener('click', () => {
+        showTodoEditor(item, groupName);
+    });
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'implementation-todo-remove task-action delete-task';
+    removeButton.innerHTML = todoIcons.remove;
+    removeButton.title = `Remove ${item.title}`;
+    removeButton.setAttribute('aria-label', `Remove ${item.title}`);
+    removeButton.addEventListener('click', () => {
+        if (selectedTask) {
+            vscode.postMessage({ type: 'removeTodo', taskId: selectedTask.id, itemId: item.id });
+        }
+    });
+    const viewButton = document.createElement('button');
+    viewButton.type = 'button';
+    viewButton.className = 'implementation-todo-view task-action';
+    viewButton.innerHTML = todoIcons.view;
+    viewButton.title = `View ${item.title}`;
+    viewButton.setAttribute('aria-label', viewButton.title);
+    viewButton.addEventListener('click', () => {
+        if (selectedTask) {
+            vscode.postMessage({ type: 'viewTodo', taskId: selectedTask.id, itemId: item.id });
+        }
+    });
+    actions.append(viewButton, editButton, removeButton);
+    row.append(actions);
+    return row;
+}
+
+function showTodoEditor(item: ImplementationTodoItem | undefined, groupName: string): void {
+    if (!selectedTask) {
+        return;
+    }
+    todoEditorState = { taskId: selectedTask.id, itemId: item?.id, groupName };
+    expandedOutputAgents.add('implement');
+    renderAgentOutputs(true);
+    document.querySelector<HTMLInputElement>('.implementation-todo-editor [name="title"]')?.focus();
+}
+
+function createTodoEditor(item: ImplementationTodoItem | undefined, groupName: string): HTMLFormElement {
+    const form = document.createElement('form');
+    form.className = 'implementation-todo-editor';
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const title = getFormValue(formData, 'title').trim();
+        const group = getFormValue(formData, 'group').trim();
+        if (!selectedTask || title === '' || group === '') {
+            return;
+        }
+        const changes: Partial<ImplementationTodoItemDraft> = {
+            title,
+            source: item?.source ?? 'user-note',
+            sourceRef: item?.sourceRef ?? '',
+            why: getFormValue(formData, 'why'),
+            files: getFormValue(formData, 'files').split('\n').map((file) => file.trim()).filter(Boolean),
+            decisions: getFormValue(formData, 'decisions'),
+            acceptance: getFormValue(formData, 'acceptance'),
+            evidence: getFormValue(formData, 'evidence'),
+            remaining: getFormValue(formData, 'remaining'),
+            alert: getFormValue(formData, 'alert').trim() || null,
+        };
+        if (item) {
+            vscode.postMessage({ type: 'updateTodo', taskId: selectedTask.id, itemId: item.id, group, changes });
+        } else {
+            vscode.postMessage({
+                type: 'createTodo', taskId: selectedTask.id, group, item: {
+                    ...changes,
+                    done: false,
+                    source: 'user-note',
+                    sourceRef: '',
+                    why: changes.why ?? '',
+                    files: changes.files ?? [],
+                    decisions: changes.decisions ?? '',
+                    acceptance: changes.acceptance ?? '',
+                    evidence: changes.evidence ?? '',
+                    remaining: changes.remaining ?? '',
+                    alert: changes.alert ?? null,
+                } as ImplementationTodoItemDraft
+            });
+        }
+        form.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
+            button.disabled = true;
+        });
+    });
+    const title = appendTodoField(form, 'title', 'Title', item?.title ?? '', 'text');
+    title.required = true;
+    const group = appendTodoField(form, 'group', 'Group', groupName, 'text');
+    group.required = true;
+    appendTodoField(form, 'why', 'Why', item?.why ?? '', 'textarea');
+    appendTodoField(form, 'files', 'Files (one path per line)', item?.files.join('\n') ?? '', 'textarea');
+    appendTodoField(form, 'decisions', 'Decisions and constraints', item?.decisions ?? '', 'textarea');
+    appendTodoField(form, 'acceptance', 'Acceptance criteria', item?.acceptance ?? '', 'textarea');
+    appendTodoField(form, 'evidence', 'Evidence', item?.evidence ?? '', 'textarea');
+    appendTodoField(form, 'remaining', 'Remaining work', item?.remaining ?? '', 'textarea');
+    appendTodoField(form, 'alert', 'Alert', item?.alert ?? '', 'textarea');
+    const buttons = document.createElement('div');
+    buttons.className = 'form-actions';
+    const save = document.createElement('button');
+    save.type = 'submit';
+    save.textContent = 'Save';
+    save.className = 'primary-button';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = 'Cancel';
+    cancel.className = 'secondary-button';
+    cancel.addEventListener('click', () => {
+        todoEditorState = undefined;
+        renderAgentOutputs(true);
+    });
+    buttons.append(cancel, save);
+    form.append(buttons);
+    return form;
+}
+
+function appendTodoField(
+    form: HTMLFormElement,
+    name: string,
+    labelText: string,
+    value: string,
+    kind: 'text' | 'textarea',
+): HTMLInputElement | HTMLTextAreaElement {
+    const control = kind === 'text' ? document.createElement('input') : document.createElement('textarea');
+    control.name = name;
+    control.value = value;
+    if (control instanceof HTMLTextAreaElement) {
+        control.rows = 4;
+    }
+    if (control instanceof HTMLInputElement) {
+        control.type = 'text';
+    }
+    appendTodoControl(form, labelText, control);
+    return control;
+}
+
+function appendTodoControl(form: HTMLFormElement, labelText: string, control: HTMLElement): void {
+    const label = document.createElement('label');
+    label.className = 'form-field implementation-todo-field';
+    const text = document.createElement('span');
+    text.textContent = labelText;
+    label.append(text, control);
+    form.append(label);
+}
+
+function getFormValue(data: FormData, key: string): string {
+    const value = data.get(key);
+    return typeof value === 'string' ? value : '';
+}
+
+function reorderTodoItem(sourceId: string, targetGroupName: string, targetId: string | undefined, after: boolean): void {
+    if (!selectedTask || sourceId === targetId) {
+        return;
+    }
+    const group = agentOutputs.find((candidate) => candidate.id === 'implement');
+    const groups = (group?.todoGroups ?? []).map((candidate) => ({
+        name: candidate.name,
+        itemIds: candidate.items.map((item) => item.id),
+    }));
+    const sourceGroup = groups.find((candidate) => candidate.itemIds.includes(sourceId));
+    const targetGroup = groups.find((candidate) => candidate.name === targetGroupName);
+    if (!sourceGroup || !targetGroup) {
+        return;
+    }
+    sourceGroup.itemIds = sourceGroup.itemIds.filter((id) => id !== sourceId);
+    const targetIndex = targetId ? targetGroup.itemIds.indexOf(targetId) : targetGroup.itemIds.length;
+    if (targetId && targetIndex < 0) {
+        return;
+    }
+    targetGroup.itemIds.splice(targetIndex + (after && targetId ? 1 : 0), 0, sourceId);
+    vscode.postMessage({ type: 'reorderTodos', taskId: selectedTask.id, groups });
 }
 
 function updateTaskActionButtons(task: TaskSummary): void {
@@ -430,6 +939,15 @@ function setTasksAccordionExpanded(expanded: boolean): void {
     }
     tasksAccordionToggle.setAttribute('aria-expanded', String(expanded));
     tasksAccordionContent.hidden = !expanded;
+}
+
+function toggleQuickReferenceAccordion(): void {
+    if (!quickReferenceToggle || !quickReferenceContent) {
+        return;
+    }
+    const expanded = quickReferenceToggle.getAttribute('aria-expanded') !== 'true';
+    quickReferenceToggle.setAttribute('aria-expanded', String(expanded));
+    quickReferenceContent.hidden = !expanded;
 }
 
 function toggleDescription(): void {

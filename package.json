@@ -35,7 +35,473 @@
                     "name": "Tasks"
                 }
             ]
-        }
+        },
+        "chatAgents": [
+            {
+                "path": "./agents/implement.agent.md"
+            },
+            {
+                "path": "./agents/analyze-and-plan.agent.md"
+            },
+            {
+                "path": "./agents/logic-review.agent.md"
+            },
+            {
+                "path": "./agents/code-readability.agent.md"
+            },
+            {
+                "path": "./agents/document.agent.md"
+            },
+            {
+                "path": "./agents/code-comments.agent.md"
+            },
+            {
+                "path": "./agents/debug.agent.md"
+            }
+        ],
+        "chatSkills": [
+            {
+                "path": "./skills/code-readability-default/SKILL.md"
+            },
+            {
+                "path": "./skills/logic-review-default/SKILL.md"
+            },
+            {
+                "path": "./skills/documentation-update-default/SKILL.md"
+            },
+            {
+                "path": "./skills/code-comment-review/SKILL.md"
+            },
+            {
+                "path": "./skills/code-comment-improve/SKILL.md"
+            }
+        ],
+        "languageModelTools": [
+            {
+                "name": "vscode-workflow_read_implementation_todos",
+                "displayName": "Read Implementation TODOs",
+                "userDescription": "Read the active task checklist.",
+                "modelDescription": "Read the implementation-todo.json for the single active task marker. Use this to inspect TODO status and context; never read or write the JSON directly.",
+                "canBeReferencedInPrompt": true,
+                "toolReferenceName": "readImplementationTodos",
+                "icon": "$(checklist)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "vscode-workflow_manage_implementation_todos",
+                "displayName": "Manage Implementation TODOs",
+                "userDescription": "Add, update, remove, reorder, or sync plan TODOs.",
+                "modelDescription": "Manage agent-owned TODO items in the active task's implementation-todo.json. Supports add, update, explicit plan-reconcile, atomic sync-plan, remove, reorder, and set-plan actions. Use sync-plan once after a user selects a plan, passing every ordered group and item derived from the selected plan and current review reports. The extension validates every mutation, updates summaries, writes atomically, and rejects any attempt to edit or remove user-created items. Never edit the TODO JSON directly. Read the result back after every mutation.",
+                "canBeReferencedInPrompt": true,
+                "toolReferenceName": "manageImplementationTodos",
+                "icon": "$(checklist)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": [
+                                "add",
+                                "update",
+                                "reconcile",
+                                "remove",
+                                "reorder",
+                                "set-plan",
+                                "sync-plan"
+                            ]
+                        },
+                        "group": {
+                            "type": "string"
+                        },
+                        "itemId": {
+                            "type": "string"
+                        },
+                        "item": {
+                            "type": "object",
+                            "properties": {
+                                "title": {
+                                    "type": "string"
+                                },
+                                "done": {
+                                    "type": "boolean"
+                                },
+                                "source": {
+                                    "type": "string",
+                                    "enum": [
+                                        "plan",
+                                        "request",
+                                        "user-note",
+                                        "logic-review",
+                                        "code-readability"
+                                    ]
+                                },
+                                "sourceRef": {
+                                    "type": "string"
+                                },
+                                "why": {
+                                    "type": "string"
+                                },
+                                "files": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "decisions": {
+                                    "type": "string"
+                                },
+                                "acceptance": {
+                                    "type": "string"
+                                },
+                                "evidence": {
+                                    "type": "string"
+                                },
+                                "remaining": {
+                                    "type": "string"
+                                },
+                                "alert": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "required": [
+                                "title",
+                                "done",
+                                "source",
+                                "sourceRef",
+                                "why",
+                                "files",
+                                "decisions",
+                                "acceptance",
+                                "evidence",
+                                "remaining",
+                                "alert"
+                            ],
+                            "additionalProperties": false
+                        },
+                        "changes": {
+                            "type": "object",
+                            "properties": {
+                                "title": {
+                                    "type": "string"
+                                },
+                                "done": {
+                                    "type": "boolean"
+                                },
+                                "source": {
+                                    "type": "string",
+                                    "enum": [
+                                        "plan",
+                                        "request",
+                                        "user-note",
+                                        "logic-review",
+                                        "code-readability"
+                                    ]
+                                },
+                                "sourceRef": {
+                                    "type": "string"
+                                },
+                                "why": {
+                                    "type": "string"
+                                },
+                                "files": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "decisions": {
+                                    "type": "string"
+                                },
+                                "acceptance": {
+                                    "type": "string"
+                                },
+                                "evidence": {
+                                    "type": "string"
+                                },
+                                "remaining": {
+                                    "type": "string"
+                                },
+                                "alert": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ]
+                                }
+                            },
+                            "additionalProperties": false
+                        },
+                        "groups": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "itemIds": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "itemIds"
+                                ],
+                                "additionalProperties": false
+                            }
+                        },
+                        "planGroups": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "items": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "title": {
+                                                    "type": "string"
+                                                },
+                                                "done": {
+                                                    "type": "boolean"
+                                                },
+                                                "source": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "plan",
+                                                        "logic-review",
+                                                        "code-readability"
+                                                    ]
+                                                },
+                                                "sourceRef": {
+                                                    "type": "string"
+                                                },
+                                                "why": {
+                                                    "type": "string"
+                                                },
+                                                "files": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "decisions": {
+                                                    "type": "string"
+                                                },
+                                                "acceptance": {
+                                                    "type": "string"
+                                                },
+                                                "evidence": {
+                                                    "type": "string"
+                                                },
+                                                "remaining": {
+                                                    "type": "string"
+                                                },
+                                                "alert": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "title",
+                                                "done",
+                                                "source",
+                                                "sourceRef",
+                                                "why",
+                                                "files",
+                                                "decisions",
+                                                "acceptance",
+                                                "evidence",
+                                                "remaining",
+                                                "alert"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "items"
+                                ],
+                                "additionalProperties": false
+                            }
+                        },
+                        "plan": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "action"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "vscode-workflow_sync_logic_review_todos",
+                "displayName": "Sync Logic Review TODOs",
+                "userDescription": "Sync confirmed logic findings into the active task checklist.",
+                "modelDescription": "Add or update confirmed Logic Review findings in the active task checklist by stable sourceRef. Remove stale agent-owned Logic Review findings not present in the new report. User-created items are preserved and cannot be changed.",
+                "canBeReferencedInPrompt": true,
+                "toolReferenceName": "syncLogicReviewTodos",
+                "icon": "$(checklist)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "done": {
+                                        "type": "boolean"
+                                    },
+                                    "sourceRef": {
+                                        "type": "string"
+                                    },
+                                    "why": {
+                                        "type": "string"
+                                    },
+                                    "files": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "decisions": {
+                                        "type": "string"
+                                    },
+                                    "acceptance": {
+                                        "type": "string"
+                                    },
+                                    "evidence": {
+                                        "type": "string"
+                                    },
+                                    "remaining": {
+                                        "type": "string"
+                                    },
+                                    "alert": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "done",
+                                    "sourceRef",
+                                    "why",
+                                    "files",
+                                    "decisions",
+                                    "acceptance",
+                                    "evidence",
+                                    "remaining",
+                                    "alert"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "required": [
+                        "items"
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            {
+                "name": "vscode-workflow_sync_code_readability_todos",
+                "displayName": "Sync Code Readability TODOs",
+                "userDescription": "Sync readability proposals into the active task checklist.",
+                "modelDescription": "Add or update Code Readability proposals in the active task checklist by stable sourceRef. Use done=false for open proposals and record pending approval or deferral in remaining. Use done=true only after approved improvements are implemented and verified. Remove stale agent-owned readability proposals not present in the latest report. User-created items are preserved and cannot be changed.",
+                "canBeReferencedInPrompt": true,
+                "toolReferenceName": "syncCodeReadabilityTodos",
+                "icon": "$(checklist)",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "done": {
+                                        "type": "boolean"
+                                    },
+                                    "sourceRef": {
+                                        "type": "string"
+                                    },
+                                    "why": {
+                                        "type": "string"
+                                    },
+                                    "files": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "decisions": {
+                                        "type": "string"
+                                    },
+                                    "acceptance": {
+                                        "type": "string"
+                                    },
+                                    "evidence": {
+                                        "type": "string"
+                                    },
+                                    "remaining": {
+                                        "type": "string"
+                                    },
+                                    "alert": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "title",
+                                    "done",
+                                    "sourceRef",
+                                    "why",
+                                    "files",
+                                    "decisions",
+                                    "acceptance",
+                                    "evidence",
+                                    "remaining",
+                                    "alert"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    },
+                    "required": [
+                        "items"
+                    ],
+                    "additionalProperties": false
+                }
+            }
+        ]
     },
     "scripts": {
         "build": "node esbuild.mjs",
@@ -45,10 +511,12 @@
         "package": "npm run typecheck && npm test && node esbuild.mjs --production && vsce package"
     },
     "devDependencies": {
+        "@types/jsdom": "^21.1.7",
         "@types/node": "^22.0.0",
         "@types/vscode": "^1.105.0",
         "@vscode/vsce": "^3.0.0",
         "esbuild": "^0.25.0",
+        "jsdom": "^26.1.0",
         "typescript": "^5.9.0",
         "vitest": "^3.2.0"
     }

@@ -117,6 +117,381 @@ body {
     outline: 1px solid var(--vscode-focusBorder);
 }
 
+#agent-outputs {
+    margin-top: 12px;
+}
+
+.agent-output-accordion {
+    border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+.agent-output-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 30px;
+    font-size: calc(var(--vscode-font-size) - 2px);
+}
+
+.agent-output-toggle {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    min-height: 30px;
+    gap: 5px;
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: var(--vscode-foreground);
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.agent-output-toggle span {
+    overflow-wrap: anywhere;
+}
+
+.agent-output-toggle svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+}
+
+.agent-output-toggle[aria-expanded="false"] svg {
+    transform: rotate(-90deg);
+}
+
+.agent-output-toggle:disabled {
+    color: var(--vscode-disabledForeground);
+    cursor: default;
+}
+
+.agent-output-view {
+    flex: 0 0 auto;
+    padding: 4px 6px;
+    border: 0;
+    background: transparent;
+    color: var(--vscode-textLink-foreground);
+    font: inherit;
+    cursor: pointer;
+}
+
+.agent-output-view:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.agent-output-add,
+.implementation-todo-actions button,
+.implementation-todo-editor-actions button {
+    flex: 0 0 auto;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 2px;
+    color: var(--vscode-button-secondaryForeground);
+    background: var(--vscode-button-secondaryBackground);
+    font: inherit;
+    cursor: pointer;
+}
+
+.agent-output-add:hover,
+.implementation-todo-actions button:hover,
+.implementation-todo-editor-actions button:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.implementation-todo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 4px 0 0 21px;
+}
+
+.implementation-todo-drag-handle {
+    cursor: grab !important;
+}
+
+.implementation-todo-item.is-dragging {
+    opacity: 0.45;
+}
+
+.implementation-todo-item.is-drop-target,
+.implementation-todo-list.is-drop-target {
+    outline: 1px dashed var(--vscode-focusBorder);
+    outline-offset: 2px;
+}
+
+.implementation-todo-editor {
+    display: grid;
+    gap: 7px;
+    margin: 8px 0 10px 21px;
+    padding: 8px;
+    border: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
+}
+
+.implementation-todo-field {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.implementation-todo-field input,
+.implementation-todo-field textarea,
+.implementation-todo-field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 4px 6px;
+    color: var(--vscode-input-foreground);
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 2px;
+    font: inherit;
+}
+
+.implementation-todo-field textarea {
+    min-height: 44px;
+    resize: vertical;
+}
+
+.implementation-todo-field input:focus,
+.implementation-todo-field textarea:focus,
+.implementation-todo-field select:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+.implementation-todo-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.agent-output-add,
+.implementation-todo-actions button,
+.implementation-todo-editor-actions button {
+    flex: 0 0 auto;
+    padding: 4px 6px;
+    border: 0;
+    border-radius: 2px;
+    color: var(--vscode-button-secondaryForeground);
+    background: var(--vscode-button-secondaryBackground);
+    font: inherit;
+    cursor: pointer;
+}
+
+.agent-output-add:hover,
+.implementation-todo-actions button:hover,
+.implementation-todo-editor-actions button:hover {
+    background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.implementation-todo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 4px 0 0 21px;
+}
+
+.implementation-todo-drag-handle {
+    cursor: grab !important;
+}
+
+.implementation-todo-item.is-dragging {
+    opacity: 0.45;
+}
+
+.implementation-todo-item.is-drop-target,
+.implementation-todo-list.is-drop-target {
+    outline: 1px dashed var(--vscode-focusBorder);
+    outline-offset: 2px;
+}
+
+.implementation-todo-editor {
+    display: grid;
+    gap: 7px;
+    margin: 8px 0 10px 21px;
+    padding: 8px;
+    border: 1px solid var(--vscode-panel-border);
+    background: var(--vscode-editor-background);
+}
+
+.implementation-todo-field {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.implementation-todo-field input,
+.implementation-todo-field textarea,
+.implementation-todo-field select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 4px 6px;
+    color: var(--vscode-input-foreground);
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 2px;
+    font: inherit;
+}
+
+.implementation-todo-field textarea {
+    min-height: 44px;
+    resize: vertical;
+}
+
+.implementation-todo-field input:focus,
+.implementation-todo-field textarea:focus,
+.implementation-todo-field select:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: -1px;
+}
+
+.implementation-todo-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.agent-output-toggle:focus-visible,
+.agent-output-view:focus-visible,
+.agent-output-file:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.agent-output-content {
+    padding: 4px 0 10px;
+}
+
+.agent-output-summary {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.implementation-todo-group-heading {
+    margin: 12px 0 5px;
+    font-size: 0.95em;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.implementation-todo-list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.implementation-todo-item {
+    min-width: 0;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+.implementation-todo-label {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 7px;
+    cursor: pointer;
+}
+
+.implementation-todo-checkbox {
+    appearance: none;
+    display: grid;
+    place-content: center;
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    padding: 0;
+    margin-top: -1px;
+    border: 1px solid var(--vscode-checkbox-border, transparent);
+    border-radius: 3px;
+    color: var(--vscode-checkbox-foreground);
+    background: var(--vscode-checkbox-background);
+    cursor: pointer;
+}
+
+.implementation-todo-checkbox::before {
+    content: '';
+    display: none;
+    width: 9px;
+    height: 5px;
+    margin-top: -2px;
+    border-left: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+}
+
+.implementation-todo-checkbox:checked::before {
+    display: block;
+}
+
+.implementation-todo-checkbox:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 1px;
+}
+
+.implementation-todo-checkbox:disabled {
+    cursor: wait;
+    opacity: 0.4;
+}
+
+.implementation-todo-title {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+}
+
+.implementation-todo-status {
+    display: inline-block;
+    margin: 3px 0 0 21px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.85em;
+}
+
+.implementation-todo-alert,
+.agent-output-inline-error {
+    margin: 4px 0 0 21px;
+    color: var(--vscode-editorWarning-foreground, var(--vscode-errorForeground));
+    overflow-wrap: anywhere;
+}
+
+.agent-output-file {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 8px;
+    padding: 4px;
+    color: var(--vscode-dropdown-foreground);
+    background: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border, transparent);
+    font: inherit;
+}
+
+#agent-output-error {
+    color: var(--vscode-errorForeground);
+    overflow-wrap: anywhere;
+}
+
 #create-task-heading {
     margin: 0 0 10px;
     font-size: 1em;
@@ -280,7 +655,8 @@ body {
     gap: 4px;
 }
 
-#tasks-accordion-toggle {
+#tasks-accordion-toggle,
+.tasks-accordion-toggle {
     display: flex;
     min-width: 0;
     min-height: 28px;
@@ -297,15 +673,13 @@ body {
     cursor: pointer;
 }
 
-#tasks-accordion-toggle:hover {
-    background: var(--vscode-list-hoverBackground);
-}
-
-#tasks-accordion-toggle:focus-visible {
+#tasks-accordion-toggle:focus-visible,
+.tasks-accordion-toggle:focus-visible {
     outline: 1px solid var(--vscode-focusBorder);
 }
 
-#tasks-accordion-toggle svg {
+#tasks-accordion-toggle svg,
+.tasks-accordion-toggle svg {
     width: 16px;
     height: 16px;
     fill: none;
@@ -316,8 +690,49 @@ body {
     transition: transform 100ms ease-out;
 }
 
-#tasks-accordion-toggle[aria-expanded="false"] svg {
+#tasks-accordion-toggle[aria-expanded="false"] svg,
+.tasks-accordion-toggle[aria-expanded="false"] svg {
     transform: rotate(-90deg);
+}
+
+#quick-reference-panel {
+    margin-top: 12px;
+    border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+#quick-reference-content {
+    padding: 2px 6px 8px 24px;
+}
+
+.quick-reference-agent {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+.quick-reference-agent:last-child {
+    border-bottom: 0;
+}
+
+.quick-reference-agent h3 {
+    margin: 0 0 3px;
+    font-size: 0.95em;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.quick-reference-agent p {
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+}
+
+.quick-reference-agent .quick-reference-skills {
+    margin-top: 4px;
+}
+
+.quick-reference-agent code {
+    color: var(--vscode-textPreformat-foreground, var(--vscode-foreground));
 }
 
 .accordion-actions {
@@ -366,10 +781,11 @@ body {
     grid-template-columns: minmax(0, 1fr) 26px 26px 26px;
     align-items: center;
     min-height: 34px;
-    border-radius: 2px;
+    border-radius: 4px;
 }
 
-.task-row:hover {
+.task-row:hover,
+.implementation-todo-item:hover {
     background: var(--vscode-list-hoverBackground);
 }
 
@@ -486,6 +902,81 @@ body {
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 1.6;
+}
+
+.agent-output-view,
+.agent-output-add,
+.implementation-todo-actions .task-action {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    padding: 5px;
+    color: var(--vscode-icon-foreground);
+    background: transparent;
+    opacity: 1;
+}
+
+.agent-output-add:hover,
+.implementation-todo-actions .task-action:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.implementation-todo-actions .delete-task:hover {
+    color: var(--vscode-errorForeground);
+}
+
+.implementation-todo-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 2px;
+    border-radius: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.implementation-todo-label {
+    grid-column: 1;
+    grid-row: 1;
+    padding-top: 4px;
+}
+
+.implementation-todo-actions {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    gap: 0;
+    flex-wrap: nowrap;
+}
+
+.implementation-todo-counter {
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding-left: 6px;
+    color: var(--vscode-descriptionForeground);
+    font-weight: 400;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.implementation-todo-alert {
+    grid-column: 1 / -1;
+}
+
+.implementation-todo-editor {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.implementation-todo-field {
+    color: var(--vscode-foreground);
+    margin-bottom: 0;
+}
+
+.implementation-todo-field textarea {
+    min-height: 72px;
 }
 
 #empty-message,

@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
+import path from 'node:path';
 import { TaskRepository } from './taskRepository';
 import { validateTaskInput } from './taskModel';
-import type { CreateTaskInput, ExtensionToWebviewMessage, WebviewToExtensionMessage } from './taskProtocol';
+import type { CreateTaskInput, ExtensionToWebviewMessage, TaskSummary, WebviewToExtensionMessage } from './taskProtocol';
 import { getTasksWebviewHtml } from './tasksWebviewHtml';
 
 export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -10,12 +11,15 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
 
     private view: vscode.WebviewView | undefined;
     private viewDisposables: vscode.Disposable[] = [];
+    private outputWatcher: vscode.FileSystemWatcher | undefined;
+    private outputWatcherRoot: string | undefined;
+    private outputRequest = 0;
 
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly workspaceState: vscode.Memento,
         private readonly taskRepository = new TaskRepository(),
-    ) {}
+    ) { }
 
     resolveWebviewView(view: vscode.WebviewView): void {
         this.disposeViewListeners();
@@ -74,8 +78,13 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
             return;
         }
 
+        await this.taskRepository.stopOtherTimeTracking(repositoryRoot, taskId);
+        await this.taskRepository.clearAgentTaskMarkers(repositoryRoot);
+        if (hasOpenTimeEntry(task)) {
+            await this.taskRepository.startAgentTask(repositoryRoot, task);
+        }
         await this.workspaceState.update(TasksViewProvider.selectedTaskKey, taskId);
-        await this.postMessage({ type: 'selectedTask', task });
+        await this.refresh();
     }
 
     private async refresh(): Promise<void> {
@@ -90,6 +99,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
                 await this.postMessage({ type: 'repositoryUnavailable' });
                 return;
             }
+            this.watchAgentOutputs(repositoryRoot);
             const [tasks, gitUserEmail] = await Promise.all([
                 this.taskRepository.listOpenTasks(repositoryRoot),
                 this.taskRepository.getGitUserEmail(repositoryRoot),
@@ -109,6 +119,97 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         }
         if (isRefreshTasksMessage(message)) {
             await this.refresh();
+            return;
+        }
+        if (isViewTodoMessage(message)) {
+            try {
+                const repositoryRoot = await this.requireRepositoryRoot();
+                if (this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey) !== message.taskId) {
+                    throw new Error('Select the task before viewing its TODO details.');
+                }
+                const content = await this.taskRepository.getImplementationTodoItemMarkdown(repositoryRoot, message.taskId, message.itemId);
+                const document = await vscode.workspace.openTextDocument({ language: 'markdown', content });
+                await vscode.commands.executeCommand('markdown.showPreview', document.uri);
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error);
+                void vscode.window.showErrorMessage(`Unable to preview TODO details: ${detail}`);
+            }
+            return;
+        }
+        if (isViewAgentOutputMessage(message)) {
+            try {
+                const repositoryRoot = await this.requireRepositoryRoot();
+                if (this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey) !== message.taskId) {
+                    throw new Error('Select the task before viewing its agent output.');
+                }
+                if (message.fileName === 'implementation-todo.json') {
+                    const content = await this.taskRepository.getImplementationTodoMarkdown(repositoryRoot, message.taskId);
+                    const document = await vscode.workspace.openTextDocument({ language: 'markdown', content });
+                    await vscode.commands.executeCommand('markdown.showPreview', document.uri);
+                } else {
+                    const filePath = await this.taskRepository.getAgentOutputPath(repositoryRoot, message.taskId, message.fileName);
+                    await vscode.commands.executeCommand('markdown.showPreview', vscode.Uri.file(filePath));
+                }
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error);
+                void vscode.window.showErrorMessage(`Unable to preview agent output: ${detail}`);
+            }
+            return;
+        }
+        if (isSetTodoStatusMessage(message)) {
+            try {
+                const repositoryRoot = await this.requireRepositoryRoot();
+                if (this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey) !== message.taskId) {
+                    throw new Error('Select the task before changing its TODO list.');
+                }
+                await this.taskRepository.setTodoStatus(repositoryRoot, message.taskId, message.itemId, message.done);
+                await this.postMessage({ type: 'todoStatusResult', taskId: message.taskId, itemId: message.itemId, done: message.done });
+                await this.refreshAgentOutputs(repositoryRoot, message.taskId);
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error);
+                await this.postMessage({ type: 'todoStatusResult', taskId: message.taskId, itemId: message.itemId, done: message.done, error: detail });
+            }
+            return;
+        }
+        if (isCreateTodoMessage(message)) {
+            await this.mutateSelectedTaskTodo(message.taskId, async (repositoryRoot) => {
+                await this.taskRepository.addImplementationTodoItem(
+                    repositoryRoot, message.taskId, message.group, message.item, 'user',
+                );
+            });
+            return;
+        }
+        if (isUpdateTodoMessage(message)) {
+            await this.mutateSelectedTaskTodo(message.taskId, async (repositoryRoot) => {
+                await this.taskRepository.updateImplementationTodoItem(
+                    repositoryRoot, message.taskId, message.itemId, message.group, message.changes, 'user',
+                );
+            });
+            return;
+        }
+        if (isRemoveTodoMessage(message)) {
+            await this.mutateSelectedTaskTodo(message.taskId, async (repositoryRoot) => {
+                const todo = await this.taskRepository.readImplementationTodo(repositoryRoot, message.taskId);
+                const item = todo.groups.flatMap((group) => group.items).find((candidate) => candidate.id === message.itemId);
+                if (!item) {
+                    throw new Error('Implementation TODO item could not be found.');
+                }
+                const choice = await vscode.window.showWarningMessage(
+                    `Remove TODO "${item.title}"?`,
+                    { modal: true },
+                    'Remove',
+                );
+                if (choice !== 'Remove') {
+                    return false;
+                }
+                await this.taskRepository.removeImplementationTodoItem(repositoryRoot, message.taskId, message.itemId, 'user');
+                return true;
+            });
+            return;
+        }
+        if (isReorderTodosMessage(message)) {
+            await this.mutateSelectedTaskTodo(message.taskId, (repositoryRoot) =>
+                this.taskRepository.reorderImplementationTodos(repositoryRoot, message.taskId, message.groups, 'user'));
             return;
         }
         if (isSaveTaskMessage(message)) {
@@ -149,10 +250,22 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         }
         if (isTaskActionMessage(message)) {
             try {
-                const task = await this.taskRepository.toggleTimeTracking(
-                    await this.requireRepositoryRoot(),
-                    message.taskId,
-                );
+                const repositoryRoot = await this.requireRepositoryRoot();
+                const currentTask = await this.taskRepository.getTask(repositoryRoot, message.taskId);
+                if (!currentTask) {
+                    throw new Error('Task could not be found.');
+                }
+                const willStartTimer = !hasOpenTimeEntry(currentTask);
+                if (willStartTimer && !(await this.taskRepository.getGitUserEmail(repositoryRoot))) {
+                    throw new Error('Set your Git email with `git config user.email` before starting time tracking.');
+                }
+                await this.taskRepository.stopOtherTimeTracking(repositoryRoot, message.taskId);
+                await this.taskRepository.clearAgentTaskMarkers(repositoryRoot);
+                const task = await this.taskRepository.toggleTimeTracking(repositoryRoot, message.taskId);
+                if (hasOpenTimeEntry(task)) {
+                    await this.taskRepository.startAgentTask(repositoryRoot, task);
+                }
+                await this.refresh();
                 await this.postMessage({ type: 'taskActionUpdated', task });
             } catch (error) {
                 const detail = error instanceof Error ? error.message : String(error);
@@ -200,6 +313,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
             return;
         }
 
+        await this.taskRepository.stopAgentTask(repositoryRoot, taskId);
         await this.taskRepository.deleteTask(repositoryRoot, task.id);
         if (this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey) === taskId) {
             await this.workspaceState.update(TasksViewProvider.selectedTaskKey, undefined);
@@ -240,7 +354,65 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
             await this.postMessage({ type: 'clearSelectedTask' });
             return;
         }
+        if (hasOpenTimeEntry(task)) {
+            await this.taskRepository.startAgentTask(repositoryRoot, task);
+        }
         await this.postMessage({ type: 'selectedTask', task });
+        await this.refreshAgentOutputs(repositoryRoot, taskId);
+    }
+
+    private watchAgentOutputs(repositoryRoot: string): void {
+        if (this.outputWatcherRoot === repositoryRoot) {
+            return;
+        }
+        this.outputWatcher?.dispose();
+        const watcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(repositoryRoot, '.history/agents/*/*.{md,json}'),
+        );
+        this.outputWatcher = watcher;
+        this.outputWatcherRoot = repositoryRoot;
+        const update = (uri: vscode.Uri): void => {
+            const taskId = this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey);
+            if (taskId && path.dirname(uri.fsPath) === path.join(repositoryRoot, '.history', 'agents', taskId)) {
+                void this.refreshAgentOutputs(repositoryRoot, taskId);
+            }
+        };
+        this.viewDisposables.push(watcher.onDidCreate(update), watcher.onDidChange(update), watcher.onDidDelete(update));
+    }
+
+    private async refreshAgentOutputs(repositoryRoot: string, taskId: string): Promise<void> {
+        const request = ++this.outputRequest;
+        try {
+            const groups = await this.taskRepository.listAgentOutputs(repositoryRoot, taskId);
+            if (request === this.outputRequest && this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey) === taskId) {
+                await this.postMessage({ type: 'agentOutputs', taskId, groups });
+            }
+        } catch (error) {
+            if (request === this.outputRequest && this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey) === taskId) {
+                const detail = error instanceof Error ? error.message : String(error);
+                await this.postMessage({ type: 'agentOutputs', taskId, groups: [], error: `Unable to load agent output: ${detail}` });
+            }
+        }
+    }
+
+    private async mutateSelectedTaskTodo(
+        taskId: string,
+        mutate: (repositoryRoot: string) => Promise<unknown>,
+    ): Promise<void> {
+        try {
+            const repositoryRoot = await this.requireRepositoryRoot();
+            if (this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey) !== taskId) {
+                throw new Error('Select the task before changing its TODO list.');
+            }
+            const changed = await mutate(repositoryRoot);
+            await this.postMessage({ type: 'todoMutationResult', taskId });
+            if (changed !== false) {
+                await this.refreshAgentOutputs(repositoryRoot, taskId);
+            }
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            await this.postMessage({ type: 'todoMutationResult', taskId, error: detail });
+        }
     }
 
     private async saveTask(input: CreateTaskInput, taskId?: string): Promise<void> {
@@ -313,7 +485,9 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
             return;
         }
 
+        await this.taskRepository.stopOtherTimeTracking(repositoryRoot, taskId);
         const updatedTask = await this.taskRepository.closeTask(repositoryRoot, taskId);
+        await this.taskRepository.clearAgentTaskMarkers(repositoryRoot);
         await this.postMessage({ type: 'taskActionUpdated', task: updatedTask });
     }
 
@@ -322,14 +496,83 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
     }
 
     private disposeViewListeners(): void {
+        this.outputWatcher?.dispose();
+        this.outputWatcher = undefined;
+        this.outputWatcherRoot = undefined;
+        this.outputRequest += 1;
         const disposables = this.viewDisposables;
         this.viewDisposables = [];
         disposables.forEach((disposable) => disposable.dispose());
     }
 }
 
+function hasOpenTimeEntry(task: TaskSummary): boolean {
+    return task.timeTracking.at(-1)?.endDateTime === null;
+}
+
 function isWebviewReadyMessage(message: unknown): boolean {
     return typeof message === 'object' && message !== null && 'type' in message && message.type === 'ready';
+}
+
+function isViewAgentOutputMessage(
+    message: unknown,
+): message is Extract<WebviewToExtensionMessage, { type: 'viewAgentOutput' }> {
+    return typeof message === 'object' && message !== null &&
+        'type' in message && message.type === 'viewAgentOutput' &&
+        'taskId' in message && typeof message.taskId === 'string' &&
+        'fileName' in message && typeof message.fileName === 'string';
+}
+
+function isViewTodoMessage(
+    message: unknown,
+): message is Extract<WebviewToExtensionMessage, { type: 'viewTodo' }> {
+    return isRecordMessage(message) && message.type === 'viewTodo' &&
+        typeof message.taskId === 'string' && typeof message.itemId === 'string';
+}
+
+function isSetTodoStatusMessage(
+    message: unknown,
+): message is Extract<WebviewToExtensionMessage, { type: 'setTodoStatus' }> {
+    return typeof message === 'object' && message !== null &&
+        'type' in message && message.type === 'setTodoStatus' &&
+        'taskId' in message && typeof message.taskId === 'string' &&
+        'itemId' in message && typeof message.itemId === 'string' &&
+        'done' in message && typeof message.done === 'boolean';
+}
+
+function isCreateTodoMessage(
+    message: unknown,
+): message is Extract<WebviewToExtensionMessage, { type: 'createTodo' }> {
+    return isRecordMessage(message) && message.type === 'createTodo' &&
+        typeof message.taskId === 'string' && typeof message.group === 'string' && isRecordMessage(message.item);
+}
+
+function isUpdateTodoMessage(
+    message: unknown,
+): message is Extract<WebviewToExtensionMessage, { type: 'updateTodo' }> {
+    return isRecordMessage(message) && message.type === 'updateTodo' &&
+        typeof message.taskId === 'string' && typeof message.itemId === 'string' &&
+        typeof message.group === 'string' && isRecordMessage(message.changes);
+}
+
+function isRemoveTodoMessage(
+    message: unknown,
+): message is Extract<WebviewToExtensionMessage, { type: 'removeTodo' }> {
+    return isRecordMessage(message) && message.type === 'removeTodo' &&
+        typeof message.taskId === 'string' && typeof message.itemId === 'string';
+}
+
+function isReorderTodosMessage(
+    message: unknown,
+): message is Extract<WebviewToExtensionMessage, { type: 'reorderTodos' }> {
+    return isRecordMessage(message) && message.type === 'reorderTodos' &&
+        typeof message.taskId === 'string' && Array.isArray(message.groups) &&
+        message.groups.every((group: unknown) => isRecordMessage(group) && typeof group.name === 'string' &&
+            Array.isArray(group.itemIds) && group.itemIds.every((itemId: unknown) => typeof itemId === 'string'));
+}
+
+function isRecordMessage(value: unknown): value is Record<string, any> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function isRefreshTasksMessage(message: unknown): boolean {

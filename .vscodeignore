@@ -1,8 +1,11 @@
 **
 !dist/extension.js
-!dist/webview.js
+!dist/tasksView.js
+!agents/**
+!skills/**
 !media/**
 !package.json
 !README.md
 !LICENSE
+!THIRD_PARTY_NOTICES.md
 !package.nls*.json
