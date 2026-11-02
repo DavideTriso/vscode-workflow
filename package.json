@@ -5,6 +5,10 @@
     "version": "0.3.0",
     "publisher": "davidetriso",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DavideTriso/vscode-workflow.git"
+    },
     "private": true,
     "engines": {
         "vscode": "^1.105.0"
