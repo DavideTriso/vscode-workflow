@@ -1,0 +1,9 @@
+{
+  "name": "Add quick AI bootstrapping for repo",
+  "createdOnDateTime": "2026-11-02T00:18:47Z",
+  "projectManagementUrl": "https://hello.com",
+  "description": "Support a agent/prompt/skill to quickly add all required agents/docs/prompts files to make the repository ready to be used by AI agents.",
+  "createdBy": "davidetrisolini@yahoo.it",
+  "status": 0,
+  "timeTracking": []
+}
