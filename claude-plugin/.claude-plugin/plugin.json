@@ -1,0 +1,7 @@
+{
+    "name": "vscode-workflow",
+    "version": "0.1.0",
+    "description": "Task-based development workflow: implement, plan, debug, and review skills and subagents backed by the VS Code Workflow task tracker.",
+    "author": { "name": "Davide Trisolini" },
+    "license": "MIT"
+}

@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
-const planningAgentPath = new URL('../agents/analyze-and-plan.agent.md', import.meta.url);
-const debugAgentPath = new URL('../agents/debug.agent.md', import.meta.url);
+const planningAgentPath = new URL('../github-copilot/agents/analyze-and-plan.agent.md', import.meta.url);
+const debugAgentPath = new URL('../github-copilot/agents/debug.agent.md', import.meta.url);
 
 describe('planning agent persistence instructions', () => {
     it('requires saving the outcome before waiting for a user decision', async () => {
@@ -46,7 +46,7 @@ describe('planning agent persistence instructions', () => {
 describe('debug agent configuration', () => {
     it('registers the adapted agent and retains upstream attribution', async () => {
         const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-        expect(manifest.contributes.chatAgents).toContainEqual({ path: './agents/debug.agent.md' });
+        expect(manifest.contributes.chatAgents).toContainEqual({ path: './github-copilot/agents/debug.agent.md' });
         const instructions = await readFile(debugAgentPath, 'utf8');
         expect(instructions).toContain('name: Debug');
         expect(instructions).toContain('github/awesome-copilot/blob/main/agents/debug.agent.md');
@@ -77,7 +77,7 @@ describe('debug agent configuration', () => {
 });
 
 describe('implement agent tracker instructions', () => {
-    const implementAgentPath = new URL('../agents/implement.agent.md', import.meta.url);
+    const implementAgentPath = new URL('../github-copilot/agents/implement.agent.md', import.meta.url);
 
     it('keeps the TODO contract identical in both agents', async () => {
         const [implement, planning] = await Promise.all([
@@ -118,9 +118,9 @@ describe('TODO language-model tool instructions', () => {
         const [manifestText, planner, implementer, logic, readability] = await Promise.all([
             readFile(new URL('../package.json', import.meta.url), 'utf8'),
             readFile(planningAgentPath, 'utf8'),
-            readFile(new URL('../agents/implement.agent.md', import.meta.url), 'utf8'),
-            readFile(new URL('../agents/logic-review.agent.md', import.meta.url), 'utf8'),
-            readFile(new URL('../agents/code-readability.agent.md', import.meta.url), 'utf8'),
+            readFile(new URL('../github-copilot/agents/implement.agent.md', import.meta.url), 'utf8'),
+            readFile(new URL('../github-copilot/agents/logic-review.agent.md', import.meta.url), 'utf8'),
+            readFile(new URL('../github-copilot/agents/code-readability.agent.md', import.meta.url), 'utf8'),
         ]);
         const manifest = JSON.parse(manifestText);
         const toolNames = manifest.contributes.languageModelTools.map((tool: { name: string }) => tool.name);

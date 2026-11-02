@@ -1,8 +1,10 @@
 **
 !dist/extension.js
 !dist/tasksView.js
-!agents/**
-!skills/**
+!dist/mcp-server.js
+!github-copilot/**
+!claude-plugin/**
+!scripts/uninstall.js
 !media/**
 !package.json
 !README.md

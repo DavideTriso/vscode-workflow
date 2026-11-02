@@ -38,42 +38,42 @@
         },
         "chatAgents": [
             {
-                "path": "./agents/implement.agent.md"
+                "path": "./github-copilot/agents/implement.agent.md"
             },
             {
-                "path": "./agents/analyze-and-plan.agent.md"
+                "path": "./github-copilot/agents/analyze-and-plan.agent.md"
             },
             {
-                "path": "./agents/logic-review.agent.md"
+                "path": "./github-copilot/agents/logic-review.agent.md"
             },
             {
-                "path": "./agents/code-readability.agent.md"
+                "path": "./github-copilot/agents/code-readability.agent.md"
             },
             {
-                "path": "./agents/document.agent.md"
+                "path": "./github-copilot/agents/document.agent.md"
             },
             {
-                "path": "./agents/code-comments.agent.md"
+                "path": "./github-copilot/agents/code-comments.agent.md"
             },
             {
-                "path": "./agents/debug.agent.md"
+                "path": "./github-copilot/agents/debug.agent.md"
             }
         ],
         "chatSkills": [
             {
-                "path": "./skills/code-readability-default/SKILL.md"
+                "path": "./github-copilot/skills/code-readability-default/SKILL.md"
             },
             {
-                "path": "./skills/logic-review-default/SKILL.md"
+                "path": "./github-copilot/skills/logic-review-default/SKILL.md"
             },
             {
-                "path": "./skills/documentation-update-default/SKILL.md"
+                "path": "./github-copilot/skills/documentation-update-default/SKILL.md"
             },
             {
-                "path": "./skills/code-comment-review/SKILL.md"
+                "path": "./github-copilot/skills/code-comment-review/SKILL.md"
             },
             {
-                "path": "./skills/code-comment-improve/SKILL.md"
+                "path": "./github-copilot/skills/code-comment-improve/SKILL.md"
             }
         ],
         "languageModelTools": [
@@ -501,14 +501,46 @@
                     "additionalProperties": false
                 }
             }
-        ]
+        ],
+        "commands": [
+            {
+                "command": "vscode-workflow.registerClaudeCode",
+                "title": "Workflow: Register Agents and Skills with Claude Code"
+            }
+        ],
+        "configuration": {
+            "title": "Workflow",
+            "properties": {
+                "vscode-workflow.tasks.requireProjectManagementUrl": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Require a project management URL when creating or editing a task. When disabled, the URL may be left empty; a URL that is entered must still be a valid http or https URL."
+                },
+                "vscode-workflow.claudeCode.registration": {
+                    "type": "string",
+                    "enum": [
+                        "ask",
+                        "enabled",
+                        "disabled"
+                    ],
+                    "default": "ask",
+                    "enumDescriptions": [
+                        "Ask once before adding the Workflow plugin to Claude Code.",
+                        "Keep the Workflow plugin for Claude Code installed and up to date.",
+                        "Never touch Claude Code settings."
+                    ],
+                    "description": "Controls whether the extension registers its agents and skills as a Claude Code plugin."
+                }
+            }
+        }
     },
     "scripts": {
         "build": "node esbuild.mjs",
         "watch": "node esbuild.mjs --watch",
         "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.webview.json --noEmit",
         "test": "vitest run --passWithNoTests",
-        "package": "npm run typecheck && npm test && node esbuild.mjs --production && vsce package"
+        "package": "npm run typecheck && npm test && node esbuild.mjs --production && vsce package",
+        "vscode:uninstall": "node ./scripts/uninstall.js"
     },
     "devDependencies": {
         "@types/jsdom": "^21.1.7",

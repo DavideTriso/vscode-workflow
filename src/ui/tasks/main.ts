@@ -62,6 +62,7 @@ let editingTaskId: string | undefined;
 let selectedTask: TaskSummary | undefined;
 let taskActionPending = false;
 let filterByCreator = true;
+let requireProjectManagementUrl = true;
 let gitUserEmail: string | undefined;
 let outputTaskId: string | undefined;
 let agentOutputs: AgentOutputGroup[] = [];
@@ -117,6 +118,11 @@ if (
 }
 
 function handleExtensionMessage(message: Exclude<ExtensionToWebviewMessage, { type: 'repositoryUnavailable' }>): void {
+    if (message.type === 'taskSettings') {
+        requireProjectManagementUrl = message.requireProjectManagementUrl;
+        applyUrlRequirement();
+        return;
+    }
     if (message.type === 'agentOutputs') {
         if (selectedTask?.id === message.taskId) {
             resetAgentOutputsForTask(message.taskId);
@@ -458,7 +464,7 @@ function createAgentOutputAccordion(group: AgentOutputGroup): HTMLElement {
     toggle.type = 'button';
     toggle.className = 'agent-output-toggle';
     toggle.disabled = group.files.length === 0 && group.id !== 'implement';
-    toggle.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>';
+    toggle.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"/></svg>';
     const title = document.createElement('span');
     title.textContent = group.name;
     toggle.append(title);
@@ -960,10 +966,18 @@ function toggleDescription(): void {
     descriptionToggle.setAttribute('aria-expanded', String(isExpanded));
 }
 
+function applyUrlRequirement(): void {
+    const marker = document.querySelector<HTMLElement>('#task-url-required');
+    if (marker) {
+        marker.hidden = !requireProjectManagementUrl;
+    }
+    taskUrlInput?.toggleAttribute('required', requireProjectManagementUrl);
+}
+
 function handleCreateTaskSubmit(event: SubmitEvent): void {
     event.preventDefault();
     const input = readCreateTaskInput();
-    const errors = validateTaskInput(input);
+    const errors = validateTaskInput(input, { requireProjectManagementUrl });
     showFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
         focusFirstInvalidField(errors);

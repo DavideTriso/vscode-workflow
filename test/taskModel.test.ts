@@ -52,6 +52,19 @@ describe('task model', () => {
         });
     });
 
+    it('allows an empty project URL when it is not required but still validates a given URL', () => {
+        const base = { name: 'Task', description: 'Description' };
+        const options = { requireProjectManagementUrl: false };
+        expect(validateTaskInput({ ...base, projectManagementUrl: '' }, options)).toEqual({});
+        expect(validateTaskInput({ ...base, projectManagementUrl: '  ' }, options)).toEqual({});
+        expect(validateTaskInput({ ...base, projectManagementUrl: 'javascript:alert(1)' }, options)).toEqual({
+            projectManagementUrl: 'Enter a valid http or https URL.',
+        });
+        expect(validateTaskInput({ ...base, projectManagementUrl: '' }, { requireProjectManagementUrl: true })).toEqual({
+            projectManagementUrl: 'Enter a project management URL.',
+        });
+    });
+
     it('filters by current Git email when enabled and shows all tasks when disabled', () => {
         const ownTask = createOpenTaskSummary('own.json', {
             name: 'Own task',

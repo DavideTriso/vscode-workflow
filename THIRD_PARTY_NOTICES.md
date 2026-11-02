@@ -2,7 +2,7 @@
 
 ## github/awesome-copilot Debug Mode Instructions
 
-The debugging workflow in `agents/debug.agent.md` is adapted from:
+The debugging workflow in `github-copilot/agents/debug.agent.md` is adapted from:
 https://github.com/github/awesome-copilot/blob/main/agents/debug.agent.md
 
 Upstream license: https://github.com/github/awesome-copilot/blob/main/LICENSE

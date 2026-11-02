@@ -71,6 +71,17 @@ describe('task webview TODO interactions', () => {
         return document.querySelector(`.implementation-todo-editor [name="${name}"]`)!;
     }
 
+    it('toggles the required marker on the project URL field from the taskSettings message', () => {
+        const marker = document.querySelector<HTMLElement>('#task-url-required')!;
+        const input = document.querySelector<HTMLInputElement>('#task-url')!;
+        send({ type: 'taskSettings', requireProjectManagementUrl: false });
+        expect(marker.hidden).toBe(true);
+        expect(input.required).toBe(false);
+        send({ type: 'taskSettings', requireProjectManagementUrl: true });
+        expect(marker.hidden).toBe(false);
+        expect(input.required).toBe(true);
+    });
+
     it('uses icon-only view/add/edit/remove actions and no Move button', () => {
         for (const selector of ['.agent-output-view', '.agent-output-add', '.implementation-todo-view', '.implementation-todo-edit', '.implementation-todo-remove']) {
             const button = document.querySelector<HTMLButtonElement>(selector)!;

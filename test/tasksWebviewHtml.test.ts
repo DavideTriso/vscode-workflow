@@ -22,4 +22,20 @@ describe('task webview quick reference', () => {
             expect(html).toContain(`<code>${skill}</code>`);
         }
     });
+
+    it('documents how to start each agent in GitHub Copilot and Claude Code', () => {
+        const html = getTasksWebviewHtml({
+            asWebviewUri: (uri) => uri as unknown as vscode.Uri,
+            cspSource: 'vscode-webview:',
+        } as vscode.Webview, {} as vscode.Uri);
+
+        expect(html).toContain('<span>GitHub Copilot</span></summary>');
+        expect(html).toContain('<span>Claude Code</span></summary>');
+        for (const name of ['analyze-and-plan', 'implement', 'debug']) {
+            expect(html).toContain(`/vscode-workflow:${name}`);
+        }
+        for (const name of ['logic-review', 'code-readability', 'document', 'code-comments']) {
+            expect(html).toContain(`vscode-workflow:${name}`);
+        }
+    });
 });

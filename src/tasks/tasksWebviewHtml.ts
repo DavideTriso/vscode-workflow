@@ -42,7 +42,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                         <p id="task-name-error" class="field-error" role="alert" hidden></p>
                     </div>
                     <div class="form-field">
-                        <label for="task-url">Project management URL <span aria-hidden="true">*</span></label>
+                        <label for="task-url">Project management URL <span id="task-url-required" aria-hidden="true">*</span></label>
                         <input id="task-url" name="projectManagementUrl" type="url" autocomplete="url" required aria-describedby="task-url-error">
                         <p id="task-url-error" class="field-error" role="alert" hidden></p>
                     </div>
@@ -61,7 +61,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
             <section id="task-list-panel" aria-label="Open tasks">
                 <header class="tasks-accordion-header">
                     <button id="tasks-accordion-toggle" type="button" aria-expanded="true">
-                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"/></svg>
                         <span>Open Tasks</span>
                     </button>
                     <div class="accordion-actions">
@@ -89,43 +89,91 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
             <section id="quick-reference-panel" aria-label="Agent quick reference">
                 <header class="tasks-accordion-header">
                     <button id="quick-reference-toggle" class="tasks-accordion-toggle" type="button" aria-expanded="false" aria-controls="quick-reference-content">
-                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"/></svg>
                         <span>Quick Reference</span>
                     </button>
                 </header>
                 <div id="quick-reference-content" hidden>
-                    <section class="quick-reference-agent">
-                        <h3>Analyze and Plan</h3>
-                        <p>Use to clarify requirements, compare approaches, and save the selected implementation plan and initial TODOs without changing code.</p>
-                    </section>
-                    <section class="quick-reference-agent">
-                        <h3>Implement</h3>
-                        <p>Use to implement the selected work, maintain the task TODOs, and run functional and end-to-end checks.</p>
-                    </section>
-                    <section class="quick-reference-agent">
-                        <h3>Logic Review</h3>
-                        <p>Use to investigate changed behavior and report only confirmed bugs or regressions.</p>
-                        <p class="quick-reference-skills">Skills: <code>logic-review-default</code> validates findings before reporting.</p>
-                    </section>
-                    <section class="quick-reference-agent">
-                        <h3>Code Readability</h3>
-                        <p>Use to review clarity and maintainability and propose focused improvements before editing.</p>
-                        <p class="quick-reference-skills">Skills: <code>code-readability-default</code> guides the review.</p>
-                    </section>
-                    <section class="quick-reference-agent">
-                        <h3>Document</h3>
-                        <p>Use to update repository documentation to reflect verified code and workflow changes.</p>
-                        <p class="quick-reference-skills">Skills: <code>documentation-update-default</code> guides documentation updates.</p>
-                    </section>
-                    <section class="quick-reference-agent">
-                        <h3>Code Comments</h3>
-                        <p>Use for comment review or comment-only improvements; it does not change executable code.</p>
-                        <p class="quick-reference-skills">Skills: <code>code-comment-review</code> reports findings without edits. <code>code-comment-improve</code> applies safe comment-only changes.</p>
-                    </section>
-                    <section class="quick-reference-agent">
-                        <h3>Debug</h3>
-                        <p>Use to reproduce a bug, investigate its root cause, apply a minimal fix when requested, and verify it.</p>
-                    </section>
+                    <details class="quick-reference-tool">
+                        <summary><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"/></svg><span>GitHub Copilot</span></summary>
+                        <ol>
+                            <li>Open Copilot Chat and pick the agent from the agent picker: <code>Analyze and Plan</code>, <code>Implement</code>, <code>Debug</code>, <code>Logic Review</code>, <code>Code Readability</code>, <code>Document</code> or <code>Code Comments</code>.</li>
+                            <li>Select the task in the list above so the agent works in its task folder.</li>
+                            <li>Describe the work. Agents load their skills (for example <code>logic-review-default</code>) on their own.</li>
+                        </ol>
+                        <section class="quick-reference-agent">
+                            <h3>Analyze and Plan</h3>
+                            <p>Use to clarify requirements, compare approaches, and save the selected implementation plan and initial TODOs without changing code.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Implement</h3>
+                            <p>Use to implement the selected work, maintain the task TODOs, and run functional and end-to-end checks.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Logic Review</h3>
+                            <p>Use to investigate changed behavior and report only confirmed bugs or regressions.</p>
+                            <p class="quick-reference-skills">Skills: <code>logic-review-default</code> validates findings before reporting.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Code Readability</h3>
+                            <p>Use to review clarity and maintainability and propose focused improvements before editing.</p>
+                            <p class="quick-reference-skills">Skills: <code>code-readability-default</code> guides the review.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Document</h3>
+                            <p>Use to update repository documentation to reflect verified code and workflow changes.</p>
+                            <p class="quick-reference-skills">Skills: <code>documentation-update-default</code> guides documentation updates.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Code Comments</h3>
+                            <p>Use for comment review or comment-only improvements; it does not change executable code.</p>
+                            <p class="quick-reference-skills">Skills: <code>code-comment-review</code> reports findings without edits. <code>code-comment-improve</code> applies safe comment-only changes.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Debug</h3>
+                            <p>Use to reproduce a bug, investigate its root cause, apply a minimal fix when requested, and verify it.</p>
+                        </section>
+                    </details>
+                    <details class="quick-reference-tool">
+                        <summary><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"/></svg><span>Claude Code</span></summary>
+                        <ol>
+                            <li>Run <strong>Workflow: Register Agents and Skills with Claude Code</strong> from the Command Palette, then <code>/reload-plugins</code> in Claude Code. Check with <code>/mcp</code> that <code>plugin:vscode-workflow:todos</code> is connected.</li>
+                            <li>Start a skill by typing its <code>/vscode-workflow:…</code> command in Claude Code.</li>
+                            <li>Start a subagent by asking for it by name, for example "use the vscode-workflow:logic-review subagent on my changes".</li>
+                        </ol>
+                        <section class="quick-reference-agent">
+                            <h3>Analyze and Plan</h3>
+                            <p>Skill: <code>/vscode-workflow:analyze-and-plan</code>. Clarifies requirements, compares approaches, and saves the selected implementation plan and initial TODOs without changing code.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Implement</h3>
+                            <p>Skill: <code>/vscode-workflow:implement</code>. Implements the selected work, maintains the task TODOs, and runs functional and end-to-end checks.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Logic Review</h3>
+                            <p>Subagent: <code>vscode-workflow:logic-review</code>. Investigates changed behavior and reports only confirmed bugs or regressions.</p>
+                            <p class="quick-reference-skills">Skills: <code>/vscode-workflow:logic-review-default</code> validates findings before reporting.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Code Readability</h3>
+                            <p>Subagent: <code>vscode-workflow:code-readability</code>. Reviews clarity and maintainability and proposes focused improvements before editing.</p>
+                            <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-readability-default</code> guides the review.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Document</h3>
+                            <p>Subagent: <code>vscode-workflow:document</code>. Updates repository documentation to reflect verified code and workflow changes.</p>
+                            <p class="quick-reference-skills">Skills: <code>/vscode-workflow:documentation-update-default</code> guides documentation updates.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Code Comments</h3>
+                            <p>Subagent: <code>vscode-workflow:code-comments</code>. Reviews comments or applies comment-only improvements; it does not change executable code.</p>
+                            <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-comment-review</code> reports findings without edits. <code>/vscode-workflow:code-comment-improve</code> applies safe comment-only changes.</p>
+                        </section>
+                        <section class="quick-reference-agent">
+                            <h3>Debug</h3>
+                            <p>Skill: <code>/vscode-workflow:debug</code>. Reproduces a bug, investigates its root cause, applies a minimal fix when requested, and verifies it.</p>
+                        </section>
+                    </details>
                 </div>
             </section>
         </section>

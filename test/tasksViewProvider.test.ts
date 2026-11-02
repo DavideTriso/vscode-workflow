@@ -27,6 +27,8 @@ vi.mock('vscode', () => ({
         workspaceFolders: [{ uri: { fsPath: '/repo' } }],
         createFileSystemWatcher: () => vscodeMocks.watcher,
         openTextDocument: vi.fn(),
+        getConfiguration: () => ({ get: (_key: string, fallback: unknown) => fallback }),
+        onDidChangeConfiguration: () => ({ dispose: () => undefined }),
     },
     commands: { executeCommand: vscodeMocks.preview },
     window: { showErrorMessage: vscodeMocks.showError, showWarningMessage: vscodeMocks.showWarning },

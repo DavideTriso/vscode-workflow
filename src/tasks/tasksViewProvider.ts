@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import path from 'node:path';
 import { TaskRepository } from './taskRepository';
-import { validateTaskInput } from './taskModel';
+import { validateTaskInput, type TaskValidationOptions } from './taskModel';
 import type { CreateTaskInput, ExtensionToWebviewMessage, TaskSummary, WebviewToExtensionMessage } from './taskProtocol';
 import { getTasksWebviewHtml } from './tasksWebviewHtml';
 
@@ -34,6 +34,11 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         view.webview.html = getTasksWebviewHtml(view.webview, this.extensionUri);
         this.viewDisposables.push(
             view.webview.onDidReceiveMessage((message: unknown) => this.handleMessage(message)),
+            vscode.workspace.onDidChangeConfiguration((event) => {
+                if (event.affectsConfiguration('vscode-workflow.tasks.requireProjectManagementUrl')) {
+                    void this.postTaskSettings();
+                }
+            }),
             view.onDidDispose(() => {
                 this.view = undefined;
                 this.disposeViewListeners();
@@ -87,11 +92,23 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         await this.refresh();
     }
 
+    private getTaskValidationOptions(): TaskValidationOptions {
+        return {
+            requireProjectManagementUrl: vscode.workspace.getConfiguration('vscode-workflow')
+                .get<boolean>('tasks.requireProjectManagementUrl', true),
+        };
+    }
+
+    private async postTaskSettings(): Promise<void> {
+        await this.postMessage({ type: 'taskSettings', ...this.getTaskValidationOptions() });
+    }
+
     private async refresh(): Promise<void> {
         const view = this.view;
         if (!view) {
             return;
         }
+        await this.postTaskSettings();
 
         try {
             const repositoryRoot = await this.findCurrentRepositoryRoot();
@@ -416,7 +433,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
     }
 
     private async saveTask(input: CreateTaskInput, taskId?: string): Promise<void> {
-        const errors = validateTaskInput(input);
+        const errors = validateTaskInput(input, this.getTaskValidationOptions());
         if (Object.keys(errors).length > 0) {
             await this.postMessage({ type: 'createTaskValidationError', errors });
             return;

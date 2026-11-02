@@ -94,6 +94,7 @@ export type ExtensionToWebviewMessage =
     | { type: 'createTaskValidationError'; errors: TaskFieldErrors }
     | { type: 'createTaskFailed'; message: string }
     | { type: 'taskSaved' }
+    | { type: 'taskSettings'; requireProjectManagementUrl: boolean }
     | { type: 'taskActionUpdated'; task: TaskSummary }
     | { type: 'taskActionFailed'; message: string }
     | { type: 'taskActionCancelled' }

@@ -54,13 +54,22 @@ export function filterTasks(
     });
 }
 
-export function validateTaskInput(input: CreateTaskInput): TaskFieldErrors {
+export interface TaskValidationOptions {
+    requireProjectManagementUrl: boolean;
+}
+
+export function validateTaskInput(
+    input: CreateTaskInput,
+    options: TaskValidationOptions = { requireProjectManagementUrl: true },
+): TaskFieldErrors {
     const errors: TaskFieldErrors = {};
     if (input.name.trim() === '') {
         errors.name = 'Enter a task name.';
     }
     if (input.projectManagementUrl.trim() === '') {
-        errors.projectManagementUrl = 'Enter a project management URL.';
+        if (options.requireProjectManagementUrl) {
+            errors.projectManagementUrl = 'Enter a project management URL.';
+        }
     } else if (!isHttpUrl(input.projectManagementUrl.trim())) {
         errors.projectManagementUrl = 'Enter a valid http or https URL.';
     }

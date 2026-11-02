@@ -158,9 +158,7 @@ body {
     width: 16px;
     height: 16px;
     flex: 0 0 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.5;
+    fill: currentColor;
 }
 
 .agent-output-toggle[aria-expanded="false"] svg {
@@ -682,11 +680,7 @@ body {
 .tasks-accordion-toggle svg {
     width: 16px;
     height: 16px;
-    fill: none;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.5;
+    fill: currentColor;
     transition: transform 100ms ease-out;
 }
 
@@ -702,6 +696,66 @@ body {
 
 #quick-reference-content {
     padding: 2px 6px 8px 24px;
+}
+
+.quick-reference-tool {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+.quick-reference-tool summary {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 600;
+    list-style: none;
+}
+
+.quick-reference-tool summary::-webkit-details-marker {
+    display: none;
+}
+
+.quick-reference-tool summary svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    fill: currentColor;
+    transition: transform 100ms ease-out;
+}
+
+.quick-reference-tool:not([open]) summary svg {
+    transform: rotate(-90deg);
+}
+
+.quick-reference-tool summary:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+    outline-offset: 2px;
+}
+
+.quick-reference-tool ol {
+    margin: 6px 0 2px;
+    padding-left: 18px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+}
+
+.quick-reference-tool .quick-reference-agent {
+    padding-left: 4px;
+}
+
+.quick-reference-tool .quick-reference-agent:last-child {
+    border-bottom: 0;
+}
+
+.quick-reference-tool li + li {
+    margin-top: 4px;
+}
+
+.quick-reference-tool code {
+    color: var(--vscode-textPreformat-foreground, var(--vscode-foreground));
 }
 
 .quick-reference-agent {
@@ -790,7 +844,19 @@ body {
 }
 
 .task-row:has(.task-select[aria-current="true"]) {
+    color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
     background: var(--vscode-list-activeSelectionBackground);
+}
+
+/* Secondary text and icons must follow the selection foreground; their own colors are tuned for the plain background. */
+.task-row:has(.task-select[aria-current="true"]) .task-date,
+.task-row:has(.task-select[aria-current="true"]) .in-progress-icon,
+.task-row:has(.task-select[aria-current="true"]) .task-action {
+    color: var(--vscode-list-activeSelectionIconForeground, var(--vscode-list-activeSelectionForeground, var(--vscode-foreground)));
+}
+
+.task-row:has(.task-select[aria-current="true"]) .task-date {
+    opacity: 0.85;
 }
 
 .task-select {

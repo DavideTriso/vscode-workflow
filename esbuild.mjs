@@ -29,7 +29,17 @@ const webviewOptions = {
     target: 'es2022',
 };
 
-const configurations = [extensionOptions, webviewOptions];
+// Bundled into the Claude Code plugin; launched over stdio by the plugin's .mcp.json.
+const mcpServerOptions = {
+    ...sharedOptions,
+    entryPoints: ['src/mcp/server.ts'],
+    outfile: 'dist/mcp-server.js',
+    platform: 'node',
+    format: 'cjs',
+    target: 'node20',
+};
+
+const configurations = [extensionOptions, webviewOptions, mcpServerOptions];
 
 if (isWatch) {
     const contexts = await Promise.all(configurations.map((options) => esbuild.context(options)));
