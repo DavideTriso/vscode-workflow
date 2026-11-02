@@ -1,9 +1,0 @@
-{
-  "name": "Add setting to make PM URL mandatory or not mandatory",
-  "createdOnDateTime": "2026-11-02T00:20:30Z",
-  "projectManagementUrl": "https://me.intended",
-  "description": "The PM task URL mandatory and not mandatory state should be controllable via settings",
-  "createdBy": "davidetrisolini@yahoo.it",
-  "status": 0,
-  "timeTracking": []
-}

@@ -2,7 +2,7 @@
     "name": "vscode-extension-starter",
     "displayName": "VS Code Extension Starter",
     "description": "A minimal VS Code extension starter.",
-    "version": "0.1.0",
+    "version": "0.3.0",
     "publisher": "davidetriso",
     "license": "MIT",
     "private": true,

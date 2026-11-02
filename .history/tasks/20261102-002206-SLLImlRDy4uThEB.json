@@ -4,6 +4,12 @@
   "projectManagementUrl": "https://www/test.com",
   "description": "Add developer and user documentation",
   "createdBy": "davidetrisolini@yahoo.it",
-  "status": 0,
-  "timeTracking": []
+  "status": 2,
+  "timeTracking": [
+    {
+      "startDateTime": "2026-11-02T22:16:03Z",
+      "endDateTime": "2026-11-02T22:34:27Z",
+      "user": "davidetrisolini@yahoo.it"
+    }
+  ]
 }

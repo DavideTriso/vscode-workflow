@@ -4,6 +4,17 @@
   "projectManagementUrl": "https://hello.com",
   "description": "Support a agent/prompt/skill to quickly add all required agents/docs/prompts files to make the repository ready to be used by AI agents.",
   "createdBy": "davidetrisolini@yahoo.it",
-  "status": 0,
-  "timeTracking": []
+  "status": 1,
+  "timeTracking": [
+    {
+      "startDateTime": "2026-11-02T21:53:58Z",
+      "endDateTime": "2026-11-02T21:54:03Z",
+      "user": "davidetrisolini@yahoo.it"
+    },
+    {
+      "startDateTime": "2026-11-02T22:04:47Z",
+      "endDateTime": "2026-11-02T22:04:51Z",
+      "user": "davidetrisolini@yahoo.it"
+    }
+  ]
 }
