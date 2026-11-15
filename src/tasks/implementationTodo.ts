@@ -48,26 +48,31 @@ export function summarizeImplementationTodo(groups: ImplementationTodoGroup[]): 
     return sentences.join(' ').slice(0, 500);
 }
 
+/** Markdown list lines describing a TODO item's content fields (source through alert). */
+export function describeImplementationTodoItem(item: ImplementationTodoItem): string[] {
+    const details = [
+        `- Source: ${item.sourceRef}`,
+        `- Why: ${item.why}`,
+        `- Files: ${item.files.length > 0 ? item.files.map((file) => `\`${file}\``).join(', ') : 'None listed'}`,
+        `- Decisions: ${item.decisions}`,
+        `- Acceptance: ${item.acceptance}`,
+        `- Evidence: ${item.evidence || 'None yet'}`,
+        `- Remaining: ${item.remaining || 'None'}`,
+    ];
+    if (item.alert) {
+        details.push(`- Alert: ${item.alert}`);
+    }
+    return details;
+}
+
 export function renderImplementationTodoMarkdown(todo: ImplementationTodoDocument): string {
     const sections = todo.groups.map((group) => {
-        const items = group.items.map((item) => {
-            const details = [
-                `### ${item.done ? 'Done' : 'Open'} - ${item.title}`,
-                '',
-                `- ID: \`${item.id}\``,
-                `- Source: ${item.sourceRef}`,
-                `- Why: ${item.why}`,
-                `- Files: ${item.files.length > 0 ? item.files.map((file) => `\`${file}\``).join(', ') : 'None listed'}`,
-                `- Decisions: ${item.decisions}`,
-                `- Acceptance: ${item.acceptance}`,
-                `- Evidence: ${item.evidence || 'None yet'}`,
-                `- Remaining: ${item.remaining || 'None'}`,
-            ];
-            if (item.alert) {
-                details.push(`- Alert: ${item.alert}`);
-            }
-            return details.join('\n');
-        });
+        const items = group.items.map((item) => [
+            `### ${item.done ? 'Done' : 'Open'} - ${item.title}`,
+            '',
+            `- ID: \`${item.id}\``,
+            ...describeImplementationTodoItem(item),
+        ].join('\n'));
         return [`## ${group.name}`, '', ...(items.length > 0 ? items : ['No items.'])].join('\n');
     });
     return [`# Implementation TODOs`, '', `## Summary`, '', todo.summary, '', `Plan: ${todo.plan}`, '', ...sections].join('\n');

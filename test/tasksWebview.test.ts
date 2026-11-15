@@ -102,8 +102,8 @@ describe('task webview TODO interactions', () => {
         });
     });
 
-    it('uses icon-only view/add/edit/remove actions and no Move button', () => {
-        for (const selector of ['.agent-output-view', '.agent-output-add', '.implementation-todo-view', '.implementation-todo-edit', '.implementation-todo-remove']) {
+    it('uses icon-only view/add/more actions and no Move button', () => {
+        for (const selector of ['.agent-output-view', '.agent-output-add', '.implementation-todo-view', '.implementation-todo-more']) {
             const button = document.querySelector<HTMLButtonElement>(selector)!;
             expect(button.textContent?.trim()).toBe('');
             expect(button.querySelector('svg')).not.toBeNull();
@@ -111,7 +111,58 @@ describe('task webview TODO interactions', () => {
             expect(button.getAttribute('aria-label')).not.toBeNull();
         }
         expect(document.querySelector('.implementation-todo-drag-handle')).toBeNull();
-        expect(document.querySelector('.implementation-todo-actions')?.children).toHaveLength(3);
+        expect(document.querySelector('.implementation-todo-actions')!.querySelectorAll(':scope > button')).toHaveLength(2);
+    });
+
+    it('shows Edit, Create task and Delete in the TODO "more" dropdown', () => {
+        const row = '.implementation-todo-item[data-todo-id="first-item"]';
+        const more = document.querySelector<HTMLButtonElement>(`${row} .implementation-todo-more`)!;
+        const menu = document.querySelector<HTMLElement>(`${row} .implementation-todo-menu`)!;
+        expect(menu.hidden).toBe(true);
+        more.click();
+        expect(menu.hidden).toBe(false);
+        expect(more.getAttribute('aria-expanded')).toBe('true');
+        expect([...menu.querySelectorAll('[role="menuitem"]')].map((entry) => entry.textContent)).toEqual(['Edit', 'Create task', 'Delete']);
+        document.body.click();
+        expect(menu.hidden).toBe(true);
+
+        more.click();
+        click(`${row} .implementation-todo-remove`);
+        expect(menu.hidden).toBe(true);
+        expect(postMessage).toHaveBeenLastCalledWith({ type: 'removeTodo', taskId: task.id, itemId: 'first-item' });
+    });
+
+    it('creates a task pre-filled from a TODO and asks to remove that TODO on save', () => {
+        const parent = { ...task, projectManagementUrl: 'https://pm.example.com/1', assignee: 'a@example.com <A>' };
+        send({ type: 'taskSettings', requireProjectManagementUrl: true, teamMembers: ['a@example.com <A>'] });
+        send({ type: 'taskList', tasks: [parent], currentUser: 'me@example.com <Me>' });
+        send({ type: 'selectedTask', task: parent });
+        send({ type: 'agentOutputs', taskId: task.id, groups });
+
+        click('.implementation-todo-item[data-todo-id="first-item"] .implementation-todo-create-task');
+        expect(document.querySelector<HTMLElement>('#create-task-panel')!.hidden).toBe(false);
+        expect(document.querySelector<HTMLInputElement>('#task-name')!.value).toBe('Implement feature');
+        expect(document.querySelector<HTMLInputElement>('#task-url')!.value).toBe('https://pm.example.com/1');
+        expect(document.querySelector<HTMLSelectElement>('#task-assignee')!.value).toBe('a@example.com <A>');
+        const description = document.querySelector<HTMLTextAreaElement>('#task-description')!.value;
+        for (const text of ['Status: Open', 'implementation-plan.md#step-1', 'Feature rationale', '`src/feature.ts`', 'Preserve compatibility', 'Functional tests pass']) {
+            expect(description).toContain(text);
+        }
+
+        click('#create-task-submit');
+        expect(postMessage).toHaveBeenLastCalledWith({
+            type: 'saveTask',
+            input: expect.objectContaining({ name: 'Implement feature', assignee: 'a@example.com <A>' }),
+            sourceTodo: { taskId: task.id, itemId: 'first-item' },
+        });
+
+        send({ type: 'taskSaved' });
+        click('#add-task-button');
+        document.querySelector<HTMLInputElement>('#task-name')!.value = 'Plain task';
+        document.querySelector<HTMLInputElement>('#task-url')!.value = 'https://pm.example.com/2';
+        document.querySelector<HTMLTextAreaElement>('#task-description')!.value = 'Details';
+        click('#create-task-submit');
+        expect(postMessage.mock.calls.at(-1)![0]).not.toHaveProperty('sourceTodo');
     });
 
     it('clamps TODO titles to two lines with full-text tooltips and no gaps between rows', () => {

@@ -1,4 +1,5 @@
 import { buildAssigneeOptions, filterTasks, getUserEmail, validateTaskInput } from '../../tasks/taskModel';
+import { describeImplementationTodoItem } from '../../tasks/implementationTodo';
 import { outputAgents } from '../../tasks/taskProtocol';
 import type {
     AgentOutputGroup,
@@ -8,6 +9,7 @@ import type {
     ImplementationTodoItemDraft,
     TaskFieldErrors,
     TaskSummary,
+    TodoReference,
     WebviewToExtensionMessage,
 } from '../../tasks/taskProtocol';
 
@@ -75,10 +77,14 @@ const selectedOutputFiles = new Map<string, string>();
 const pendingTodoChanges = new Map<string, boolean>();
 let draggedTodoItemId: string | undefined;
 let todoEditorState: { taskId: string; itemId?: string; groupName: string } | undefined;
+/** The TODO the open "New task" form was pre-filled from; it is removed when that task is saved. */
+let taskSourceTodo: TodoReference | undefined;
 const todoIcons = {
     view: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h9l5 5v13H5zM14 3v6h6M8 14h8M8 17h8"/></svg>',
     edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.8 4.3 4.3-.8L20 7.5 16.5 4 4 16.5zM14.8 5.7l3.5 3.5"/></svg>',
     remove: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 5v5m4-5v5"/></svg>',
+    createTask: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h11v4M4 4v16h8M15 13v8M11 17h8"/></svg>',
+    more: '<svg class="filled-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="3.5" r="1.25"/><circle cx="8" cy="8" r="1.25"/><circle cx="8" cy="12.5" r="1.25"/></svg>',
     add: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>',
 };
 
@@ -119,6 +125,11 @@ if (
     taskUrlInput.addEventListener('input', clearFieldError);
     taskDescriptionInput.addEventListener('input', clearFieldError);
     taskAssigneeInput.addEventListener('change', clearFieldError);
+    document.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element) || !event.target.closest('.implementation-todo-menu')) {
+            closeTodoMenus();
+        }
+    });
     vscode.postMessage({ type: 'ready' });
 }
 
@@ -714,26 +725,6 @@ function createImplementationTodoItem(
     }
     const actions = document.createElement('div');
     actions.className = 'implementation-todo-actions';
-    const editButton = document.createElement('button');
-    editButton.type = 'button';
-    editButton.className = 'implementation-todo-edit task-action';
-    editButton.innerHTML = todoIcons.edit;
-    editButton.title = `Edit ${item.title}`;
-    editButton.setAttribute('aria-label', `Edit ${item.title}`);
-    editButton.addEventListener('click', () => {
-        showTodoEditor(item, groupName);
-    });
-    const removeButton = document.createElement('button');
-    removeButton.type = 'button';
-    removeButton.className = 'implementation-todo-remove task-action delete-task';
-    removeButton.innerHTML = todoIcons.remove;
-    removeButton.title = `Remove ${item.title}`;
-    removeButton.setAttribute('aria-label', `Remove ${item.title}`);
-    removeButton.addEventListener('click', () => {
-        if (selectedTask) {
-            vscode.postMessage({ type: 'removeTodo', taskId: selectedTask.id, itemId: item.id });
-        }
-    });
     const viewButton = document.createElement('button');
     viewButton.type = 'button';
     viewButton.className = 'implementation-todo-view task-action';
@@ -745,9 +736,87 @@ function createImplementationTodoItem(
             vscode.postMessage({ type: 'viewTodo', taskId: selectedTask.id, itemId: item.id });
         }
     });
-    actions.append(viewButton, editButton, removeButton);
+    actions.append(viewButton, ...createTodoMoreMenu(item, groupName));
     row.append(actions);
     return row;
+}
+
+/** Builds the "More actions" button and its dropdown with Edit, Create task and Delete. */
+function createTodoMoreMenu(item: ImplementationTodoItem, groupName: string): [HTMLButtonElement, HTMLElement] {
+    const moreButton = document.createElement('button');
+    moreButton.type = 'button';
+    moreButton.className = 'implementation-todo-more task-action';
+    moreButton.innerHTML = todoIcons.more;
+    moreButton.title = 'More Actions...';
+    moreButton.setAttribute('aria-label', `More actions for ${item.title}`);
+    moreButton.setAttribute('aria-haspopup', 'menu');
+    moreButton.setAttribute('aria-expanded', 'false');
+
+    const menu = document.createElement('div');
+    menu.className = 'implementation-todo-menu';
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    const menuItem = (className: string, icon: string, label: string, run: () => void): HTMLButtonElement => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `implementation-todo-menu-item ${className}`;
+        button.setAttribute('role', 'menuitem');
+        button.tabIndex = -1;
+        button.innerHTML = icon;
+        const text = document.createElement('span');
+        text.textContent = label;
+        button.append(text);
+        button.addEventListener('click', () => {
+            closeTodoMenus();
+            run();
+        });
+        return button;
+    };
+    menu.append(
+        menuItem('implementation-todo-edit', todoIcons.edit, 'Edit', () => showTodoEditor(item, groupName)),
+        menuItem('implementation-todo-create-task', todoIcons.createTask, 'Create task', () => showCreateTaskFromTodo(item)),
+        menuItem('implementation-todo-remove', todoIcons.remove, 'Delete', () => {
+            if (selectedTask) {
+                vscode.postMessage({ type: 'removeTodo', taskId: selectedTask.id, itemId: item.id });
+            }
+        }),
+    );
+
+    moreButton.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const wasOpen = !menu.hidden;
+        closeTodoMenus();
+        if (!wasOpen) {
+            menu.hidden = false;
+            moreButton.setAttribute('aria-expanded', 'true');
+            menu.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+        }
+    });
+    menu.addEventListener('keydown', (event) => {
+        const items = Array.from(menu.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));
+        const index = items.indexOf(document.activeElement as HTMLButtonElement);
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeTodoMenus();
+            moreButton.focus();
+        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const step = event.key === 'ArrowDown' ? 1 : -1;
+            items[(index + step + items.length) % items.length]?.focus();
+        } else if (event.key === 'Tab') {
+            closeTodoMenus();
+        }
+    });
+    return [moreButton, menu];
+}
+
+function closeTodoMenus(): void {
+    document.querySelectorAll<HTMLElement>('.implementation-todo-menu').forEach((menu) => {
+        menu.hidden = true;
+    });
+    document.querySelectorAll<HTMLButtonElement>('.implementation-todo-more').forEach((button) => {
+        button.setAttribute('aria-expanded', 'false');
+    });
 }
 
 function showTodoEditor(item: ImplementationTodoItem | undefined, groupName: string): void {
@@ -1023,7 +1092,7 @@ function handleCreateTaskSubmit(event: SubmitEvent): void {
         vscode.postMessage({ type: 'saveTask', taskId: editingTaskId, input });
         return;
     }
-    vscode.postMessage({ type: 'saveTask', input });
+    vscode.postMessage(taskSourceTodo ? { type: 'saveTask', input, sourceTodo: taskSourceTodo } : { type: 'saveTask', input });
 }
 
 function readCreateTaskInput(): CreateTaskInput {
@@ -1076,6 +1145,7 @@ function showCreateTaskForm(): void {
         return;
     }
     editingTaskId = undefined;
+    taskSourceTodo = undefined;
     createTaskForm?.reset();
     setAssigneeOptions(currentUser ?? '');
     clearAllFieldErrors();
@@ -1086,11 +1156,31 @@ function showCreateTaskForm(): void {
     taskNameInput.focus();
 }
 
+/** Opens the "New task" form pre-filled from a TODO of the selected task. */
+function showCreateTaskFromTodo(item: ImplementationTodoItem): void {
+    const parentTask = selectedTask;
+    if (!parentTask || !taskNameInput || !taskUrlInput || !taskDescriptionInput) {
+        return;
+    }
+    showCreateTaskForm();
+    taskSourceTodo = { taskId: parentTask.id, itemId: item.id };
+    taskNameInput.value = item.title;
+    taskUrlInput.value = parentTask.projectManagementUrl;
+    taskDescriptionInput.value = formatTodoAsTaskDescription(item);
+    setAssigneeOptions(parentTask.assignee ?? currentUser ?? '');
+    createTaskPanel?.scrollIntoView?.({ block: 'nearest' });
+}
+
+function formatTodoAsTaskDescription(item: ImplementationTodoItem): string {
+    return [`- Status: ${item.done ? 'Done' : 'Open'}`, ...describeImplementationTodoItem(item)].join('\n');
+}
+
 function showEditTaskForm(task: TaskSummary): void {
     if (!createTaskPanel || !taskListPanel || !taskNameInput || !taskUrlInput || !taskDescriptionInput || !taskFormHeading) {
         return;
     }
     editingTaskId = task.id;
+    taskSourceTodo = undefined;
     taskFormHeading.textContent = 'Edit task';
     taskNameInput.value = task.name;
     taskUrlInput.value = task.projectManagementUrl;
@@ -1105,6 +1195,7 @@ function showEditTaskForm(task: TaskSummary): void {
 
 function closeCreateTaskForm(): void {
     editingTaskId = undefined;
+    taskSourceTodo = undefined;
     createTaskForm?.reset();
     createTaskPanel?.setAttribute('hidden', '');
     if (taskListPanel) {

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import path from 'node:path';
 import { missingUserEmailMessage, TaskRepository } from './taskRepository';
 import { validateTaskInput, type TaskValidationOptions } from './taskModel';
-import type { CreateTaskInput, ExtensionToWebviewMessage, TaskSummary, WebviewToExtensionMessage } from './taskProtocol';
+import type { CreateTaskInput, ExtensionToWebviewMessage, TaskSummary, TodoReference, WebviewToExtensionMessage } from './taskProtocol';
 import { getTasksWebviewHtml } from './tasksWebviewHtml';
 import { getFormattedTeamMembers, userSettingKeys } from './userSettings';
 
@@ -238,7 +238,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         }
         if (isSaveTaskMessage(message)) {
             try {
-                await this.saveTask(message.input, message.taskId);
+                await this.saveTask(message.input, message.taskId, message.sourceTodo);
             } catch (error) {
                 const detail = error instanceof Error ? error.message : String(error);
                 await this.postMessage({ type: 'createTaskFailed', message: detail });
@@ -439,7 +439,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         }
     }
 
-    private async saveTask(input: CreateTaskInput, taskId?: string): Promise<void> {
+    private async saveTask(input: CreateTaskInput, taskId?: string, sourceTodo?: TodoReference): Promise<void> {
         const errors = validateTaskInput(input, this.getTaskValidationOptions());
         if (Object.keys(errors).length > 0) {
             await this.postMessage({ type: 'createTaskValidationError', errors });
@@ -462,9 +462,22 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
             await this.taskRepository.updateTask(repositoryRoot, taskId, normalizedInput);
         } else {
             await this.taskRepository.createTask(repositoryRoot, normalizedInput);
+            if (sourceTodo) {
+                await this.removeConvertedTodo(repositoryRoot, sourceTodo);
+            }
         }
         await this.refresh();
         await this.postMessage({ type: 'taskSaved' });
+    }
+
+    /** Removes the TODO a task was just created from. The task already exists, so failures are only reported. */
+    private async removeConvertedTodo(repositoryRoot: string, sourceTodo: TodoReference): Promise<void> {
+        try {
+            await this.taskRepository.removeImplementationTodoItem(repositoryRoot, sourceTodo.taskId, sourceTodo.itemId, 'user');
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            void vscode.window.showErrorMessage(`The task was created, but its source TODO could not be removed: ${detail}`);
+        }
     }
 
     private async confirmUntrackedDeletion(taskName: string): Promise<boolean> {
@@ -626,7 +639,11 @@ function isSaveTaskMessage(
         'description' in input && typeof input.description === 'string' &&
         'assignee' in input && typeof input.assignee === 'string';
     const hasValidTaskId = !('taskId' in message) || typeof message.taskId === 'string';
-    return message.type === 'saveTask' && hasValidInput && hasValidTaskId;
+    const hasValidSourceTodo = !('sourceTodo' in message) || message.sourceTodo === undefined || (
+        isRecordMessage(message.sourceTodo) &&
+        typeof message.sourceTodo.taskId === 'string' && typeof message.sourceTodo.itemId === 'string'
+    );
+    return message.type === 'saveTask' && hasValidInput && hasValidTaskId && hasValidSourceTodo;
 }
 
 function isEditTaskMessage(

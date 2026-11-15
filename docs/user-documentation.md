@@ -24,7 +24,7 @@
    | Code Comments | Review or improve comments. |
 
    - `/vscode-workflow:analyze-and-plan`, `/vscode-workflow:implement` and `/vscode-workflow:debug` are skills; the others are subagents, so ask for them by name ("use the vscode-workflow:logic-review subagent").
-4. **Follow the results** in the Tasks view: select a task to see agent reports and its TODO list. Add, edit, reorder or check off your own TODOs; agents never change items you created.
+4. **Follow the results** in the Tasks view: select a task to see agent reports and its TODO list. Add, edit, reorder or check off your own TODOs; agents never change items you created. Each TODO's `⋮` menu has **Edit**, **Delete** and **Create task**: the last one opens the new-task form filled from the TODO (its title, all its details as the description, and the parent task's URL and assignee); saving the task removes the TODO.
 5. **Mark done** when finished. Done tasks leave the list; use the person icon to show only your tasks.
 
 Tip: the **Quick Reference** panel at the bottom of the view repeats this per tool.

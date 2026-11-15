@@ -127,4 +127,10 @@ export type WebviewToExtensionMessage =
     | { type: 'refreshTasks' }
     | { type: 'markTaskDone'; taskId: string }
     | { type: 'toggleTimeTracking'; taskId: string }
-    | { type: 'saveTask'; taskId?: string; input: CreateTaskInput };
+    | { type: 'saveTask'; taskId?: string; input: CreateTaskInput; sourceTodo?: TodoReference };
+
+/** A TODO item a new task is created from; it is removed once the task is saved. */
+export interface TodoReference {
+    taskId: string;
+    itemId: string;
+}

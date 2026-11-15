@@ -53,6 +53,7 @@ describe('task view agent outputs', () => {
         addImplementationTodoItem: ReturnType<typeof vi.fn>;
         updateImplementationTodoItem: ReturnType<typeof vi.fn>;
         removeImplementationTodoItem: ReturnType<typeof vi.fn>;
+        createTask: ReturnType<typeof vi.fn>;
         reorderImplementationTodos: ReturnType<typeof vi.fn>;
         readImplementationTodo: ReturnType<typeof vi.fn>;
         startAgentTask: ReturnType<typeof vi.fn>;
@@ -74,6 +75,7 @@ describe('task view agent outputs', () => {
             addImplementationTodoItem: vi.fn(async () => undefined),
             updateImplementationTodoItem: vi.fn(async () => undefined),
             removeImplementationTodoItem: vi.fn(async () => undefined),
+            createTask: vi.fn(async () => 'new-task.json'),
             reorderImplementationTodos: vi.fn(async () => undefined),
             readImplementationTodo: vi.fn(async () => ({ groups: [{ name: 'Group', items: [{ id: 'todo-1', title: 'Remove me' }] }] })),
             startAgentTask: vi.fn(),
@@ -216,6 +218,22 @@ describe('task view agent outputs', () => {
         expect(repository.reorderImplementationTodos).toHaveBeenCalledWith('/repo', 'task.json', groups, 'user');
         expect(postMessage).toHaveBeenCalledWith({ type: 'todoMutationResult', taskId: 'task.json' });
         expect(repository.listAgentOutputs).toHaveBeenCalledTimes(4);
+    });
+
+    it('removes the source TODO without confirmation after creating a task from it', async () => {
+        const input = { name: 'From TODO', projectManagementUrl: 'https://pm.example.com/1', description: 'Details', assignee: 'a@example.com <A>' };
+        await receiveMessage({ type: 'saveTask', input, sourceTodo: { taskId: 'task.json', itemId: 'todo-1' } });
+        expect(repository.createTask).toHaveBeenCalledWith('/repo', input);
+        expect(repository.removeImplementationTodoItem).toHaveBeenCalledWith('/repo', 'task.json', 'todo-1', 'user');
+        expect(repository.createTask.mock.invocationCallOrder[0]).toBeLessThan(repository.removeImplementationTodoItem.mock.invocationCallOrder[0]!);
+        expect(vscodeMocks.showWarning).not.toHaveBeenCalled();
+        expect(postMessage).toHaveBeenCalledWith({ type: 'taskSaved' });
+
+        repository.removeImplementationTodoItem.mockClear();
+        repository.createTask.mockRejectedValueOnce(new Error('Disk full'));
+        await receiveMessage({ type: 'saveTask', input, sourceTodo: { taskId: 'task.json', itemId: 'todo-1' } });
+        expect(repository.removeImplementationTodoItem).not.toHaveBeenCalled();
+        expect(postMessage).toHaveBeenCalledWith({ type: 'createTaskFailed', message: 'Disk full' });
     });
 
     it('rejects user TODO mutations for a non-selected task', async () => {
