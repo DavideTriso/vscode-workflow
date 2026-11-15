@@ -139,7 +139,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     <section class="quick-reference-agent">
                         <h3>Document</h3>
                         <p>Subagent: <code>vscode-workflow:document</code>. Updates repository documentation to reflect verified code and workflow changes.</p>
-                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:documentation-update-default</code> guides documentation updates.</p>
+                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:documentation-update-default</code> guides documentation updates. <code>/vscode-workflow:documentation-create-default</code> initializes a repository's README and <code>docs/</code> after you approve a proposed table of contents.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Code Comments</h3>

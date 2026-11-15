@@ -46,7 +46,7 @@ Key ideas:
 - **New task field or action:** extend types and messages in `taskProtocol.ts`, implement in `taskRepository.ts`, handle in `tasksViewProvider.ts`, render in `main.ts` / `tasksWebviewHtml.ts`. Add tests in `test/`.
 - **New setting:** add it under `contributes.configuration` in `package.json`; read it in the provider and push it to the webview (see `taskSettings`).
 - **New TODO tool:** add the declaration to `todoToolDefinitions.ts` and the operation to `todoToolOperations.ts`; the MCP server picks it up.
-- **New agent or skill:** add it under `claude-plugin/agents` or `claude-plugin/skills`. New agent report files must be added to `outputAgents` in `taskProtocol.ts` to appear in the view. Keep the Quick Reference text in sync.
+- **New agent or skill:** add it under `claude-plugin/agents` or `claude-plugin/skills`. New agent report files must be added to `outputAgents` in `taskProtocol.ts` to appear in the view. Keep the Quick Reference text in sync. A file shared by several skills is copied into each skill folder (for example `todo-contract.md` and `documentation-standards.md`); edit all copies together (a test checks the documentation standards copies match).
 - **Claude names:** if you rename the plugin or marketplace, update `claudePlugin.ts` and `scripts/uninstall.js` together (a test checks this).
 - Tests use vitest (jsdom for the webview); mirror the existing `test/*.test.ts` for the area you change.
 

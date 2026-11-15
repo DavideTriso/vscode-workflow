@@ -18,7 +18,7 @@ describe('task webview quick reference', () => {
         for (const agent of ['Analyze and Plan', 'Implement', 'Logic Review', 'Code Readability', 'Document', 'Code Comments', 'Debug']) {
             expect(html).toContain(`<h3>${agent}</h3>`);
         }
-        for (const skill of ['logic-review-default', 'code-readability-default', 'documentation-update-default', 'code-comment-review', 'code-comment-improve']) {
+        for (const skill of ['logic-review-default', 'code-readability-default', 'documentation-update-default', 'documentation-create-default', 'code-comment-review', 'code-comment-improve']) {
             expect(html).toContain(`<code>/vscode-workflow:${skill}</code>`);
         }
     });

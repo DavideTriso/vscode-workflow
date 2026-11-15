@@ -95,6 +95,14 @@ describe('Claude Code plugin content', () => {
         }
     });
 
+    it('ships identical documentation standards with both documentation skills', async () => {
+        const create = await read('skills', 'documentation-create-default', 'documentation-standards.md');
+        expect(await read('skills', 'documentation-update-default', 'documentation-standards.md')).toBe(create);
+        for (const name of ['documentation-create-default', 'documentation-update-default']) {
+            expect(await read('skills', name, 'SKILL.md')).toContain('`documentation-standards.md`, located next to this SKILL.md');
+        }
+    });
+
     it('preserves the planning contracts in the Claude skill', async () => {
         const planning = await read('skills', 'analyze-and-plan', 'SKILL.md');
         for (const phrase of [
