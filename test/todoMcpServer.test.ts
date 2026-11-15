@@ -2,9 +2,9 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import manifest from '../package.json';
 import { TaskRepository } from '../src/tasks/taskRepository';
-import { createTodoMcpServer, toMcpToolName } from '../src/mcp/todoMcpServer';
+import { createTodoMcpServer } from '../src/mcp/todoMcpServer';
+import { todoToolDefinitions } from '../src/tasks/todoToolDefinitions';
 
 describe('TODO MCP server for Claude Code', () => {
     let repositoryRoot: string;
@@ -23,7 +23,7 @@ describe('TODO MCP server for Claude Code', () => {
         const repository = new TaskRepository();
         vi.spyOn(repository, 'findRepositoryRoot').mockResolvedValue(repositoryRoot);
         server = createTodoMcpServer({
-            contributedTools: manifest.contributes.languageModelTools,
+            tools: todoToolDefinitions,
             workspacePath: repositoryRoot,
             repository,
             serverVersion: '1.2.3',
@@ -56,7 +56,7 @@ describe('TODO MCP server for Claude Code', () => {
         expect(await server.handleMessage({ jsonrpc: '2.0', method: 'notifications/initialized' })).toBeUndefined();
     });
 
-    it('lists exactly the contributed TODO tools under unprefixed names with their schemas', async () => {
+    it('lists exactly the defined TODO tools with their schemas', async () => {
         const response = await server.handleMessage({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
         const tools = (response?.result as { tools: Array<{ name: string; inputSchema: unknown }> }).tools;
         expect(tools.map((tool) => tool.name)).toEqual([
@@ -65,11 +65,11 @@ describe('TODO MCP server for Claude Code', () => {
             'sync_logic_review_todos',
             'sync_code_readability_todos',
         ]);
-        const manage = manifest.contributes.languageModelTools.find((tool) => toMcpToolName(tool.name) === 'manage_implementation_todos');
+        const manage = todoToolDefinitions.find((tool) => tool.name === 'manage_implementation_todos');
         expect(tools[1]?.inputSchema).toEqual(manage?.inputSchema);
     });
 
-    it('runs the same read, add, and protection rules as the VS Code tools', async () => {
+    it('runs the shared read, add, and protection rules', async () => {
         const read = await call('read_implementation_todos', {});
         expect(JSON.parse(textOf(read))).toMatchObject({ version: 1, groups: [] });
 

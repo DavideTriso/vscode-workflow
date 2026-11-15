@@ -3,8 +3,7 @@
 ## Setup
 
 1. Install the extension and open a folder that is a Git repository. Set your identity in `vscode-workflow.user.email` / `vscode-workflow.user.name`, or leave them empty to use `git config user.email` / `user.name`. An email is required. To assign tasks to others, list them in `vscode-workflow.teamMembers` as `[{ "email": "...", "name": "..." }]`.
-2. **Copilot:** nothing else to do. The agents appear in Copilot Chat's agent picker.
-3. **Claude Code:** run **Workflow: Register Agents and Skills with Claude Code** from the Command Palette (or accept the prompt shown once if `~/.claude` exists). Then run `/reload-plugins` in Claude Code and check `/mcp` shows `plugin:vscode-workflow:todos` as connected.
+2. **Claude Code:** run **Workflow: Register Agents and Skills with Claude Code** from the Command Palette (or accept the prompt shown once if `~/.claude` exists). Then run `/reload-plugins` in Claude Code and check `/mcp` shows `plugin:vscode-workflow:todos` as connected.
    - The extension adds a local plugin to `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR`) and keeps it updated. Uninstalling the extension removes the entries.
    - Set `vscode-workflow.claudeCode.registration` to `disabled` to never touch Claude Code settings.
 
@@ -24,8 +23,7 @@
    | Document | Update the docs. |
    | Code Comments | Review or improve comments. |
 
-   - Copilot: pick the agent in Chat.
-   - Claude Code: `/vscode-workflow:analyze-and-plan` and `/vscode-workflow:implement` are skills; the others are subagents, so ask for them by name ("use the vscode-workflow:logic-review subagent").
+   - `/vscode-workflow:analyze-and-plan`, `/vscode-workflow:implement` and `/vscode-workflow:debug` are skills; the others are subagents, so ask for them by name ("use the vscode-workflow:logic-review subagent").
 4. **Follow the results** in the Tasks view: select a task to see agent reports and its TODO list. Add, edit, reorder or check off your own TODOs; agents never change items you created.
 5. **Mark done** when finished. Done tasks leave the list; use the person icon to show only your tasks.
 

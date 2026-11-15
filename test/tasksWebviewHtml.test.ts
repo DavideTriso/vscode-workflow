@@ -19,18 +19,18 @@ describe('task webview quick reference', () => {
             expect(html).toContain(`<h3>${agent}</h3>`);
         }
         for (const skill of ['logic-review-default', 'code-readability-default', 'documentation-update-default', 'code-comment-review', 'code-comment-improve']) {
-            expect(html).toContain(`<code>${skill}</code>`);
+            expect(html).toContain(`<code>/vscode-workflow:${skill}</code>`);
         }
     });
 
-    it('documents how to start each agent in GitHub Copilot and Claude Code', () => {
+    it('documents only how to start each agent in Claude Code, without nested accordions', () => {
         const html = getTasksWebviewHtml({
             asWebviewUri: (uri) => uri as unknown as vscode.Uri,
             cspSource: 'vscode-webview:',
         } as vscode.Webview, {} as vscode.Uri);
 
-        expect(html).toContain('<span>GitHub Copilot</span></summary>');
-        expect(html).toContain('<span>Claude Code</span></summary>');
+        expect(html).not.toContain('Copilot');
+        expect(html).not.toContain('<details');
         for (const name of ['analyze-and-plan', 'implement', 'debug']) {
             expect(html).toContain(`/vscode-workflow:${name}`);
         }

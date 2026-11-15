@@ -1,6 +1,6 @@
 # VS Code Workflow
 
-Track tasks inside your Git repository and give AI agents (GitHub Copilot and Claude Code) the context they need to plan, implement, review and document work on them.
+Track tasks inside your Git repository and give Claude Code agents the context they need to plan, implement, review and document work on them.
 
 ## Features
 
@@ -8,7 +8,7 @@ Track tasks inside your Git repository and give AI agents (GitHub Copilot and Cl
 - **Tasks live in the repo** as JSON under `.history/tasks/`, so they travel with your code.
 - **Seven agents**: Analyze and Plan, Implement, Debug, Logic Review, Code Readability, Document, Code Comments.
 - **Shared TODO list** per task that agents and you both edit, with agent reports shown next to the task.
-- Works with **GitHub Copilot Chat** and **Claude Code**.
+- Built for **Claude Code**.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ Track tasks inside your Git repository and give AI agents (GitHub Copilot and Cl
 
 1. Open a Git repository and click the **Tasks** icon in the activity bar.
 2. Add a task, then start its timer to make it the active task.
-3. Pick an agent in Copilot Chat, or run `/vscode-workflow:…` in Claude Code.
+3. Run `/vscode-workflow:…` in Claude Code.
 
 Full guide: [User documentation](docs/user-documentation.md).
 

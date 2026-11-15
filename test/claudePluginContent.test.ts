@@ -1,13 +1,12 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import manifest from '../package.json';
-import { toMcpToolName } from '../src/mcp/todoMcpServer';
+import { todoToolDefinitions } from '../src/tasks/todoToolDefinitions';
 import { claudePluginName } from '../src/claude/claudePlugin';
 
 const pluginRoot = path.resolve(__dirname, '..', 'claude-plugin');
 const mcpPrefix = `mcp__plugin_${claudePluginName}_todos__`;
-const mcpToolNames = manifest.contributes.languageModelTools.map((tool) => toMcpToolName(tool.name));
+const mcpToolNames = todoToolDefinitions.map((tool) => tool.name);
 
 function frontmatter(text: string): Record<string, string> {
     const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
@@ -62,7 +61,7 @@ describe('Claude Code plugin content', () => {
         }
     });
 
-    it('gives each agent only the TODO tools its Copilot counterpart uses', async () => {
+    it('gives each reviewer agent only the TODO sync tool it owns', async () => {
         const readability = frontmatter(await read('agents', 'code-readability.md')).tools;
         expect(readability).toContain(`${mcpPrefix}sync_code_readability_todos`);
         expect(readability).not.toContain('sync_logic_review_todos');
@@ -75,6 +74,13 @@ describe('Claude Code plugin content', () => {
         const mcp = JSON.parse(await read('.mcp.json'));
         expect(mcp.mcpServers.todos.args).toEqual(['${CLAUDE_PLUGIN_ROOT}/mcp-server.js']);
         expect(JSON.parse(await read('.claude-plugin', 'plugin.json')).name).toBe(claudePluginName);
+    });
+
+    it('keeps upstream attribution for the adapted debug skill', async () => {
+        expect(await read('skills', 'debug', 'SKILL.md')).toContain('github/awesome-copilot/blob/main/agents/debug.agent.md');
+        const notices = await readFile(path.resolve(__dirname, '..', 'THIRD_PARTY_NOTICES.md'), 'utf8');
+        expect(notices).toContain('Copyright GitHub, Inc.');
+        expect(notices).toContain('MIT License');
     });
 
     it('preserves the planning contracts in the Claude skill', async () => {

@@ -700,43 +700,7 @@ body {
     padding: 2px 6px 8px 24px;
 }
 
-.quick-reference-tool {
-    padding: 6px 0;
-    border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
-}
-
-.quick-reference-tool summary {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-    font-size: 0.95em;
-    font-weight: 600;
-    list-style: none;
-}
-
-.quick-reference-tool summary::-webkit-details-marker {
-    display: none;
-}
-
-.quick-reference-tool summary svg {
-    width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
-    fill: currentColor;
-    transition: transform 100ms ease-out;
-}
-
-.quick-reference-tool:not([open]) summary svg {
-    transform: rotate(-90deg);
-}
-
-.quick-reference-tool summary:focus-visible {
-    outline: 1px solid var(--vscode-focusBorder);
-    outline-offset: 2px;
-}
-
-.quick-reference-tool ol {
+.quick-reference-steps {
     margin: 6px 0 2px;
     padding-left: 18px;
     color: var(--vscode-descriptionForeground);
@@ -744,19 +708,11 @@ body {
     overflow-wrap: anywhere;
 }
 
-.quick-reference-tool .quick-reference-agent {
-    padding-left: 4px;
-}
-
-.quick-reference-tool .quick-reference-agent:last-child {
-    border-bottom: 0;
-}
-
-.quick-reference-tool li + li {
+.quick-reference-steps li + li {
     margin-top: 4px;
 }
 
-.quick-reference-tool code {
+.quick-reference-steps code {
     color: var(--vscode-textPreformat-foreground, var(--vscode-foreground));
 }
 

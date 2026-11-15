@@ -1,19 +1,12 @@
 import { TaskRepository } from '../tasks/taskRepository';
+import type { TodoToolDefinition } from '../tasks/todoToolDefinitions';
 import { resolveActiveTask, todoToolOperations } from '../tasks/todoToolOperations';
 
-const toolNamePrefix = 'vscode-workflow_';
 const fallbackProtocolVersion = '2025-06-18';
 
 export interface McpToolDefinition {
     name: string;
     description: string;
-    inputSchema: unknown;
-}
-
-/** A tool as declared in package.json `contributes.languageModelTools`. */
-export interface ContributedTool {
-    name: string;
-    modelDescription: string;
     inputSchema: unknown;
 }
 
@@ -32,37 +25,32 @@ export interface JsonRpcResponse {
 }
 
 export interface TodoMcpServerOptions {
-    contributedTools: ContributedTool[];
+    tools: TodoToolDefinition[];
     workspacePath: string;
     repository?: TaskRepository;
     serverVersion: string;
 }
 
-/** MCP tools are named without the VS Code publisher prefix, e.g. `read_implementation_todos`. */
-export function toMcpToolName(contributedName: string): string {
-    return contributedName.startsWith(toolNamePrefix) ? contributedName.slice(toolNamePrefix.length) : contributedName;
-}
-
 export function createTodoMcpServer(options: TodoMcpServerOptions) {
     const repository = options.repository ?? new TaskRepository();
-    const tools = options.contributedTools.filter((tool) => tool.name in todoToolOperations);
+    const tools = options.tools.filter((tool) => tool.name in todoToolOperations);
 
     function listTools(): McpToolDefinition[] {
         return tools.map((tool) => ({
-            name: toMcpToolName(tool.name),
-            description: tool.modelDescription,
+            name: tool.name,
+            description: tool.description,
             inputSchema: tool.inputSchema,
         }));
     }
 
     async function callTool(name: string, input: unknown) {
-        const contributed = tools.find((tool) => toMcpToolName(tool.name) === name);
-        if (!contributed) {
+        const tool = tools.find((candidate) => candidate.name === name);
+        if (!tool) {
             throw new Error(`Unknown tool: ${name}`);
         }
         try {
             const activeTask = await resolveActiveTask(repository, options.workspacePath);
-            const operation = todoToolOperations[contributed.name];
+            const operation = todoToolOperations[tool.name];
             if (!operation) {
                 throw new Error(`Unknown tool: ${name}`);
             }

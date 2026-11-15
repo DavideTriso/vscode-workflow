@@ -1,5 +1,6 @@
 import { createInterface } from 'node:readline';
 import manifest from '../../package.json';
+import { todoToolDefinitions } from '../tasks/todoToolDefinitions';
 import { createTodoMcpServer, type JsonRpcRequest } from './todoMcpServer';
 
 /**
@@ -7,7 +8,7 @@ import { createTodoMcpServer, type JsonRpcRequest } from './todoMcpServer';
  * Claude Code starts MCP servers in the project directory, which is the repository to operate on.
  */
 const server = createTodoMcpServer({
-    contributedTools: manifest.contributes.languageModelTools,
+    tools: todoToolDefinitions,
     workspacePath: process.env.WORKFLOW_WORKSPACE || process.cwd(),
     serverVersion: manifest.version,
 });

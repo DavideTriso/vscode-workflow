@@ -23,11 +23,11 @@ src/tasks/                  task domain + Tasks view
   tasksViewProvider.ts      webview host: handles messages, calls the repository
   tasksWebviewHtml.ts       view HTML (incl. Quick Reference)
   implementationTodo*.ts    TODO schema, parsing, rendering
-  todoToolOperations.ts     TODO tool logic, shared by Copilot and MCP
+  todoToolDefinitions.ts    provider-neutral TODO tool names, descriptions and input schemas
+  todoToolOperations.ts     provider-neutral TODO tool logic
 src/ui/tasks/main.ts        webview script (browser bundle)
 src/claude/                 Claude Code plugin sync + registration prompt/command
-src/mcp/                    stdio MCP server exposing the TODO tools to Claude Code
-github-copilot/             agents + skills for Copilot (registered in package.json)
+src/mcp/                    stdio MCP server: the Claude Code adapter for the TODO tools
 claude-plugin/              agents, skills, .mcp.json for Claude Code
 scripts/uninstall.js        vscode:uninstall hook; removes Claude settings entries
 ```
@@ -36,15 +36,15 @@ Key ideas:
 
 - **Repository state is files.** Tasks are `.history/tasks/<id>.json` (status 0 new, 1 in progress, 2 done). Starting a timer writes `.history/agents/<id>/.current`; agents find the active task through it.
 - **Three bundles** (`esbuild.mjs`): `dist/extension.js`, `dist/tasksView.js` (webview), `dist/mcp-server.js`.
-- **TODO tools** are declared once in `package.json` `contributes.languageModelTools`. VS Code registers them for Copilot (`implementationTodoTools.ts`); the MCP server reads the same declarations and drops the `vscode-workflow_` prefix. Both call `todoToolOperations.ts`.
+- **TODO tools** are declared once in `todoToolDefinitions.ts` and implemented in `todoToolOperations.ts`, with no editor or provider API. The MCP server (`src/mcp/`) is the Claude Code adapter that exposes them; another provider would get its own adapter over the same two modules.
 - **Claude plugin sync** (`claudePlugin.ts`) copies `claude-plugin/` plus `mcp-server.js` into `<globalStorage>/claude-marketplace`, stamps the extension version, pins `.mcp.json` to an absolute Node path, and enables it in Claude settings. It is idempotent and reruns on version or Node path change.
 
 ## Adding functionality
 
 - **New task field or action:** extend types and messages in `taskProtocol.ts`, implement in `taskRepository.ts`, handle in `tasksViewProvider.ts`, render in `main.ts` / `tasksWebviewHtml.ts`. Add tests in `test/`.
 - **New setting:** add it under `contributes.configuration` in `package.json`; read it in the provider and push it to the webview (see `taskSettings`).
-- **New TODO tool:** add the declaration to `languageModelTools`, the operation to `todoToolOperations.ts`; both Copilot and MCP pick it up.
-- **New agent or skill:** add the file to `github-copilot/` and register it in `package.json` (`chatAgents` / `chatSkills`); add the Claude variant under `claude-plugin/agents` or `claude-plugin/skills`. New agent report files must be added to `outputAgents` in `taskProtocol.ts` to appear in the view. Keep the Quick Reference text in sync.
+- **New TODO tool:** add the declaration to `todoToolDefinitions.ts` and the operation to `todoToolOperations.ts`; the MCP server picks it up.
+- **New agent or skill:** add it under `claude-plugin/agents` or `claude-plugin/skills`. New agent report files must be added to `outputAgents` in `taskProtocol.ts` to appear in the view. Keep the Quick Reference text in sync.
 - **Claude names:** if you rename the plugin or marketplace, update `claudePlugin.ts` and `scripts/uninstall.js` together (a test checks this).
 - Tests use vitest (jsdom for the webview); mirror the existing `test/*.test.ts` for the area you change.
 

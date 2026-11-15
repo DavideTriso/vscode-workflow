@@ -1,12 +1,12 @@
 import { TaskRepository } from './taskRepository';
 import type { ImplementationTodoItemDraft, ImplementationTodoGroupOrder } from './taskProtocol';
 
-/** Host-independent TODO tool names, shared by the VS Code tools and the MCP server. */
+/** Provider-independent TODO tool names; they match the names in `todoToolDefinitions`. */
 export const todoToolNames = {
-    read: 'vscode-workflow_read_implementation_todos',
-    manage: 'vscode-workflow_manage_implementation_todos',
-    syncLogic: 'vscode-workflow_sync_logic_review_todos',
-    syncReadability: 'vscode-workflow_sync_code_readability_todos',
+    read: 'read_implementation_todos',
+    manage: 'manage_implementation_todos',
+    syncLogic: 'sync_logic_review_todos',
+    syncReadability: 'sync_code_readability_todos',
 } as const;
 
 export interface TodoToolContext {
