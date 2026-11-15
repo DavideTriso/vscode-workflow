@@ -79,7 +79,7 @@ let draggedTodoItemId: string | undefined;
 let todoEditorState: { taskId: string; itemId?: string; groupName: string } | undefined;
 /** The TODO the open "New task" form was pre-filled from; it is removed when that task is saved. */
 let taskSourceTodo: TodoReference | undefined;
-const todoIcons = {
+const actionIcons = {
     view: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h9l5 5v13H5zM14 3v6h6M8 14h8M8 17h8"/></svg>',
     edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.8 4.3 4.3-.8L20 7.5 16.5 4 4 16.5zM14.8 5.7l3.5 3.5"/></svg>',
     remove: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 5v5m4-5v5"/></svg>',
@@ -126,8 +126,8 @@ if (
     taskDescriptionInput.addEventListener('input', clearFieldError);
     taskAssigneeInput.addEventListener('change', clearFieldError);
     document.addEventListener('click', (event) => {
-        if (!(event.target instanceof Element) || !event.target.closest('.implementation-todo-menu')) {
-            closeTodoMenus();
+        if (!(event.target instanceof Element) || !event.target.closest('.more-menu-list')) {
+            closeMoreMenus();
         }
     });
     vscode.postMessage({ type: 'ready' });
@@ -352,8 +352,6 @@ function createTaskRow(task: TaskSummary): HTMLLIElement {
     createdOn.dateTime = task.createdOnDateTime;
     createdOn.textContent = formatDate(task.createdOnDateTime);
 
-    const deleteButton = document.createElement('button');
-    const editButton = document.createElement('button');
     const openButton = document.createElement('button');
     const selectButton = document.createElement('button');
     selectButton.className = 'task-select';
@@ -364,13 +362,6 @@ function createTaskRow(task: TaskSummary): HTMLLIElement {
         selectButton.setAttribute('aria-current', 'true');
     }
 
-    editButton.className = 'task-action edit-task';
-    editButton.type = 'button';
-    editButton.dataset.taskId = task.id;
-    editButton.title = `Edit ${task.name}`;
-    editButton.setAttribute('aria-label', `Edit ${task.name}`);
-    editButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.8 4.3 4.3-.8L20 7.5 16.5 4 4 16.5zM14.8 5.7l3.5 3.5"/></svg>';
-
     openButton.className = 'task-action open-task-file';
     openButton.type = 'button';
     openButton.dataset.taskId = task.id;
@@ -378,17 +369,13 @@ function createTaskRow(task: TaskSummary): HTMLLIElement {
     openButton.setAttribute('aria-label', `Open ${task.name}`);
     openButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h9l5 5v13H5zM14 3v6h6M8 14h8M8 17h8"/></svg>';
 
-    deleteButton.className = 'delete-task';
-    deleteButton.classList.add('task-action');
-    deleteButton.type = 'button';
-    deleteButton.dataset.taskId = task.id;
-    deleteButton.title = `Delete ${task.name}`;
-    deleteButton.setAttribute('aria-label', `Delete ${task.name}`);
-    deleteButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m5 5v5m4-5v5"/></svg>';
-
     details.append(nameLine, createdOn);
     selectButton.append(details);
-    row.append(selectButton, openButton, editButton, deleteButton);
+    const moreMenu = createMoreMenu('task-more', 'task-menu', `More actions for ${task.name}`, [
+        { className: 'edit-task', icon: actionIcons.edit, label: 'Edit', run: () => vscode.postMessage({ type: 'editTask', taskId: task.id }) },
+        { className: 'delete-task', icon: actionIcons.remove, label: 'Delete', run: () => vscode.postMessage({ type: 'deleteTask', taskId: task.id }) },
+    ]);
+    row.append(selectButton, openButton, moreMenu);
     return row;
 }
 
@@ -416,16 +403,8 @@ function handleTaskListClick(event: MouseEvent): void {
         selectTask(taskId);
         return;
     }
-    if (button.classList.contains('edit-task')) {
-        vscode.postMessage({ type: 'editTask', taskId });
-        return;
-    }
     if (button.classList.contains('open-task-file')) {
         vscode.postMessage({ type: 'openTaskFile', taskId });
-        return;
-    }
-    if (button.classList.contains('delete-task')) {
-        vscode.postMessage({ type: 'deleteTask', taskId });
     }
 }
 
@@ -540,7 +519,7 @@ function createAgentOutputAccordion(group: AgentOutputGroup): HTMLElement {
     const viewButton = document.createElement('button');
     viewButton.type = 'button';
     viewButton.className = 'agent-output-view task-action';
-    viewButton.innerHTML = todoIcons.view;
+    viewButton.innerHTML = actionIcons.view;
     viewButton.title = `Preview ${group.name} Markdown`;
     viewButton.setAttribute('aria-label', viewButton.title);
     viewButton.disabled = group.files.length === 0;
@@ -561,7 +540,7 @@ function createAgentOutputAccordion(group: AgentOutputGroup): HTMLElement {
     const addTodoButton = document.createElement('button');
     addTodoButton.type = 'button';
     addTodoButton.className = 'agent-output-add accordion-icon-button';
-    addTodoButton.innerHTML = todoIcons.add;
+    addTodoButton.innerHTML = actionIcons.add;
     addTodoButton.title = 'Add a user-owned TODO';
     addTodoButton.setAttribute('aria-label', addTodoButton.title);
     addTodoButton.hidden = group.id !== 'implement';
@@ -728,7 +707,7 @@ function createImplementationTodoItem(
     const viewButton = document.createElement('button');
     viewButton.type = 'button';
     viewButton.className = 'implementation-todo-view task-action';
-    viewButton.innerHTML = todoIcons.view;
+    viewButton.innerHTML = actionIcons.view;
     viewButton.title = `View ${item.title}`;
     viewButton.setAttribute('aria-label', viewButton.title);
     viewButton.addEventListener('click', () => {
@@ -736,56 +715,75 @@ function createImplementationTodoItem(
             vscode.postMessage({ type: 'viewTodo', taskId: selectedTask.id, itemId: item.id });
         }
     });
-    actions.append(viewButton, ...createTodoMoreMenu(item, groupName));
+    actions.append(viewButton, createTodoMoreMenu(item, groupName));
     row.append(actions);
     return row;
 }
 
-/** Builds the "More actions" button and its dropdown with Edit, Create task and Delete. */
-function createTodoMoreMenu(item: ImplementationTodoItem, groupName: string): [HTMLButtonElement, HTMLElement] {
+interface MoreMenuAction {
+    className: string;
+    icon: string;
+    label: string;
+    run: () => void;
+}
+
+/** Builds the TODO "More actions" dropdown with Edit, Create task and Delete. */
+function createTodoMoreMenu(item: ImplementationTodoItem, groupName: string): HTMLElement {
+    return createMoreMenu('implementation-todo-more', 'implementation-todo-menu', `More actions for ${item.title}`, [
+        { className: 'implementation-todo-edit', icon: actionIcons.edit, label: 'Edit', run: () => showTodoEditor(item, groupName) },
+        { className: 'implementation-todo-create-task', icon: actionIcons.createTask, label: 'Create task', run: () => showCreateTaskFromTodo(item) },
+        {
+            className: 'implementation-todo-remove', icon: actionIcons.remove, label: 'Delete', run: () => {
+                if (selectedTask) {
+                    vscode.postMessage({ type: 'removeTodo', taskId: selectedTask.id, itemId: item.id });
+                }
+            },
+        },
+    ]);
+}
+
+/**
+ * Builds a "More actions" (vertical dots) button with a dropdown menu, wrapped in a positioning container.
+ * The extra class names let callers target their own button and menu.
+ */
+function createMoreMenu(buttonClass: string, menuClass: string, ariaLabel: string, actions: MoreMenuAction[]): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'more-menu';
+
     const moreButton = document.createElement('button');
     moreButton.type = 'button';
-    moreButton.className = 'implementation-todo-more task-action';
-    moreButton.innerHTML = todoIcons.more;
+    moreButton.className = `more-menu-button task-action ${buttonClass}`;
+    moreButton.innerHTML = actionIcons.more;
     moreButton.title = 'More Actions...';
-    moreButton.setAttribute('aria-label', `More actions for ${item.title}`);
+    moreButton.setAttribute('aria-label', ariaLabel);
     moreButton.setAttribute('aria-haspopup', 'menu');
     moreButton.setAttribute('aria-expanded', 'false');
 
     const menu = document.createElement('div');
-    menu.className = 'implementation-todo-menu';
+    menu.className = `more-menu-list ${menuClass}`;
     menu.setAttribute('role', 'menu');
     menu.hidden = true;
-    const menuItem = (className: string, icon: string, label: string, run: () => void): HTMLButtonElement => {
+    menu.append(...actions.map((action) => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = `implementation-todo-menu-item ${className}`;
+        button.className = `more-menu-item ${action.className}`;
         button.setAttribute('role', 'menuitem');
         button.tabIndex = -1;
-        button.innerHTML = icon;
+        button.innerHTML = action.icon;
         const text = document.createElement('span');
-        text.textContent = label;
+        text.textContent = action.label;
         button.append(text);
         button.addEventListener('click', () => {
-            closeTodoMenus();
-            run();
+            closeMoreMenus();
+            action.run();
         });
         return button;
-    };
-    menu.append(
-        menuItem('implementation-todo-edit', todoIcons.edit, 'Edit', () => showTodoEditor(item, groupName)),
-        menuItem('implementation-todo-create-task', todoIcons.createTask, 'Create task', () => showCreateTaskFromTodo(item)),
-        menuItem('implementation-todo-remove', todoIcons.remove, 'Delete', () => {
-            if (selectedTask) {
-                vscode.postMessage({ type: 'removeTodo', taskId: selectedTask.id, itemId: item.id });
-            }
-        }),
-    );
+    }));
 
     moreButton.addEventListener('click', (event) => {
         event.stopPropagation();
         const wasOpen = !menu.hidden;
-        closeTodoMenus();
+        closeMoreMenus();
         if (!wasOpen) {
             menu.hidden = false;
             moreButton.setAttribute('aria-expanded', 'true');
@@ -797,24 +795,25 @@ function createTodoMoreMenu(item: ImplementationTodoItem, groupName: string): [H
         const index = items.indexOf(document.activeElement as HTMLButtonElement);
         if (event.key === 'Escape') {
             event.preventDefault();
-            closeTodoMenus();
+            closeMoreMenus();
             moreButton.focus();
         } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault();
             const step = event.key === 'ArrowDown' ? 1 : -1;
             items[(index + step + items.length) % items.length]?.focus();
         } else if (event.key === 'Tab') {
-            closeTodoMenus();
+            closeMoreMenus();
         }
     });
-    return [moreButton, menu];
+    container.append(moreButton, menu);
+    return container;
 }
 
-function closeTodoMenus(): void {
-    document.querySelectorAll<HTMLElement>('.implementation-todo-menu').forEach((menu) => {
+function closeMoreMenus(): void {
+    document.querySelectorAll<HTMLElement>('.more-menu-list').forEach((menu) => {
         menu.hidden = true;
     });
-    document.querySelectorAll<HTMLButtonElement>('.implementation-todo-more').forEach((button) => {
+    document.querySelectorAll<HTMLButtonElement>('.more-menu-button').forEach((button) => {
         button.setAttribute('aria-expanded', 'false');
     });
 }

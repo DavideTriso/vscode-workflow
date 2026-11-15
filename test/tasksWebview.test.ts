@@ -111,7 +111,29 @@ describe('task webview TODO interactions', () => {
             expect(button.getAttribute('aria-label')).not.toBeNull();
         }
         expect(document.querySelector('.implementation-todo-drag-handle')).toBeNull();
-        expect(document.querySelector('.implementation-todo-actions')!.querySelectorAll(':scope > button')).toHaveLength(2);
+        const todoActions = document.querySelector('.implementation-todo-actions')!;
+        expect(todoActions.querySelectorAll(':scope > button')).toHaveLength(1);
+        expect(todoActions.querySelectorAll(':scope > .more-menu > .implementation-todo-more')).toHaveLength(1);
+    });
+
+    it('shows only Open and a "more" dropdown with Edit and Delete for each task', () => {
+        click('#creator-filter-toggle');
+        const row = document.querySelector<HTMLElement>('.task-row')!;
+        expect(Array.from(row.querySelectorAll(':scope > button'), (button) => button.className)).toEqual(['task-select', 'task-action open-task-file']);
+        const more = row.querySelector<HTMLButtonElement>('.task-more')!;
+        const menu = row.querySelector<HTMLElement>('.task-menu')!;
+        expect(menu.hidden).toBe(true);
+        more.click();
+        expect(menu.hidden).toBe(false);
+        expect(Array.from(menu.querySelectorAll('[role="menuitem"]'), (entry) => entry.textContent)).toEqual(['Edit', 'Delete']);
+        expect(postMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'selectTask' }));
+
+        click('.task-row .edit-task');
+        expect(menu.hidden).toBe(true);
+        expect(postMessage).toHaveBeenLastCalledWith({ type: 'editTask', taskId: task.id });
+        more.click();
+        click('.task-row .delete-task');
+        expect(postMessage).toHaveBeenLastCalledWith({ type: 'deleteTask', taskId: task.id });
     });
 
     it('shows Edit, Create task and Delete in the TODO "more" dropdown', () => {

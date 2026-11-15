@@ -790,7 +790,7 @@ body {
 
 .task-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 26px 26px 26px;
+    grid-template-columns: minmax(0, 1fr) 26px 26px;
     align-items: center;
     min-height: 34px;
     border-radius: 4px;
@@ -891,13 +891,9 @@ body {
     cursor: pointer;
 }
 
-.task-row:hover .delete-task,
+.task-row:hover .task-more,
+.task-more[aria-expanded="true"],
 .task-action:focus-visible {
-    opacity: 1;
-}
-
-.task-row:hover .edit-task,
-.edit-task:focus-visible {
     opacity: 1;
 }
 
@@ -908,10 +904,6 @@ body {
 
 .task-action:hover {
     background: var(--vscode-toolbar-hoverBackground);
-}
-
-.delete-task:hover {
-    color: var(--vscode-errorForeground);
 }
 
 .task-action:focus-visible {
@@ -945,11 +937,7 @@ body {
     background: var(--vscode-toolbar-hoverBackground);
 }
 
-.implementation-todo-actions .delete-task:hover {
-    color: var(--vscode-errorForeground);
-}
-
-.implementation-todo-actions {
+.more-menu {
     position: relative;
 }
 
@@ -958,11 +946,11 @@ body {
     stroke: none;
 }
 
-.implementation-todo-more[aria-expanded="true"] {
+.more-menu-button[aria-expanded="true"] {
     background: var(--vscode-toolbar-activeBackground, var(--vscode-toolbar-hoverBackground));
 }
 
-.implementation-todo-menu {
+.more-menu-list {
     position: absolute;
     top: 100%;
     right: 0;
@@ -978,7 +966,7 @@ body {
     box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
 }
 
-.implementation-todo-actions .implementation-todo-menu-item {
+.more-menu .more-menu-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -994,14 +982,14 @@ body {
     cursor: pointer;
 }
 
-.implementation-todo-actions .implementation-todo-menu-item:hover,
-.implementation-todo-actions .implementation-todo-menu-item:focus {
+.more-menu .more-menu-item:hover,
+.more-menu .more-menu-item:focus {
     color: var(--vscode-menu-selectionForeground, inherit);
     background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground));
     outline: none;
 }
 
-.implementation-todo-menu-item svg {
+.more-menu-item svg {
     width: 14px;
     height: 14px;
     flex: 0 0 14px;
