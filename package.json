@@ -520,6 +520,39 @@
                     "default": true,
                     "description": "Require a project management URL when creating or editing a task. When disabled, the URL may be left empty; a URL that is entered must still be a valid http or https URL."
                 },
+                "vscode-workflow.user.email": {
+                    "type": "string",
+                    "default": "",
+                    "markdownDescription": "Email used to identify you in tasks (task creator, default assignee, assignee filter and time tracking). When empty, `git config user.email` is used."
+                },
+                "vscode-workflow.user.name": {
+                    "type": "string",
+                    "default": "",
+                    "markdownDescription": "Name used to identify you in tasks. When empty, `git config user.name` is used."
+                },
+                "vscode-workflow.teamMembers": {
+                    "type": "array",
+                    "default": [],
+                    "markdownDescription": "Team members that can be selected as task assignee. You are always available as an assignee, even when not listed here.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "email": {
+                                "type": "string",
+                                "description": "Team member email."
+                            },
+                            "name": {
+                                "type": "string",
+                                "description": "Team member name."
+                            }
+                        },
+                        "required": [
+                            "email",
+                            "name"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
                 "vscode-workflow.claudeCode.registration": {
                     "type": "string",
                     "enum": [

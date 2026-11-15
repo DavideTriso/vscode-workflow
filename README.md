@@ -13,7 +13,7 @@ Track tasks inside your Git repository and give AI agents (GitHub Copilot and Cl
 ## Requirements
 
 - VS Code 1.105 or newer.
-- A workspace inside a Git repository (`git` on your PATH, `user.email` configured).
+- A workspace inside a Git repository (`git` on your PATH, and an email set either in `vscode-workflow.user.email` or with `git config user.email`).
 - Claude Code users: Node 20+ (the VS Code built-in Node is used by default).
 
 ## Getting started
@@ -29,6 +29,9 @@ Full guide: [User documentation](docs/user-documentation.md).
 | Setting | Default | Description |
 | --- | --- | --- |
 | `vscode-workflow.tasks.requireProjectManagementUrl` | `true` | Require a project management URL on tasks. An entered URL must still be a valid http(s) URL. |
+| `vscode-workflow.user.email` | `""` | Your email for tasks (creator, default assignee, assignee filter, timer user). Falls back to `git config user.email`. |
+| `vscode-workflow.user.name` | `""` | Your name for tasks. Falls back to `git config user.name`. |
+| `vscode-workflow.teamMembers` | `[]` | Team members selectable as task assignee, as `[{ "email": "...", "name": "..." }]`. You are always selectable. |
 | `vscode-workflow.claudeCode.registration` | `ask` | `ask`, `enabled` or `disabled`: whether the extension installs its Claude Code plugin. |
 
 ## Commands

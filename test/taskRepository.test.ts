@@ -10,7 +10,7 @@ describe('task repository', () => {
     let repositoryRoot: string;
 
     beforeEach(async () => {
-        repository = new TaskRepository(async () => 'developer@example.com');
+        repository = new TaskRepository(async () => ({ email: 'developer@example.com', name: 'Developer' }));
         repositoryRoot = await mkdtemp(path.join(os.tmpdir(), 'vscode-tasks-'));
         await mkdir(path.join(repositoryRoot, '.history', 'tasks'), { recursive: true });
     });
@@ -200,6 +200,7 @@ describe('task repository', () => {
             name: 'New task',
             projectManagementUrl: 'https://example.com/tasks/123',
             description: 'Task details',
+            assignee: 'teammate@example.com <Teammate>',
         }, new Date('2026-10-30T12:34:56.789Z'));
 
         expect(taskId).toMatch(/^20261030-123456-[A-Za-z0-9]{15}\.json$/);
@@ -209,7 +210,8 @@ describe('task repository', () => {
             createdOnDateTime: '2026-10-30T12:34:56Z',
             projectManagementUrl: 'https://example.com/tasks/123',
             description: 'Task details',
-            createdBy: 'developer@example.com',
+            createdBy: 'developer@example.com <Developer>',
+            assignee: 'teammate@example.com <Teammate>',
             status: 0,
             timeTracking: [],
         });
@@ -222,7 +224,8 @@ describe('task repository', () => {
             name: 'No identity',
             projectManagementUrl: 'https://example.com/tasks/123',
             description: 'Details',
-        })).rejects.toThrow('Set your Git email');
+            assignee: 'teammate@example.com <Teammate>',
+        })).rejects.toThrow('Set your email');
         expect(await repository.listOpenTasks(repositoryRoot)).toEqual([]);
     });
 
@@ -243,6 +246,7 @@ describe('task repository', () => {
             name: 'Updated name',
             projectManagementUrl: 'https://example.com/new',
             description: 'Updated description',
+            assignee: 'teammate@example.com <Teammate>',
         });
 
         const updatedTask = JSON.parse(await readFile(path.join(taskDirectory, taskId), 'utf8'));
@@ -251,6 +255,7 @@ describe('task repository', () => {
             createdOnDateTime: '2026-10-30T12:34:56Z',
             projectManagementUrl: 'https://example.com/new',
             description: 'Updated description',
+            assignee: 'teammate@example.com <Teammate>',
             status: 0,
             timeTracking: [{ startDateTime: '2026-10-30T12:35:00Z', endDateTime: null }],
             futureField: { keep: true },
@@ -266,6 +271,7 @@ describe('task repository', () => {
             name: 'Updated name',
             projectManagementUrl: 'https://example.com/new',
             description: 'Updated description',
+            assignee: 'teammate@example.com <Teammate>',
         })).rejects.toThrow('This task is no longer open or has invalid data.');
         expect(JSON.parse(await readFile(taskPath, 'utf8')).name).toBe('Done task');
     });
@@ -275,8 +281,9 @@ describe('task repository', () => {
             name: 'Tracked task',
             projectManagementUrl: 'https://example.com/tasks/123',
             description: 'Details',
+            assignee: 'teammate@example.com <Teammate>',
         }, new Date('2026-10-30T12:00:00Z'));
-        const repositoryWithGitEmail = new TaskRepository(async () => 'developer@example.com');
+        const repositoryWithGitEmail = new TaskRepository(async () => ({ email: 'developer@example.com', name: 'Developer' }));
 
         const started = await repositoryWithGitEmail.toggleTimeTracking(
             repositoryRoot,
@@ -286,7 +293,7 @@ describe('task repository', () => {
         expect(started.timeTracking).toEqual([{
             startDateTime: '2026-10-30T12:30:45Z',
             endDateTime: null,
-            user: 'developer@example.com',
+            user: 'developer@example.com <Developer>',
         }]);
         expect(started.status).toBe(1);
 
@@ -298,7 +305,7 @@ describe('task repository', () => {
         expect(paused.timeTracking[0]).toEqual({
             startDateTime: '2026-10-30T12:30:45Z',
             endDateTime: '2026-10-30T13:15:20Z',
-            user: 'developer@example.com',
+            user: 'developer@example.com <Developer>',
         });
         expect(paused.status).toBe(1);
     });
@@ -308,6 +315,7 @@ describe('task repository', () => {
             name: 'Unidentified task',
             projectManagementUrl: 'https://example.com/tasks/123',
             description: 'Details',
+            assignee: 'teammate@example.com <Teammate>',
         });
         const repositoryWithoutGitEmail = new TaskRepository(async () => {
             throw new Error('Git email unavailable.');
@@ -324,9 +332,10 @@ describe('task repository', () => {
             name: 'Status task',
             projectManagementUrl: 'https://example.com/tasks/123',
             description: 'Details',
+            assignee: 'teammate@example.com <Teammate>',
         });
 
-        const started = await new TaskRepository(async () => 'developer@example.com').toggleTimeTracking(
+        const started = await new TaskRepository(async () => ({ email: 'developer@example.com', name: 'Developer' })).toggleTimeTracking(
             repositoryRoot,
             taskId,
             new Date('2026-10-30T12:30:00Z'),
@@ -342,7 +351,7 @@ describe('task repository', () => {
         expect(closed.timeTracking).toEqual([{
             startDateTime: '2026-10-30T12:30:00Z',
             endDateTime: '2026-10-30T12:45:00Z',
-            user: 'developer@example.com',
+            user: 'developer@example.com <Developer>',
         }]);
         expect(await repository.listOpenTasks(repositoryRoot)).toEqual([]);
         await expect(repository.closeTask(repositoryRoot, taskId)).rejects.toThrow('Task is already done.');
@@ -353,11 +362,12 @@ describe('task repository', () => {
             name: 'Resumable task',
             projectManagementUrl: 'https://example.com/tasks/123',
             description: 'Details',
+            assignee: 'teammate@example.com <Teammate>',
         });
         const closedTask = await repository.closeTask(repositoryRoot, taskId);
         expect(closedTask.status).toBe(2);
 
-        const resumedTask = await new TaskRepository(async () => 'developer@example.com').toggleTimeTracking(
+        const resumedTask = await new TaskRepository(async () => ({ email: 'developer@example.com', name: 'Developer' })).toggleTimeTracking(
             repositoryRoot,
             taskId,
             new Date('2026-10-30T14:00:00Z'),
@@ -367,7 +377,7 @@ describe('task repository', () => {
         expect(resumedTask.timeTracking.at(-1)).toEqual({
             startDateTime: '2026-10-30T14:00:00Z',
             endDateTime: null,
-            user: 'developer@example.com',
+            user: 'developer@example.com <Developer>',
         });
     });
 
@@ -376,22 +386,24 @@ describe('task repository', () => {
             name: 'First task',
             projectManagementUrl: 'https://example.com/tasks/1',
             description: 'First task details',
+            assignee: 'teammate@example.com <Teammate>',
         });
         const secondTaskId = await repository.createTask(repositoryRoot, {
             name: 'Second task',
             projectManagementUrl: 'https://example.com/tasks/2',
             description: 'Second task details',
+            assignee: 'teammate@example.com <Teammate>',
         });
         const startedAt = new Date('2026-10-30T12:00:00Z');
         const switchedAt = new Date('2026-10-30T13:00:00Z');
-        const firstTask = await new TaskRepository(async () => 'developer@example.com').toggleTimeTracking(
+        const firstTask = await new TaskRepository(async () => ({ email: 'developer@example.com', name: 'Developer' })).toggleTimeTracking(
             repositoryRoot,
             firstTaskId,
             startedAt,
         );
         await repository.startAgentTask(repositoryRoot, firstTask, startedAt);
 
-        const secondTask = await new TaskRepository(async () => 'developer@example.com').toggleTimeTracking(
+        const secondTask = await new TaskRepository(async () => ({ email: 'developer@example.com', name: 'Developer' })).toggleTimeTracking(
             repositoryRoot,
             secondTaskId,
             switchedAt,
@@ -431,9 +443,10 @@ describe('task repository', () => {
             name: 'Tracked task',
             projectManagementUrl: 'https://example.com/tasks/123',
             description: 'Details',
+            assignee: 'teammate@example.com <Teammate>',
         });
         const startedAt = new Date('2026-10-30T12:00:00Z');
-        const startedTask = await new TaskRepository(async () => 'developer@example.com').toggleTimeTracking(
+        const startedTask = await new TaskRepository(async () => ({ email: 'developer@example.com', name: 'Developer' })).toggleTimeTracking(
             repositoryRoot,
             taskId,
             startedAt,

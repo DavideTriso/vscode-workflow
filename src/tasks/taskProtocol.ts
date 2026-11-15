@@ -5,6 +5,7 @@ export interface TaskSummary {
     projectManagementUrl: string;
     description: string;
     createdBy?: string;
+    assignee?: string;
     status: TaskStatus;
     timeTracking: TimeTrackingEntry[];
 }
@@ -21,6 +22,12 @@ export interface CreateTaskInput {
     name: string;
     projectManagementUrl: string;
     description: string;
+    assignee: string;
+}
+
+export interface UserIdentity {
+    email: string;
+    name?: string;
 }
 
 export type TaskFieldErrors = Partial<Record<keyof CreateTaskInput, string>>;
@@ -89,12 +96,12 @@ export interface AgentOutputGroup {
 
 export type ExtensionToWebviewMessage =
     | { type: 'repositoryUnavailable' }
-    | { type: 'taskList'; tasks: TaskSummary[]; gitUserEmail?: string }
+    | { type: 'taskList'; tasks: TaskSummary[]; currentUser?: string }
     | { type: 'openEditForm'; task: TaskSummary }
     | { type: 'createTaskValidationError'; errors: TaskFieldErrors }
     | { type: 'createTaskFailed'; message: string }
     | { type: 'taskSaved' }
-    | { type: 'taskSettings'; requireProjectManagementUrl: boolean }
+    | { type: 'taskSettings'; requireProjectManagementUrl: boolean; teamMembers: string[] }
     | { type: 'taskActionUpdated'; task: TaskSummary }
     | { type: 'taskActionFailed'; message: string }
     | { type: 'taskActionCancelled' }

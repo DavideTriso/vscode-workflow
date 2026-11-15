@@ -43,7 +43,7 @@ describe('task view agent outputs', () => {
     let repository: {
         findRepositoryRoot: ReturnType<typeof vi.fn>;
         listOpenTasks: ReturnType<typeof vi.fn>;
-        getGitUserEmail: ReturnType<typeof vi.fn>;
+        getCurrentUser: ReturnType<typeof vi.fn>;
         getTask: ReturnType<typeof vi.fn>;
         listAgentOutputs: ReturnType<typeof vi.fn>;
         getAgentOutputPath: ReturnType<typeof vi.fn>;
@@ -64,7 +64,7 @@ describe('task view agent outputs', () => {
         repository = {
             findRepositoryRoot: vi.fn(async () => '/repo'),
             listOpenTasks: vi.fn(async () => []),
-            getGitUserEmail: vi.fn(async () => undefined),
+            getCurrentUser: vi.fn(async () => undefined),
             getTask: vi.fn(async () => ({ id: 'task.json', status: 0, timeTracking: [] })),
             listAgentOutputs: vi.fn(async () => []),
             getAgentOutputPath: vi.fn(async () => '/repo/.history/agents/task.json/logic-review.md'),

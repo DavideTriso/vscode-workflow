@@ -1,4 +1,4 @@
-import { filterTasks, validateTaskInput } from '../../tasks/taskModel';
+import { buildAssigneeOptions, filterTasks, getUserEmail, validateTaskInput } from '../../tasks/taskModel';
 import { outputAgents } from '../../tasks/taskProtocol';
 import type {
     AgentOutputGroup,
@@ -35,7 +35,7 @@ const quickReferenceContent = document.querySelector<HTMLElement>('#quick-refere
 const addTaskButton = document.querySelector<HTMLButtonElement>('#add-task-button');
 const reloadTasksButton = document.querySelector<HTMLButtonElement>('#reload-tasks-button');
 const searchInput = document.querySelector<HTMLInputElement>('#task-search');
-const creatorFilterToggle = document.querySelector<HTMLButtonElement>('#creator-filter-toggle');
+const assigneeFilterToggle = document.querySelector<HTMLButtonElement>('#creator-filter-toggle');
 const taskList = document.querySelector<HTMLUListElement>('#task-list');
 const emptyMessage = document.querySelector<HTMLParagraphElement>('#empty-message');
 const createTaskPanel = document.querySelector<HTMLElement>('#create-task-panel');
@@ -43,6 +43,7 @@ const createTaskForm = document.querySelector<HTMLFormElement>('#create-task-for
 const taskNameInput = document.querySelector<HTMLInputElement>('#task-name');
 const taskUrlInput = document.querySelector<HTMLInputElement>('#task-url');
 const taskDescriptionInput = document.querySelector<HTMLTextAreaElement>('#task-description');
+const taskAssigneeInput = document.querySelector<HTMLSelectElement>('#task-assignee');
 const taskFormHeading = document.querySelector<HTMLHeadingElement>('#create-task-heading');
 const createTaskSubmit = document.querySelector<HTMLButtonElement>('#create-task-submit');
 const cancelCreateTask = document.querySelector<HTMLButtonElement>('#cancel-create-task');
@@ -51,19 +52,22 @@ const fieldInputIds: Record<keyof CreateTaskInput, string> = {
     name: 'task-name',
     projectManagementUrl: 'task-url',
     description: 'task-description',
+    assignee: 'task-assignee',
 };
 const fieldErrorIds: Record<keyof CreateTaskInput, string> = {
     name: 'task-name-error',
     projectManagementUrl: 'task-url-error',
     description: 'task-description-error',
+    assignee: 'task-assignee-error',
 };
 let tasks: TaskSummary[] = [];
 let editingTaskId: string | undefined;
 let selectedTask: TaskSummary | undefined;
 let taskActionPending = false;
-let filterByCreator = true;
+let filterByAssignee = true;
 let requireProjectManagementUrl = true;
-let gitUserEmail: string | undefined;
+let currentUser: string | undefined;
+let teamMembers: string[] = [];
 let outputTaskId: string | undefined;
 let agentOutputs: AgentOutputGroup[] = [];
 const expandedOutputAgents = new Set<string>();
@@ -83,8 +87,8 @@ if (
     timeTrackingToggle && taskStatusToggle && taskActionError &&
     taskListPanel && tasksAccordionToggle && tasksAccordionContent && quickReferenceToggle && quickReferenceContent &&
     addTaskButton && reloadTasksButton &&
-    searchInput && creatorFilterToggle && taskList && emptyMessage && createTaskPanel &&
-    createTaskForm && taskNameInput && taskUrlInput && taskDescriptionInput && createTaskSubmit &&
+    searchInput && assigneeFilterToggle && taskList && emptyMessage && createTaskPanel &&
+    createTaskForm && taskNameInput && taskUrlInput && taskDescriptionInput && taskAssigneeInput && createTaskSubmit &&
     cancelCreateTask && createTaskError
 ) {
     window.addEventListener('message', (event: MessageEvent<ExtensionToWebviewMessage>) => {
@@ -100,7 +104,7 @@ if (
     });
 
     searchInput.addEventListener('input', renderTasks);
-    creatorFilterToggle.addEventListener('click', toggleCreatorFilter);
+    assigneeFilterToggle.addEventListener('click', toggleAssigneeFilter);
     taskList.addEventListener('click', handleTaskListClick);
     tasksAccordionToggle.addEventListener('click', toggleTasksAccordion);
     quickReferenceToggle.addEventListener('click', toggleQuickReferenceAccordion);
@@ -114,13 +118,16 @@ if (
     taskNameInput.addEventListener('input', clearFieldError);
     taskUrlInput.addEventListener('input', clearFieldError);
     taskDescriptionInput.addEventListener('input', clearFieldError);
+    taskAssigneeInput.addEventListener('change', clearFieldError);
     vscode.postMessage({ type: 'ready' });
 }
 
 function handleExtensionMessage(message: Exclude<ExtensionToWebviewMessage, { type: 'repositoryUnavailable' }>): void {
     if (message.type === 'taskSettings') {
         requireProjectManagementUrl = message.requireProjectManagementUrl;
+        teamMembers = message.teamMembers;
         applyUrlRequirement();
+        refreshAssigneeOptions();
         return;
     }
     if (message.type === 'agentOutputs') {
@@ -224,8 +231,9 @@ function handleExtensionMessage(message: Exclude<ExtensionToWebviewMessage, { ty
     if (taskPanel) {
         taskPanel.hidden = false;
     }
-    gitUserEmail = message.gitUserEmail;
-    updateCreatorFilterToggle();
+    currentUser = message.currentUser;
+    updateAssigneeFilterToggle();
+    refreshAssigneeOptions();
     tasks = message.tasks;
     if (selectedTask) {
         const refreshedSelection = tasks.find((task) => task.id === selectedTask?.id);
@@ -245,39 +253,64 @@ function renderTasks(): void {
     }
 
     const query = searchInput.value.trim();
-    const filteredTasks = filterTasks(tasks, query, filterByCreator, gitUserEmail);
+    const filteredTasks = filterTasks(tasks, query, filterByAssignee, currentUser);
     const rows = filteredTasks.map(createTaskRow);
     taskList.replaceChildren(...rows);
     emptyMessage.hidden = rows.length > 0;
     emptyMessage.textContent = getEmptyMessage(query);
 }
 
-function toggleCreatorFilter(): void {
-    filterByCreator = !filterByCreator;
-    updateCreatorFilterToggle();
+function toggleAssigneeFilter(): void {
+    filterByAssignee = !filterByAssignee;
+    updateAssigneeFilterToggle();
     renderTasks();
 }
 
-function updateCreatorFilterToggle(): void {
-    if (!creatorFilterToggle) {
+function updateAssigneeFilterToggle(): void {
+    if (!assigneeFilterToggle) {
         return;
     }
-    creatorFilterToggle.classList.toggle('is-active', filterByCreator);
-    creatorFilterToggle.setAttribute('aria-pressed', String(filterByCreator));
-    creatorFilterToggle.title = filterByCreator
-        ? 'Filter to tasks created by you'
-        : 'Show tasks created by anyone';
-    creatorFilterToggle.setAttribute('aria-label', creatorFilterToggle.title);
+    assigneeFilterToggle.classList.toggle('is-active', filterByAssignee);
+    assigneeFilterToggle.setAttribute('aria-pressed', String(filterByAssignee));
+    assigneeFilterToggle.title = filterByAssignee
+        ? 'Filter to tasks assigned to you'
+        : 'Show tasks assigned to anyone';
+    assigneeFilterToggle.setAttribute('aria-label', assigneeFilterToggle.title);
 }
 
 function getEmptyMessage(query: string): string {
-    if (filterByCreator && !gitUserEmail) {
-        return 'Set your Git email or turn off the creator filter.';
+    if (filterByAssignee && !currentUser) {
+        return 'Set your email or turn off the assignee filter.';
     }
     if (query.trim() !== '') {
         return 'No matching tasks.';
     }
-    return filterByCreator ? 'No tasks created by you.' : 'No open tasks.';
+    return filterByAssignee ? 'No tasks assigned to you.' : 'No open tasks.';
+}
+
+/**
+ * Rebuilds the assignee dropdown, keeping the current choice when it is still available.
+ * `preferred` overrides the current choice (used when opening the create or edit form).
+ */
+function setAssigneeOptions(preferred?: string): void {
+    if (!taskAssigneeInput) {
+        return;
+    }
+    const selected = preferred ?? taskAssigneeInput.value;
+    const options = buildAssigneeOptions(currentUser, teamMembers, [selected]);
+    const placeholder = new Option('Select an assignee', '');
+    placeholder.disabled = true;
+    taskAssigneeInput.replaceChildren(placeholder, ...options.map((option) => new Option(option, option)));
+    const selectedEmail = selected === '' ? undefined : getUserEmail(selected);
+    taskAssigneeInput.value = options.find((option) => getUserEmail(option) === selectedEmail) ?? currentUser ?? '';
+}
+
+function refreshAssigneeOptions(): void {
+    if (createTaskPanel?.hidden === false) {
+        setAssigneeOptions();
+    } else {
+        setAssigneeOptions(currentUser ?? '');
+    }
 }
 
 function createTaskRow(task: TaskSummary): HTMLLIElement {
@@ -998,6 +1031,7 @@ function readCreateTaskInput(): CreateTaskInput {
         name: taskNameInput?.value ?? '',
         projectManagementUrl: taskUrlInput?.value ?? '',
         description: taskDescriptionInput?.value ?? '',
+        assignee: taskAssigneeInput?.value ?? '',
     };
 }
 
@@ -1005,14 +1039,15 @@ function showFieldErrors(errors: TaskFieldErrors): void {
     setFieldError('name', errors.name);
     setFieldError('projectManagementUrl', errors.projectManagementUrl);
     setFieldError('description', errors.description);
+    setFieldError('assignee', errors.assignee);
 }
 
 function clearFieldError(event: Event): void {
     const field = event.currentTarget;
-    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) {
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement)) {
         return;
     }
-    if (field.name === 'name' || field.name === 'projectManagementUrl' || field.name === 'description') {
+    if (field.name === 'name' || field.name === 'projectManagementUrl' || field.name === 'description' || field.name === 'assignee') {
         setFieldError(field.name, undefined);
     }
 }
@@ -1042,6 +1077,7 @@ function showCreateTaskForm(): void {
     }
     editingTaskId = undefined;
     createTaskForm?.reset();
+    setAssigneeOptions(currentUser ?? '');
     clearAllFieldErrors();
     taskFormHeading.textContent = 'New task';
     createTaskPanel.hidden = false;
@@ -1059,6 +1095,7 @@ function showEditTaskForm(task: TaskSummary): void {
     taskNameInput.value = task.name;
     taskUrlInput.value = task.projectManagementUrl;
     taskDescriptionInput.value = task.description;
+    setAssigneeOptions(task.assignee ?? currentUser ?? '');
     clearAllFieldErrors();
     showCreateTaskError('');
     createTaskPanel.hidden = false;
@@ -1086,6 +1123,7 @@ function clearAllFieldErrors(): void {
     setFieldError('name', undefined);
     setFieldError('projectManagementUrl', undefined);
     setFieldError('description', undefined);
+    setFieldError('assignee', undefined);
 }
 
 function showCreateTaskError(message: string): void {

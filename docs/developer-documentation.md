@@ -17,7 +17,8 @@ Press **F5** (see `.vscode/launch.json`) to launch an Extension Development Host
 src/extension.ts            activation: wires everything below
 src/tasks/                  task domain + Tasks view
   taskRepository.ts         all file I/O under .history/ (tasks, .current marker, TODO json)
-  taskModel.ts              parse/validate/filter task JSON
+  taskModel.ts              parse/validate/filter task JSON, user formatting (`email <name>`)
+  userSettings.ts           reads user identity (settings, falling back to git) and team members
   taskProtocol.ts           shared types + webview <-> extension messages
   tasksViewProvider.ts      webview host: handles messages, calls the repository
   tasksWebviewHtml.ts       view HTML (incl. Quick Reference)

@@ -2,7 +2,7 @@
 
 ## Setup
 
-1. Install the extension and open a folder that is a Git repository. Set `git config user.email` (used as task creator and timer user).
+1. Install the extension and open a folder that is a Git repository. Set your identity in `vscode-workflow.user.email` / `vscode-workflow.user.name`, or leave them empty to use `git config user.email` / `user.name`. An email is required. To assign tasks to others, list them in `vscode-workflow.teamMembers` as `[{ "email": "...", "name": "..." }]`.
 2. **Copilot:** nothing else to do. The agents appear in Copilot Chat's agent picker.
 3. **Claude Code:** run **Workflow: Register Agents and Skills with Claude Code** from the Command Palette (or accept the prompt shown once if `~/.claude` exists). Then run `/reload-plugins` in Claude Code and check `/mcp` shows `plugin:vscode-workflow:todos` as connected.
    - The extension adds a local plugin to `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR`) and keeps it updated. Uninstalling the extension removes the entries.
@@ -10,7 +10,7 @@
 
 ## Daily use
 
-1. **Create a task** with `+` in the Tasks view: name, optional description and project management URL. Set `vscode-workflow.tasks.requireProjectManagementUrl` to `false` to make the URL optional.
+1. **Create a task** with `+` in the Tasks view: name, optional description and project management URL. Set `vscode-workflow.tasks.requireProjectManagementUrl` to `false` to make the URL optional. Pick an **assignee** (defaults to you). The task file stores `createdBy` (set automatically) and `assignee`, both as `email <name>`; timer entries store their `user` the same way. The person icon next to search filters the list to tasks assigned to you.
 2. **Start the timer.** This marks the task active (only one at a time; other timers stop). Agents only work when a task is active. Stopping the timer ends the active state.
 3. **Run agents** in this order for best results:
 

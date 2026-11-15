@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compareTasksNewestFirst, createOpenTaskSummary, filterTasks, validateTaskInput } from '../src/tasks/taskModel';
+import { buildAssigneeOptions, compareTasksNewestFirst, createOpenTaskSummary, filterTasks, formatUser, getUserEmail, readTeamMembers, validateTaskInput } from '../src/tasks/taskModel';
 
 describe('task model', () => {
     it('includes only named open tasks with a valid creation date', () => {
@@ -45,15 +45,17 @@ describe('task model', () => {
             name: ' ',
             projectManagementUrl: 'javascript:alert(1)',
             description: '',
+            assignee: ' ',
         })).toEqual({
             name: 'Enter a task name.',
             projectManagementUrl: 'Enter a valid http or https URL.',
             description: 'Enter a task description.',
+            assignee: 'Select an assignee.',
         });
     });
 
     it('allows an empty project URL when it is not required but still validates a given URL', () => {
-        const base = { name: 'Task', description: 'Description' };
+        const base = { name: 'Task', description: 'Description', assignee: 'owner@example.com <Owner>' };
         const options = { requireProjectManagementUrl: false };
         expect(validateTaskInput({ ...base, projectManagementUrl: '' }, options)).toEqual({});
         expect(validateTaskInput({ ...base, projectManagementUrl: '  ' }, options)).toEqual({});
@@ -65,21 +67,56 @@ describe('task model', () => {
         });
     });
 
-    it('filters by current Git email when enabled and shows all tasks when disabled', () => {
-        const ownTask = createOpenTaskSummary('own.json', {
-            name: 'Own task',
+    it('filters by assignee email when enabled and shows all tasks when disabled', () => {
+        const assignedTask = createOpenTaskSummary('assigned.json', {
+            name: 'Assigned to me',
             createdOnDateTime: '2026-10-30T10:00:00Z',
+            createdBy: 'other@example.com <Other>',
+            assignee: 'Owner@example.com <Owner>',
+            status: 0,
+        })!;
+        const createdOnlyTask = createOpenTaskSummary('created.json', {
+            name: 'Created by me for someone else',
+            createdOnDateTime: '2026-10-30T09:00:00Z',
+            createdBy: 'owner@example.com <Owner>',
+            assignee: 'other@example.com <Other>',
+            status: 0,
+        })!;
+        const legacyTask = createOpenTaskSummary('legacy.json', {
+            name: 'Legacy task without assignee',
+            createdOnDateTime: '2026-10-30T08:00:00Z',
             createdBy: 'owner@example.com',
             status: 0,
         })!;
-        const otherTask = createOpenTaskSummary('other.json', {
-            name: 'Other task',
-            createdOnDateTime: '2026-10-30T09:00:00Z',
-            createdBy: 'other@example.com',
-            status: 0,
-        })!;
+        const tasks = [assignedTask, createdOnlyTask, legacyTask];
 
-        expect(filterTasks([ownTask, otherTask], '', true, 'owner@example.com')).toEqual([ownTask]);
-        expect(filterTasks([ownTask, otherTask], '', false, undefined)).toEqual([ownTask, otherTask]);
+        expect(filterTasks(tasks, '', true, 'owner@example.com <Renamed Owner>')).toEqual([assignedTask]);
+        expect(filterTasks(tasks, '', true, undefined)).toEqual([]);
+        expect(filterTasks(tasks, '', false, undefined)).toEqual(tasks);
+    });
+
+    it('formats users as "email <name>" and reads their email back', () => {
+        expect(formatUser({ email: ' dev@example.com ', name: ' Dev ' })).toBe('dev@example.com <Dev>');
+        expect(formatUser({ email: 'dev@example.com' })).toBe('dev@example.com');
+        expect(getUserEmail('Dev@Example.com <Dev>')).toBe('dev@example.com');
+        expect(getUserEmail('dev@example.com')).toBe('dev@example.com');
+    });
+
+    it('reads valid team members from settings', () => {
+        expect(readTeamMembers([
+            { email: 'a@example.com', name: 'A' },
+            { email: ' b@example.com ', name: ' ' },
+            { email: '', name: 'Missing email' },
+            'invalid',
+        ])).toEqual([{ email: 'a@example.com', name: 'A' }, { email: 'b@example.com' }]);
+        expect(readTeamMembers(undefined)).toEqual([]);
+    });
+
+    it('lists the current user first and removes duplicate assignee emails', () => {
+        expect(buildAssigneeOptions(
+            'me@example.com <Me>',
+            ['a@example.com <A>', 'ME@example.com <Me Again>'],
+            ['former@example.com', 'a@example.com', undefined, ''],
+        )).toEqual(['me@example.com <Me>', 'a@example.com <A>', 'former@example.com']);
     });
 });

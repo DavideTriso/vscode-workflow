@@ -47,6 +47,11 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                         <p id="task-url-error" class="field-error" role="alert" hidden></p>
                     </div>
                     <div class="form-field">
+                        <label for="task-assignee">Assignee <span aria-hidden="true">*</span></label>
+                        <select id="task-assignee" name="assignee" required aria-describedby="task-assignee-error"></select>
+                        <p id="task-assignee-error" class="field-error" role="alert" hidden></p>
+                    </div>
+                    <div class="form-field">
                         <label for="task-description">Description <span aria-hidden="true">*</span></label>
                         <textarea id="task-description" name="description" rows="4" required aria-describedby="task-description-error"></textarea>
                         <p id="task-description-error" class="field-error" role="alert" hidden></p>
@@ -78,7 +83,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                         <label class="visually-hidden" for="task-search">Search tasks by name</label>
                         <input id="task-search" type="search" placeholder="Search tasks" autocomplete="off">
                         <button id="creator-filter-toggle" class="creator-filter-toggle is-active" type="button"
-                            title="Filter to tasks created by you" aria-label="Filter to tasks created by you" aria-pressed="true">
+                            title="Filter to tasks assigned to you" aria-label="Filter to tasks assigned to you" aria-pressed="true">
                             <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5"/><path d="M3 14c.3-2.4 2.2-4 5-4s4.7 1.6 5 4"/></svg>
                         </button>
                     </div>

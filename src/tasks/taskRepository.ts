@@ -4,12 +4,12 @@ import type { Dirent } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { compareTasksNewestFirst, createOpenTaskSummary, createTaskSummary } from './taskModel';
+import { compareTasksNewestFirst, createOpenTaskSummary, createTaskSummary, formatUser } from './taskModel';
 import { parseImplementationTodo, renderImplementationTodoMarkdown, serializeImplementationTodo, summarizeImplementationTodo } from './implementationTodo';
-import { outputAgents, type AgentOutputGroup, type CreateTaskInput, type ImplementationTodoDocument, type ImplementationTodoGroup, type ImplementationTodoGroupOrder, type ImplementationTodoItem, type ImplementationTodoItemDraft, type ImplementationTodoSource, type TaskStatus, type TaskSummary, type TimeTrackingEntry } from './taskProtocol';
+import { outputAgents, type AgentOutputGroup, type CreateTaskInput, type ImplementationTodoDocument, type ImplementationTodoGroup, type ImplementationTodoGroupOrder, type ImplementationTodoItem, type ImplementationTodoItemDraft, type ImplementationTodoSource, type TaskStatus, type TaskSummary, type TimeTrackingEntry, type UserIdentity } from './taskProtocol';
 
 const execFileAsync = promisify(execFile);
-type GitEmailProvider = (repositoryRoot: string) => Promise<string | undefined>;
+export type UserIdentityProvider = (repositoryRoot: string) => Promise<UserIdentity | undefined>;
 
 export interface CurrentAgentTask {
     taskId: string;
@@ -26,7 +26,7 @@ interface AgentTaskMarkerFile {
 export class TaskRepository {
     private readonly todoWriteLocks = new Map<string, Promise<void>>();
 
-    constructor(private readonly gitEmailProvider: GitEmailProvider = readGitUserEmail) { }
+    constructor(private readonly userIdentityProvider: UserIdentityProvider = readGitUserIdentity) { }
 
     async findRepositoryRoot(workspacePath: string): Promise<string | undefined> {
         try {
@@ -66,8 +66,10 @@ export class TaskRepository {
         return createTaskSummary(taskFileName, originalValue);
     }
 
-    getGitUserEmail(repositoryRoot: string): Promise<string | undefined> {
-        return this.gitEmailProvider(repositoryRoot);
+    /** Returns the current user formatted as `email <name>`, or undefined when no email is configured. */
+    async getCurrentUser(repositoryRoot: string): Promise<string | undefined> {
+        const identity = await this.userIdentityProvider(repositoryRoot);
+        return identity ? formatUser(identity) : undefined;
     }
 
     getTaskFilePath(repositoryRoot: string, taskId: string): string {
@@ -363,7 +365,7 @@ export class TaskRepository {
     }
 
     async createTask(repositoryRoot: string, input: CreateTaskInput, now = new Date()): Promise<string> {
-        const createdBy = await this.requireGitUserEmail(repositoryRoot);
+        const createdBy = formatUser(await this.requireUserIdentity(repositoryRoot));
         const directory = this.getTaskDirectory(repositoryRoot);
         await mkdir(directory, { recursive: true });
 
@@ -375,6 +377,7 @@ export class TaskRepository {
             projectManagementUrl: input.projectManagementUrl,
             description: input.description,
             createdBy,
+            assignee: input.assignee,
             status: 0,
             timeTracking: [],
         };
@@ -406,6 +409,7 @@ export class TaskRepository {
             name: input.name,
             projectManagementUrl: input.projectManagementUrl,
             description: input.description,
+            assignee: input.assignee,
         };
         await this.writeTaskRecord(taskPath, updatedTask);
     }
@@ -462,7 +466,7 @@ export class TaskRepository {
         if (isRecord(lastEntry) && lastEntry.endDateTime === null) {
             entries[entries.length - 1] = { ...lastEntry, endDateTime: toIsoSeconds(now) };
         } else {
-            const user = await this.requireGitUserEmail(repositoryRoot);
+            const user = formatUser(await this.requireUserIdentity(repositoryRoot));
             entries.push({ startDateTime: toIsoSeconds(now), endDateTime: null, user });
         }
 
@@ -699,12 +703,12 @@ export class TaskRepository {
         return markerResults.filter((marker): marker is AgentTaskMarkerFile => marker !== undefined);
     }
 
-    private async requireGitUserEmail(repositoryRoot: string): Promise<string> {
-        const email = await this.gitEmailProvider(repositoryRoot);
-        if (!email) {
-            throw new Error('Set your Git email with `git config user.email` before creating tasks or starting time tracking.');
+    private async requireUserIdentity(repositoryRoot: string): Promise<UserIdentity> {
+        const identity = await this.userIdentityProvider(repositoryRoot);
+        if (!identity) {
+            throw new Error(missingUserEmailMessage);
         }
-        return email;
+        return identity;
     }
 
     private async readTaskRecord(repositoryRoot: string, taskId: string): Promise<{
@@ -1005,25 +1009,36 @@ function syncReviewGroup(
     return groups;
 }
 
-async function readGitUserEmail(repositoryRoot: string): Promise<string | undefined> {
-    let email: string;
+export const missingUserEmailMessage =
+    'Set your email in the `vscode-workflow.user.email` setting or with `git config user.email` before creating tasks or starting time tracking.';
+
+export async function readGitUserIdentity(repositoryRoot: string): Promise<UserIdentity | undefined> {
+    const [email, name] = await Promise.all([
+        readGitConfigValue(repositoryRoot, 'user.email'),
+        readGitConfigValue(repositoryRoot, 'user.name'),
+    ]);
+    if (!email) {
+        return undefined;
+    }
+    return { email, ...(name ? { name } : {}) };
+}
+
+export async function readGitConfigValue(repositoryRoot: string, key: string): Promise<string | undefined> {
+    let value: string;
     try {
-        const result = await execFileAsync('git', ['config', 'user.email'], {
+        const result = await execFileAsync('git', ['config', key], {
             cwd: repositoryRoot,
             encoding: 'utf8',
             windowsHide: true,
         });
-        email = result.stdout.trim();
+        value = result.stdout.trim();
     } catch (error) {
         if (getExitCode(error) === 1) {
             return undefined;
         }
         throw error;
     }
-    if (email === '') {
-        return undefined;
-    }
-    return email;
+    return value === '' ? undefined : value;
 }
 
 function toIsoSeconds(date: Date): string {

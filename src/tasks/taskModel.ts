@@ -1,4 +1,4 @@
-import type { CreateTaskInput, TaskFieldErrors, TaskStatus, TaskSummary, TimeTrackingEntry } from './taskProtocol';
+import type { CreateTaskInput, TaskFieldErrors, TaskStatus, TaskSummary, TimeTrackingEntry, UserIdentity } from './taskProtocol';
 
 export function createOpenTaskSummary(fileName: string, value: unknown): TaskSummary | undefined {
     const task = createTaskSummary(fileName, value);
@@ -30,6 +30,7 @@ export function createTaskSummary(fileName: string, value: unknown): TaskSummary
         projectManagementUrl: typeof value.projectManagementUrl === 'string' ? value.projectManagementUrl : '',
         description: typeof value.description === 'string' ? value.description : '',
         ...(typeof value.createdBy === 'string' ? { createdBy: value.createdBy } : {}),
+        ...(typeof value.assignee === 'string' ? { assignee: value.assignee } : {}),
         status: value.status,
         timeTracking: readTimeTracking(value.timeTracking),
     };
@@ -42,16 +43,66 @@ export function compareTasksNewestFirst(left: TaskSummary, right: TaskSummary): 
 export function filterTasks(
     tasks: readonly TaskSummary[],
     searchText: string,
-    filterByCreator: boolean,
-    gitUserEmail: string | undefined,
+    filterByAssignee: boolean,
+    currentUser: string | undefined,
 ): TaskSummary[] {
     const query = searchText.trim().toLocaleLowerCase();
+    const currentEmail = currentUser === undefined ? undefined : getUserEmail(currentUser);
     return tasks.filter((task) => {
         const matchesName = task.name.toLocaleLowerCase().includes(query);
-        const matchesCreator = !filterByCreator ||
-            (gitUserEmail !== undefined && task.createdBy === gitUserEmail);
-        return matchesName && matchesCreator;
+        const matchesAssignee = !filterByAssignee ||
+            (currentEmail !== undefined && task.assignee !== undefined && getUserEmail(task.assignee) === currentEmail);
+        return matchesName && matchesAssignee;
     });
+}
+
+/** Formats a user as `email <name>`, or just `email` when no name is known. */
+export function formatUser(identity: UserIdentity): string {
+    const email = identity.email.trim();
+    const name = identity.name?.trim();
+    return name ? `${email} <${name}>` : email;
+}
+
+/** Extracts the lower-cased email from a value formatted by {@link formatUser} or a bare email. */
+export function getUserEmail(user: string): string {
+    return user.replace(/<[^>]*>\s*$/, '').trim().toLocaleLowerCase();
+}
+
+export function readTeamMembers(value: unknown): UserIdentity[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    return value.flatMap((member): UserIdentity[] => {
+        if (!isRecord(member) || typeof member.email !== 'string' || member.email.trim() === '') {
+            return [];
+        }
+        const name = typeof member.name === 'string' && member.name.trim() !== '' ? member.name.trim() : undefined;
+        return [{ email: member.email.trim(), ...(name ? { name } : {}) }];
+    });
+}
+
+/**
+ * Lists assignee choices: the current user first, then team members, then any extra values
+ * (such as a task's existing assignee), skipping entries whose email is already listed.
+ */
+export function buildAssigneeOptions(
+    currentUser: string | undefined,
+    teamMembers: readonly string[],
+    extra: readonly (string | undefined)[] = [],
+): string[] {
+    const options: string[] = [];
+    const seenEmails = new Set<string>();
+    for (const candidate of [currentUser, ...teamMembers, ...extra]) {
+        if (!candidate || candidate.trim() === '') {
+            continue;
+        }
+        const email = getUserEmail(candidate);
+        if (!seenEmails.has(email)) {
+            seenEmails.add(email);
+            options.push(candidate.trim());
+        }
+    }
+    return options;
 }
 
 export interface TaskValidationOptions {
@@ -75,6 +126,9 @@ export function validateTaskInput(
     }
     if (input.description.trim() === '') {
         errors.description = 'Enter a task description.';
+    }
+    if (input.assignee.trim() === '') {
+        errors.assignee = 'Select an assignee.';
     }
     return errors;
 }

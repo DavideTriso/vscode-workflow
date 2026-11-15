@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
 import path from 'node:path';
-import { TaskRepository } from './taskRepository';
+import { missingUserEmailMessage, TaskRepository } from './taskRepository';
 import { validateTaskInput, type TaskValidationOptions } from './taskModel';
 import type { CreateTaskInput, ExtensionToWebviewMessage, TaskSummary, WebviewToExtensionMessage } from './taskProtocol';
 import { getTasksWebviewHtml } from './tasksWebviewHtml';
+import { getFormattedTeamMembers, userSettingKeys } from './userSettings';
 
 export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
     static readonly viewType = 'tasks.list';
@@ -35,7 +36,9 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         this.viewDisposables.push(
             view.webview.onDidReceiveMessage((message: unknown) => this.handleMessage(message)),
             vscode.workspace.onDidChangeConfiguration((event) => {
-                if (event.affectsConfiguration('vscode-workflow.tasks.requireProjectManagementUrl')) {
+                if (userSettingKeys.some((key) => event.affectsConfiguration(key))) {
+                    void this.refresh();
+                } else if (event.affectsConfiguration('vscode-workflow.tasks.requireProjectManagementUrl')) {
                     void this.postTaskSettings();
                 }
             }),
@@ -100,7 +103,11 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
     }
 
     private async postTaskSettings(): Promise<void> {
-        await this.postMessage({ type: 'taskSettings', ...this.getTaskValidationOptions() });
+        await this.postMessage({
+            type: 'taskSettings',
+            ...this.getTaskValidationOptions(),
+            teamMembers: getFormattedTeamMembers(),
+        });
     }
 
     private async refresh(): Promise<void> {
@@ -117,11 +124,11 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
                 return;
             }
             this.watchAgentOutputs(repositoryRoot);
-            const [tasks, gitUserEmail] = await Promise.all([
+            const [tasks, currentUser] = await Promise.all([
                 this.taskRepository.listOpenTasks(repositoryRoot),
-                this.taskRepository.getGitUserEmail(repositoryRoot),
+                this.taskRepository.getCurrentUser(repositoryRoot),
             ]);
-            await this.postMessage({ type: 'taskList', tasks, gitUserEmail });
+            await this.postMessage({ type: 'taskList', tasks, currentUser });
             await this.restoreSelectedTask(repositoryRoot);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -273,8 +280,8 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
                     throw new Error('Task could not be found.');
                 }
                 const willStartTimer = !hasOpenTimeEntry(currentTask);
-                if (willStartTimer && !(await this.taskRepository.getGitUserEmail(repositoryRoot))) {
-                    throw new Error('Set your Git email with `git config user.email` before starting time tracking.');
+                if (willStartTimer && !(await this.taskRepository.getCurrentUser(repositoryRoot))) {
+                    throw new Error(missingUserEmailMessage);
                 }
                 await this.taskRepository.stopOtherTimeTracking(repositoryRoot, message.taskId);
                 await this.taskRepository.clearAgentTaskMarkers(repositoryRoot);
@@ -449,6 +456,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
             name: input.name.trim(),
             projectManagementUrl: input.projectManagementUrl.trim(),
             description: input.description.trim(),
+            assignee: input.assignee.trim(),
         };
         if (taskId) {
             await this.taskRepository.updateTask(repositoryRoot, taskId, normalizedInput);
@@ -615,7 +623,8 @@ function isSaveTaskMessage(
     const hasValidInput = typeof input === 'object' && input !== null &&
         'name' in input && typeof input.name === 'string' &&
         'projectManagementUrl' in input && typeof input.projectManagementUrl === 'string' &&
-        'description' in input && typeof input.description === 'string';
+        'description' in input && typeof input.description === 'string' &&
+        'assignee' in input && typeof input.assignee === 'string';
     const hasValidTaskId = !('taskId' in message) || typeof message.taskId === 'string';
     return message.type === 'saveTask' && hasValidInput && hasValidTaskId;
 }

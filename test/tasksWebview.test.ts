@@ -74,12 +74,32 @@ describe('task webview TODO interactions', () => {
     it('toggles the required marker on the project URL field from the taskSettings message', () => {
         const marker = document.querySelector<HTMLElement>('#task-url-required')!;
         const input = document.querySelector<HTMLInputElement>('#task-url')!;
-        send({ type: 'taskSettings', requireProjectManagementUrl: false });
+        send({ type: 'taskSettings', requireProjectManagementUrl: false, teamMembers: [] });
         expect(marker.hidden).toBe(true);
         expect(input.required).toBe(false);
-        send({ type: 'taskSettings', requireProjectManagementUrl: true });
+        send({ type: 'taskSettings', requireProjectManagementUrl: true, teamMembers: [] });
         expect(marker.hidden).toBe(false);
         expect(input.required).toBe(true);
+    });
+
+    it('defaults the assignee dropdown to the current user and submits the chosen team member', () => {
+        send({ type: 'taskSettings', requireProjectManagementUrl: false, teamMembers: ['a@example.com <A>', 'me@example.com <Me>'] });
+        send({ type: 'taskList', tasks: [task], currentUser: 'me@example.com <Me>' });
+        click('#add-task-button');
+        const assignee = document.querySelector<HTMLSelectElement>('#task-assignee')!;
+        const choices = [...assignee.options].filter((option) => !option.disabled).map((option) => option.value);
+        expect(choices).toEqual(['me@example.com <Me>', 'a@example.com <A>']);
+        expect(assignee.value).toBe('me@example.com <Me>');
+        expect(assignee.required).toBe(true);
+
+        document.querySelector<HTMLInputElement>('#task-name')!.value = 'New task';
+        document.querySelector<HTMLTextAreaElement>('#task-description')!.value = 'Details';
+        assignee.value = 'a@example.com <A>';
+        click('#create-task-submit');
+        expect(postMessage).toHaveBeenCalledWith({
+            type: 'saveTask',
+            input: { name: 'New task', projectManagementUrl: '', description: 'Details', assignee: 'a@example.com <A>' },
+        });
     });
 
     it('uses icon-only view/add/edit/remove actions and no Move button', () => {
