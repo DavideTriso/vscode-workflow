@@ -1,12 +1,15 @@
-import { buildAssigneeOptions, filterTasks, getUserEmail, validateTaskInput } from '../../tasks/taskModel';
+import { buildAssigneeOptions, filterTasks, getUserEmail, isSameRelatedTask, validateTaskInput } from '../../tasks/taskModel';
 import { describeImplementationTodoItem } from '../../tasks/implementationTodo';
 import { outputAgents } from '../../tasks/taskProtocol';
 import type {
     AgentOutputGroup,
     CreateTaskInput,
     ExtensionToWebviewMessage,
+    CurrentRepositoryInfo,
     ImplementationTodoItem,
     ImplementationTodoItemDraft,
+    RelatedTaskCandidate,
+    RelatedTaskReference,
     TaskFieldErrors,
     TaskSummary,
     TodoReference,
@@ -24,6 +27,8 @@ const selectedTaskPanel = document.querySelector<HTMLElement>('#selected-task-pa
 const selectedTaskName = document.querySelector<HTMLHeadingElement>('#selected-task-name');
 const selectedTaskDescription = document.querySelector<HTMLParagraphElement>('#selected-task-description');
 const descriptionToggle = document.querySelector<HTMLButtonElement>('#description-toggle');
+const selectedTaskRelated = document.querySelector<HTMLElement>('#selected-task-related');
+const selectedTaskRelatedList = document.querySelector<HTMLUListElement>('#selected-task-related-list');
 const agentOutputsPanel = document.querySelector<HTMLElement>('#agent-outputs');
 const agentOutputError = document.querySelector<HTMLParagraphElement>('#agent-output-error');
 const timeTrackingToggle = document.querySelector<HTMLButtonElement>('#time-tracking-toggle');
@@ -50,17 +55,22 @@ const taskFormHeading = document.querySelector<HTMLHeadingElement>('#create-task
 const createTaskSubmit = document.querySelector<HTMLButtonElement>('#create-task-submit');
 const cancelCreateTask = document.querySelector<HTMLButtonElement>('#cancel-create-task');
 const createTaskError = document.querySelector<HTMLParagraphElement>('#create-task-error');
+const relatedTaskList = document.querySelector<HTMLUListElement>('#task-related-list');
+const addRelatedTaskButton = document.querySelector<HTMLButtonElement>('#task-related-add');
+const relatedTaskStatus = document.querySelector<HTMLParagraphElement>('#task-related-status');
 const fieldInputIds: Record<keyof CreateTaskInput, string> = {
     name: 'task-name',
     projectManagementUrl: 'task-url',
     description: 'task-description',
     assignee: 'task-assignee',
+    relatedTasks: 'task-related-add',
 };
 const fieldErrorIds: Record<keyof CreateTaskInput, string> = {
     name: 'task-name-error',
     projectManagementUrl: 'task-url-error',
     description: 'task-description-error',
     assignee: 'task-assignee-error',
+    relatedTasks: 'task-related-error',
 };
 let tasks: TaskSummary[] = [];
 let editingTaskId: string | undefined;
@@ -69,6 +79,7 @@ let taskActionPending = false;
 let filterByAssignee = true;
 let requireProjectManagementUrl = true;
 let currentUser: string | undefined;
+let currentRepository: CurrentRepositoryInfo | undefined;
 let teamMembers: string[] = [];
 let outputTaskId: string | undefined;
 let agentOutputs: AgentOutputGroup[] = [];
@@ -79,6 +90,12 @@ let draggedTodoItemId: string | undefined;
 let todoEditorState: { taskId: string; itemId?: string; groupName: string } | undefined;
 /** The TODO the open "New task" form was pre-filled from; it is removed when that task is saved. */
 let taskSourceTodo: TodoReference | undefined;
+/** Tasks that can be linked as related tasks; loaded each time the task form opens. */
+let relatedTaskCandidates: RelatedTaskCandidate[] = [];
+let relatedTaskCandidatesLoaded = false;
+/** The task chosen in each related-task row; a row without an entry has no valid selection yet. */
+const relatedTaskSelections = new WeakMap<HTMLLIElement, RelatedTaskReference>();
+let relatedTaskRowCount = 0;
 const actionIcons = {
     view: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h9l5 5v13H5zM14 3v6h6M8 14h8M8 17h8"/></svg>',
     edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.8 4.3 4.3-.8L20 7.5 16.5 4 4 16.5zM14.8 5.7l3.5 3.5"/></svg>',
@@ -125,6 +142,7 @@ if (
     taskUrlInput.addEventListener('input', clearFieldError);
     taskDescriptionInput.addEventListener('input', clearFieldError);
     taskAssigneeInput.addEventListener('change', clearFieldError);
+    addRelatedTaskButton?.addEventListener('click', () => addRelatedTaskRow(undefined, true));
     document.addEventListener('click', (event) => {
         if (!(event.target instanceof Element) || !event.target.closest('.more-menu-list')) {
             closeMoreMenus();
@@ -139,6 +157,15 @@ function handleExtensionMessage(message: Exclude<ExtensionToWebviewMessage, { ty
         teamMembers = message.teamMembers;
         applyUrlRequirement();
         refreshAssigneeOptions();
+        return;
+    }
+    if (message.type === 'relatedTaskCandidates') {
+        relatedTaskCandidates = message.candidates;
+        relatedTaskCandidatesLoaded = true;
+        refreshRelatedTaskSelections();
+        setRelatedTaskStatus(message.error ?? '');
+        document.querySelectorAll<HTMLInputElement>('.related-task-input[aria-expanded="true"]')
+            .forEach((input) => renderRelatedTaskOptions(input));
         return;
     }
     if (message.type === 'agentOutputs') {
@@ -243,6 +270,7 @@ function handleExtensionMessage(message: Exclude<ExtensionToWebviewMessage, { ty
         taskPanel.hidden = false;
     }
     currentUser = message.currentUser;
+    currentRepository = message.currentRepository;
     updateAssigneeFilterToggle();
     refreshAssigneeOptions();
     tasks = message.tasks;
@@ -433,6 +461,7 @@ function renderSelectedTask(): void {
     selectedTaskName.textContent = selectedTask.name;
     selectedTaskName.title = selectedTask.name;
     selectedTaskDescription.textContent = selectedTask.description;
+    renderSelectedTaskRelatedTasks(selectedTask);
     updateTaskActionButtons(selectedTask);
     selectedTaskDescription.classList.add('is-collapsed');
     descriptionToggle.hidden = true;
@@ -444,6 +473,33 @@ function renderSelectedTask(): void {
         }
         descriptionToggle.hidden = selectedTaskDescription.scrollHeight <= selectedTaskDescription.clientHeight + 1;
     });
+}
+
+/** Lists the selected task's related tasks; each opens the related task file. */
+function renderSelectedTaskRelatedTasks(task: TaskSummary): void {
+    if (!selectedTaskRelated || !selectedTaskRelatedList) {
+        return;
+    }
+    const references = task.relatedTasks ?? [];
+    selectedTaskRelated.hidden = references.length === 0;
+    selectedTaskRelatedList.replaceChildren(...references.map((reference) => {
+        const item = document.createElement('li');
+        item.className = 'selected-task-related-item';
+        const link = document.createElement('button');
+        link.type = 'button';
+        link.className = 'selected-task-related-link';
+        link.textContent = reference.taskName || reference.taskId;
+        link.title = `Open "${reference.taskName || reference.taskId}"`;
+        link.addEventListener('click', () => vscode.postMessage({ type: 'openRelatedTask', taskId: task.id, reference }));
+        item.append(link);
+        if (reference.repositoryName) {
+            const repository = document.createElement('span');
+            repository.className = 'related-task-repository-tag selected-task-related-repository';
+            repository.textContent = reference.repositoryName;
+            item.append(repository);
+        }
+        return item;
+    }));
 }
 
 function resetAgentOutputsForTask(taskId: string | undefined): void {
@@ -1100,6 +1156,7 @@ function readCreateTaskInput(): CreateTaskInput {
         projectManagementUrl: taskUrlInput?.value ?? '',
         description: taskDescriptionInput?.value ?? '',
         assignee: taskAssigneeInput?.value ?? '',
+        relatedTasks: readRelatedTaskRows(),
     };
 }
 
@@ -1108,6 +1165,7 @@ function showFieldErrors(errors: TaskFieldErrors): void {
     setFieldError('projectManagementUrl', errors.projectManagementUrl);
     setFieldError('description', errors.description);
     setFieldError('assignee', errors.assignee);
+    setFieldError('relatedTasks', errors.relatedTasks);
 }
 
 function clearFieldError(event: Event): void {
@@ -1147,6 +1205,7 @@ function showCreateTaskForm(): void {
     taskSourceTodo = undefined;
     createTaskForm?.reset();
     setAssigneeOptions(currentUser ?? '');
+    resetRelatedTaskRows([]);
     clearAllFieldErrors();
     taskFormHeading.textContent = 'New task';
     createTaskPanel.hidden = false;
@@ -1167,6 +1226,15 @@ function showCreateTaskFromTodo(item: ImplementationTodoItem): void {
     taskUrlInput.value = parentTask.projectManagementUrl;
     taskDescriptionInput.value = formatTodoAsTaskDescription(item);
     setAssigneeOptions(parentTask.assignee ?? currentUser ?? '');
+    if (currentRepository) {
+        addRelatedTaskRow({
+            taskId: parentTask.id,
+            taskName: parentTask.name,
+            repositoryName: currentRepository.name,
+            repositoryPath: currentRepository.path,
+            repositoryUrl: currentRepository.originUrl,
+        }, false);
+    }
     createTaskPanel?.scrollIntoView?.({ block: 'nearest' });
 }
 
@@ -1185,6 +1253,7 @@ function showEditTaskForm(task: TaskSummary): void {
     taskUrlInput.value = task.projectManagementUrl;
     taskDescriptionInput.value = task.description;
     setAssigneeOptions(task.assignee ?? currentUser ?? '');
+    resetRelatedTaskRows(task.relatedTasks ?? []);
     clearAllFieldErrors();
     showCreateTaskError('');
     createTaskPanel.hidden = false;
@@ -1196,6 +1265,7 @@ function closeCreateTaskForm(): void {
     editingTaskId = undefined;
     taskSourceTodo = undefined;
     createTaskForm?.reset();
+    clearRelatedTaskRows();
     createTaskPanel?.setAttribute('hidden', '');
     if (taskListPanel) {
         taskListPanel.hidden = false;
@@ -1214,6 +1284,7 @@ function clearAllFieldErrors(): void {
     setFieldError('projectManagementUrl', undefined);
     setFieldError('description', undefined);
     setFieldError('assignee', undefined);
+    setFieldError('relatedTasks', undefined);
 }
 
 function showCreateTaskError(message: string): void {
@@ -1227,5 +1298,297 @@ function showCreateTaskError(message: string): void {
 function setCreateTaskSubmitEnabled(enabled: boolean): void {
     if (createTaskSubmit) {
         createTaskSubmit.disabled = !enabled;
+    }
+}
+
+/** Replaces the related-task rows with the given links and reloads the linkable tasks. */
+function resetRelatedTaskRows(references: readonly RelatedTaskReference[]): void {
+    clearRelatedTaskRows();
+    references.forEach((reference) => addRelatedTaskRow(reference, false));
+    relatedTaskCandidatesLoaded = false;
+    setRelatedTaskStatus('');
+    vscode.postMessage({ type: 'loadRelatedTaskCandidates' });
+}
+
+function clearRelatedTaskRows(): void {
+    relatedTaskList?.replaceChildren();
+}
+
+/**
+ * Adds a related-task row: a combobox that searches linkable tasks by name and lists each match
+ * with its repository name, plus a remove button.
+ */
+function addRelatedTaskRow(reference: RelatedTaskReference | undefined, focus: boolean): void {
+    if (!relatedTaskList) {
+        return;
+    }
+    relatedTaskRowCount += 1;
+    const listboxId = `task-related-options-${relatedTaskRowCount}`;
+    const row = document.createElement('li');
+    row.className = 'related-task-row';
+
+    const combobox = document.createElement('div');
+    combobox.className = 'related-task-combobox';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'related-task-input';
+    input.autocomplete = 'off';
+    input.placeholder = 'Search tasks by name';
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-label', 'Related task');
+    input.setAttribute('aria-autocomplete', 'list');
+    input.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-controls', listboxId);
+    const repositoryTag = document.createElement('span');
+    repositoryTag.className = 'related-task-repository-tag';
+    repositoryTag.hidden = true;
+    const listbox = document.createElement('ul');
+    listbox.id = listboxId;
+    listbox.className = 'related-task-options';
+    listbox.setAttribute('role', 'listbox');
+    listbox.setAttribute('aria-label', 'Matching tasks');
+    listbox.hidden = true;
+    // Keep focus in the input while an option is clicked, so blur does not close the list first.
+    listbox.addEventListener('mousedown', (event) => event.preventDefault());
+    combobox.append(input, repositoryTag, listbox);
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'related-task-remove';
+    removeButton.title = 'Remove related task';
+    removeButton.setAttribute('aria-label', 'Remove related task');
+    removeButton.innerHTML = actionIcons.remove;
+    removeButton.addEventListener('click', () => {
+        row.remove();
+        setFieldError('relatedTasks', undefined);
+        addRelatedTaskButton?.focus();
+    });
+
+    row.append(combobox, removeButton);
+    relatedTaskList.append(row);
+    if (reference) {
+        selectRelatedTask(row, reference);
+    }
+
+    input.addEventListener('input', () => {
+        const selection = relatedTaskSelections.get(row);
+        if (selection && input.value !== selection.taskName) {
+            relatedTaskSelections.delete(row);
+            updateRelatedTaskTag(row);
+        }
+        setFieldError('relatedTasks', undefined);
+        openRelatedTaskOptions(input);
+    });
+    input.addEventListener('focus', () => openRelatedTaskOptions(input));
+    input.addEventListener('blur', () => closeRelatedTaskOptions(input));
+    input.addEventListener('keydown', (event) => handleRelatedTaskKeydown(event, row, input));
+    if (focus) {
+        input.focus();
+    }
+}
+
+function handleRelatedTaskKeydown(event: KeyboardEvent, row: HTMLLIElement, input: HTMLInputElement): void {
+    const listbox = getRelatedTaskListbox(input);
+    if (!listbox) {
+        return;
+    }
+    const options = Array.from(listbox.querySelectorAll<HTMLLIElement>('[role="option"]'));
+    const activeIndex = options.findIndex((option) => option.getAttribute('aria-selected') === 'true');
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (listbox.hidden) {
+            openRelatedTaskOptions(input);
+            return;
+        }
+        if (options.length === 0) {
+            return;
+        }
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        const nextIndex = activeIndex < 0
+            ? (step === 1 ? 0 : options.length - 1)
+            : (activeIndex + step + options.length) % options.length;
+        setActiveRelatedTaskOption(input, options, nextIndex);
+        return;
+    }
+    if (event.key === 'Enter' && !listbox.hidden) {
+        // Enter picks the highlighted match instead of submitting the form.
+        event.preventDefault();
+        const candidate = activeIndex >= 0 ? getMatchingRelatedTasks(row, input.value)[activeIndex] : undefined;
+        if (candidate) {
+            selectRelatedTask(row, candidate);
+            closeRelatedTaskOptions(input);
+        }
+        return;
+    }
+    if (event.key === 'Escape' && !listbox.hidden) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeRelatedTaskOptions(input);
+    }
+}
+
+function setActiveRelatedTaskOption(input: HTMLInputElement, options: HTMLLIElement[], index: number): void {
+    options.forEach((option, optionIndex) => option.setAttribute('aria-selected', String(optionIndex === index)));
+    const active = options[index];
+    if (active) {
+        input.setAttribute('aria-activedescendant', active.id);
+        active.scrollIntoView?.({ block: 'nearest' });
+    } else {
+        input.removeAttribute('aria-activedescendant');
+    }
+}
+
+function openRelatedTaskOptions(input: HTMLInputElement): void {
+    const listbox = getRelatedTaskListbox(input);
+    if (!listbox) {
+        return;
+    }
+    listbox.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    renderRelatedTaskOptions(input);
+}
+
+function closeRelatedTaskOptions(input: HTMLInputElement): void {
+    const listbox = getRelatedTaskListbox(input);
+    if (listbox) {
+        listbox.hidden = true;
+    }
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+}
+
+/** Lists every linkable task whose name contains the typed text, each with its repository name. */
+function renderRelatedTaskOptions(input: HTMLInputElement): void {
+    const row = input.closest<HTMLLIElement>('.related-task-row');
+    const listbox = getRelatedTaskListbox(input);
+    if (!row || !listbox) {
+        return;
+    }
+    input.removeAttribute('aria-activedescendant');
+    if (!relatedTaskCandidatesLoaded) {
+        listbox.replaceChildren(createRelatedTaskMessage('Loading tasks…'));
+        return;
+    }
+    const matches = getMatchingRelatedTasks(row, input.value);
+    if (matches.length === 0) {
+        listbox.replaceChildren(createRelatedTaskMessage('No matching tasks.'));
+        return;
+    }
+    listbox.replaceChildren(...matches.map((candidate, index) => {
+        const option = document.createElement('li');
+        option.id = `${listbox.id}-${index}`;
+        option.className = 'related-task-option';
+        option.setAttribute('role', 'option');
+        option.setAttribute('aria-selected', 'false');
+        const name = document.createElement('span');
+        name.className = 'related-task-option-name';
+        name.textContent = candidate.taskName;
+        const repository = document.createElement('span');
+        repository.className = 'related-task-option-repository';
+        repository.textContent = candidate.status === 2 ? `${candidate.repositoryName} · Done` : candidate.repositoryName;
+        option.append(name, repository);
+        option.addEventListener('click', () => {
+            selectRelatedTask(row, candidate);
+            closeRelatedTaskOptions(input);
+        });
+        return option;
+    }));
+}
+
+function createRelatedTaskMessage(text: string): HTMLLIElement {
+    const message = document.createElement('li');
+    message.className = 'related-task-options-message';
+    message.textContent = text;
+    return message;
+}
+
+/**
+ * Returns the candidates whose name contains the query, skipping the task being edited and
+ * tasks already chosen in another row.
+ */
+function getMatchingRelatedTasks(row: HTMLLIElement, query: string): RelatedTaskCandidate[] {
+    const normalizedQuery = query.trim().toLocaleLowerCase();
+    const selectedElsewhere = getRelatedTaskRows()
+        .filter((candidateRow) => candidateRow !== row)
+        .map((candidateRow) => relatedTaskSelections.get(candidateRow))
+        .filter((reference): reference is RelatedTaskReference => reference !== undefined);
+    return relatedTaskCandidates.filter((candidate) =>
+        !(candidate.isCurrentRepository && candidate.taskId === editingTaskId) &&
+        !selectedElsewhere.some((reference) => isSameRelatedTask(reference, candidate)) &&
+        candidate.taskName.toLocaleLowerCase().includes(normalizedQuery));
+}
+
+function selectRelatedTask(row: HTMLLIElement, reference: RelatedTaskReference): void {
+    const selection: RelatedTaskReference = {
+        taskId: reference.taskId,
+        taskName: reference.taskName,
+        repositoryName: reference.repositoryName,
+        repositoryPath: reference.repositoryPath,
+        repositoryUrl: reference.repositoryUrl,
+    };
+    relatedTaskSelections.set(row, selection);
+    const input = row.querySelector<HTMLInputElement>('.related-task-input');
+    if (input) {
+        input.value = selection.taskName;
+    }
+    updateRelatedTaskTag(row);
+    setFieldError('relatedTasks', undefined);
+}
+
+function updateRelatedTaskTag(row: HTMLLIElement): void {
+    const tag = row.querySelector<HTMLElement>('.related-task-repository-tag');
+    if (!tag) {
+        return;
+    }
+    const selection = relatedTaskSelections.get(row);
+    tag.textContent = selection?.repositoryName ?? '';
+    tag.hidden = !selection || selection.repositoryName === '';
+}
+
+/** Updates the stored names of existing links from the loaded candidates, in case a task or repository was renamed. */
+function refreshRelatedTaskSelections(): void {
+    for (const row of getRelatedTaskRows()) {
+        const selection = relatedTaskSelections.get(row);
+        const input = row.querySelector<HTMLInputElement>('.related-task-input');
+        const candidate = selection && relatedTaskCandidates.find((item) => isSameRelatedTask(item, selection));
+        if (candidate && input && input.value === selection.taskName) {
+            selectRelatedTask(row, candidate);
+        }
+    }
+}
+
+/**
+ * Reads the chosen links. Empty rows are ignored; a row with text but no chosen task is returned
+ * without a task ID so validation reports it.
+ */
+function readRelatedTaskRows(): RelatedTaskReference[] {
+    const references: RelatedTaskReference[] = [];
+    for (const row of getRelatedTaskRows()) {
+        const input = row.querySelector<HTMLInputElement>('.related-task-input');
+        const selection = relatedTaskSelections.get(row);
+        if (selection && input?.value === selection.taskName) {
+            if (!references.some((reference) => isSameRelatedTask(reference, selection))) {
+                references.push(selection);
+            }
+        } else if (input && input.value.trim() !== '') {
+            references.push({ taskId: '', taskName: input.value.trim(), repositoryName: '', repositoryPath: '', repositoryUrl: '' });
+        }
+    }
+    return references;
+}
+
+function getRelatedTaskRows(): HTMLLIElement[] {
+    return Array.from(relatedTaskList?.querySelectorAll<HTMLLIElement>('.related-task-row') ?? []);
+}
+
+function getRelatedTaskListbox(input: HTMLInputElement): HTMLUListElement | null {
+    const listboxId = input.getAttribute('aria-controls');
+    return listboxId ? document.getElementById(listboxId) as HTMLUListElement | null : null;
+}
+
+function setRelatedTaskStatus(message: string): void {
+    if (relatedTaskStatus) {
+        relatedTaskStatus.textContent = message;
+        relatedTaskStatus.hidden = message === '';
     }
 }

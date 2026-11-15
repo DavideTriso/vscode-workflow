@@ -18,7 +18,8 @@ src/extension.ts            activation: wires everything below
 src/tasks/                  task domain + Tasks view
   taskRepository.ts         all file I/O under .history/ (tasks, .current marker, TODO json)
   taskModel.ts              parse/validate/filter task JSON, user formatting (`email <name>`)
-  userSettings.ts           reads user identity (settings, falling back to git) and team members
+  userSettings.ts           reads user identity (settings, falling back to git), team members and repository groups
+  repositoryGroups.ts       parses repositoryGroups; lists linkable repositories; resolves related-task links to local paths
   taskProtocol.ts           shared types + webview <-> extension messages
   tasksViewProvider.ts      webview host: handles messages, calls the repository
   tasksWebviewHtml.ts       view HTML (incl. Quick Reference)
@@ -35,6 +36,7 @@ scripts/uninstall.js        vscode:uninstall hook; removes Claude settings entri
 Key ideas:
 
 - **Repository state is files.** Tasks are `.history/tasks/<id>.json` (status 0 new, 1 in progress, 2 done). Starting a timer writes `.history/agents/<id>/.current`; agents find the active task through it.
+- **Related tasks** are stored in the task JSON as `relatedTasks` (`taskId`, `repositoryUrl`, `repositoryPath`, plus name snapshots). The task form loads candidates (`loadRelatedTaskCandidates`) from the current repository and from every repository sharing a `repositoryGroups` group with it, skipping tasks older than `relatedTasks.maxAgeDays` (by file-name timestamp when present, so old files are never read). When writing `.current`, `TaskRepository.startAgentTask` resolves each link to this machine's checkout, by origin URL first and then by path, and writes absolute `taskFile`/`taskFolder` paths into the marker's `relatedTasks`. Agents and skills read those paths as read-only context; keep that paragraph identical across `claude-plugin/` (a test checks it is present).
 - **Three bundles** (`esbuild.mjs`): `dist/extension.js`, `dist/tasksView.js` (webview), `dist/mcp-server.js`.
 - **TODO tools** are declared once in `todoToolDefinitions.ts` and implemented in `todoToolOperations.ts`, with no editor or provider API. The MCP server (`src/mcp/`) is the Claude Code adapter that exposes them; another provider would get its own adapter over the same two modules.
 - **Claude plugin sync** (`claudePlugin.ts`) copies `claude-plugin/` plus `mcp-server.js` into `<globalStorage>/claude-marketplace`, stamps the extension version, pins `.mcp.json` to an absolute Node path, and enables it in Claude settings. It is idempotent and reruns on version or Node path change.

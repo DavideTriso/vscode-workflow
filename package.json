@@ -87,6 +87,61 @@
                         "additionalProperties": false
                     }
                 },
+                "vscode-workflow.repositoryGroups": {
+                    "type": "array",
+                    "default": [],
+                    "markdownDescription": "Groups of related repositories, such as a backend and its frontend. A task can be linked to tasks of its own repository and of every repository in the same group, and agents read the linked tasks as extra context. Repositories match by origin URL first, so links keep working on machines with other checkout paths.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "group": {
+                                "type": "string",
+                                "description": "User-friendly group name."
+                            },
+                            "repositories": {
+                                "type": "array",
+                                "description": "Repositories in this group.",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "path": {
+                                            "type": "string",
+                                            "description": "Absolute path of the local repository."
+                                        },
+                                        "originUrl": {
+                                            "type": "string",
+                                            "description": "URL of the upstream origin repository, for example https://github.com/org/repo."
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "description": "User-friendly repository name, shown next to its tasks."
+                                        },
+                                        "description": {
+                                            "type": "string",
+                                            "description": "Short description of what the repository contains; given to agents as context."
+                                        }
+                                    },
+                                    "required": [
+                                        "path",
+                                        "name"
+                                    ],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "required": [
+                            "group",
+                            "repositories"
+                        ],
+                        "additionalProperties": false
+                    }
+                },
+                "vscode-workflow.relatedTasks.maxAgeDays": {
+                    "type": "number",
+                    "default": 90,
+                    "minimum": 0,
+                    "markdownDescription": "Maximum age in days of the tasks offered when linking related tasks. Older tasks are not listed; links that already exist are kept. Set to `0` to list tasks of any age."
+                },
                 "vscode-workflow.claudeCode.registration": {
                     "type": "string",
                     "enum": [

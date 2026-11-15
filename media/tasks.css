@@ -117,6 +117,63 @@ body {
     outline: 1px solid var(--vscode-focusBorder);
 }
 
+#selected-task-related {
+    margin-top: 10px;
+}
+
+#selected-task-related-heading {
+    margin: 0 0 4px;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+#selected-task-related-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.selected-task-related-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.selected-task-related-link {
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    color: var(--vscode-textLink-foreground);
+    background: transparent;
+    border: 0;
+    font: inherit;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.selected-task-related-link:hover {
+    color: var(--vscode-textLink-activeForeground);
+    text-decoration: underline;
+}
+
+.selected-task-related-link:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.related-task-repository-tag.selected-task-related-repository {
+    position: static;
+    flex: 0 0 auto;
+    max-width: 45%;
+    transform: none;
+}
+
 #agent-outputs {
     margin-top: 12px;
 }
@@ -1074,4 +1131,166 @@ body {
     .task-action {
         opacity: 1;
     }
+}
+.related-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.related-task-list:empty {
+    display: none;
+}
+
+.related-task-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.related-task-combobox {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.related-task-repository-tag {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    max-width: 40%;
+    padding: 0 5px;
+    overflow: hidden;
+    color: var(--vscode-badge-foreground);
+    background: var(--vscode-badge-background);
+    border-radius: 8px;
+    font-size: 0.85em;
+    line-height: 1.5;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.related-task-row:has(.related-task-repository-tag:not([hidden])) .related-task-input {
+    padding-right: 42%;
+}
+
+.related-task-options {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 2px);
+    right: 0;
+    left: 0;
+    max-height: 220px;
+    margin: 0;
+    padding: 2px 0;
+    overflow-y: auto;
+    color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+    background: var(--vscode-dropdown-background, var(--vscode-input-background));
+    border: 1px solid var(--vscode-dropdown-border, var(--vscode-focusBorder));
+    border-radius: 2px;
+    list-style: none;
+    box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+}
+
+.related-task-option {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 3px 7px;
+    cursor: pointer;
+}
+
+.related-task-option:hover {
+    background: var(--vscode-list-hoverBackground);
+}
+
+.related-task-option[aria-selected="true"] {
+    color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
+    background: var(--vscode-list-activeSelectionBackground);
+}
+
+.related-task-option-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.related-task-option-repository {
+    flex: 0 0 auto;
+    max-width: 45%;
+    overflow: hidden;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.related-task-option[aria-selected="true"] .related-task-option-repository {
+    color: inherit;
+}
+
+.related-task-options-message {
+    padding: 3px 7px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.related-task-remove,
+.related-task-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--vscode-icon-foreground);
+    background: transparent;
+    border: 0;
+    border-radius: 2px;
+    font: inherit;
+    cursor: pointer;
+}
+
+.related-task-remove {
+    flex: 0 0 26px;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 4px;
+}
+
+.related-task-add {
+    align-self: flex-start;
+    padding: 2px 4px;
+    color: var(--vscode-textLink-foreground);
+}
+
+.related-task-remove:hover,
+.related-task-add:hover {
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.related-task-remove:focus-visible,
+.related-task-add:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.related-task-remove svg,
+.related-task-add svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.4;
+}
+
+.related-task-status {
+    margin: 0;
+    color: var(--vscode-errorForeground);
+    font-size: 0.9em;
 }

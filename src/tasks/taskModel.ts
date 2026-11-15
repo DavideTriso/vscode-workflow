@@ -1,4 +1,4 @@
-import type { CreateTaskInput, TaskFieldErrors, TaskStatus, TaskSummary, TimeTrackingEntry, UserIdentity } from './taskProtocol';
+import type { CreateTaskInput, RelatedTaskReference, TaskFieldErrors, TaskStatus, TaskSummary, TimeTrackingEntry, UserIdentity } from './taskProtocol';
 
 export function createOpenTaskSummary(fileName: string, value: unknown): TaskSummary | undefined {
     const task = createTaskSummary(fileName, value);
@@ -33,7 +33,69 @@ export function createTaskSummary(fileName: string, value: unknown): TaskSummary
         ...(typeof value.assignee === 'string' ? { assignee: value.assignee } : {}),
         status: value.status,
         timeTracking: readTimeTracking(value.timeTracking),
+        relatedTasks: readRelatedTasks(value.relatedTasks),
     };
+}
+
+/** Reads well-formed related task links, dropping malformed entries and duplicates. */
+export function readRelatedTasks(value: unknown): RelatedTaskReference[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    const references: RelatedTaskReference[] = [];
+    for (const entry of value) {
+        if (!isRecord(entry) || !isTaskFileName(entry.taskId)) {
+            continue;
+        }
+        const reference: RelatedTaskReference = {
+            taskId: entry.taskId,
+            taskName: readString(entry.taskName),
+            repositoryName: readString(entry.repositoryName),
+            repositoryPath: readString(entry.repositoryPath),
+            repositoryUrl: readString(entry.repositoryUrl),
+        };
+        if (reference.repositoryPath === '' && reference.repositoryUrl === '') {
+            continue;
+        }
+        if (!references.some((existing) => isSameRelatedTask(existing, reference))) {
+            references.push(reference);
+        }
+    }
+    return references;
+}
+
+/**
+ * Tells whether two links point to the same task: same task file in the same repository,
+ * where the repository matches by normalized origin URL or, failing that, by path.
+ */
+export function isSameRelatedTask(left: RelatedTaskReference, right: RelatedTaskReference): boolean {
+    if (left.taskId !== right.taskId) {
+        return false;
+    }
+    const leftUrl = normalizeRepositoryUrl(left.repositoryUrl);
+    const rightUrl = normalizeRepositoryUrl(right.repositoryUrl);
+    if (leftUrl !== '' && rightUrl !== '') {
+        return leftUrl === rightUrl;
+    }
+    return left.repositoryPath !== '' && left.repositoryPath === right.repositoryPath;
+}
+
+/**
+ * Normalizes a Git remote URL so HTTPS, SSH and scp-like forms of the same repository compare
+ * equal: `git@github.com:org/repo.git` and `https://github.com/org/repo` both become `github.com/org/repo`.
+ */
+export function normalizeRepositoryUrl(value: string): string {
+    let url = value.trim();
+    if (url === '') {
+        return '';
+    }
+    const scpLike = /^(?:[^@/\s]+@)?([^:/\s]+):(?!\/\/)(.+)$/.exec(url);
+    if (scpLike) {
+        url = `${scpLike[1]}/${scpLike[2]}`;
+    } else {
+        url = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').replace(/^[^@/]+@/, '');
+    }
+    return url.replace(/\.git\/?$/i, '').replace(/\/+$/, '').toLocaleLowerCase();
 }
 
 export function compareTasksNewestFirst(left: TaskSummary, right: TaskSummary): number {
@@ -130,11 +192,23 @@ export function validateTaskInput(
     if (input.assignee.trim() === '') {
         errors.assignee = 'Select an assignee.';
     }
+    if ((input.relatedTasks ?? []).some((reference) => !isTaskFileName(reference.taskId) ||
+        (reference.repositoryPath.trim() === '' && reference.repositoryUrl.trim() === ''))) {
+        errors.relatedTasks = 'Select each related task from the list.';
+    }
     return errors;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readString(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+function isTaskFileName(value: unknown): value is string {
+    return typeof value === 'string' && /^[^/\\]+\.json$/.test(value) && value !== '.json';
 }
 
 function isTaskStatus(value: unknown): value is TaskStatus {

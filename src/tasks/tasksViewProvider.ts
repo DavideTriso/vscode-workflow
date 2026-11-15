@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import path from 'node:path';
 import { missingUserEmailMessage, TaskRepository } from './taskRepository';
-import { validateTaskInput, type TaskValidationOptions } from './taskModel';
-import type { CreateTaskInput, ExtensionToWebviewMessage, TaskSummary, TodoReference, WebviewToExtensionMessage } from './taskProtocol';
+import { isSameRelatedTask, readRelatedTasks, validateTaskInput, type TaskValidationOptions } from './taskModel';
+import type { CreateTaskInput, CurrentRepositoryInfo, ExtensionToWebviewMessage, RelatedTaskReference, TaskSummary, TodoReference, WebviewToExtensionMessage } from './taskProtocol';
 import { getTasksWebviewHtml } from './tasksWebviewHtml';
-import { getFormattedTeamMembers, userSettingKeys } from './userSettings';
+import { getFormattedTeamMembers, getRelatedTaskMaxAgeDays, repositoryGroupsSettingKey, userSettingKeys } from './userSettings';
 
 export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
     static readonly viewType = 'tasks.list';
@@ -36,7 +36,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         this.viewDisposables.push(
             view.webview.onDidReceiveMessage((message: unknown) => this.handleMessage(message)),
             vscode.workspace.onDidChangeConfiguration((event) => {
-                if (userSettingKeys.some((key) => event.affectsConfiguration(key))) {
+                if ([...userSettingKeys, repositoryGroupsSettingKey].some((key) => event.affectsConfiguration(key))) {
                     void this.refresh();
                 } else if (event.affectsConfiguration('vscode-workflow.tasks.requireProjectManagementUrl')) {
                     void this.postTaskSettings();
@@ -110,6 +110,17 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         });
     }
 
+    private async postRelatedTaskCandidates(): Promise<void> {
+        try {
+            const repositoryRoot = await this.requireRepositoryRoot();
+            const candidates = await this.taskRepository.listRelatedTaskCandidates(repositoryRoot, getRelatedTaskMaxAgeDays());
+            await this.postMessage({ type: 'relatedTaskCandidates', candidates });
+        } catch (error) {
+            const detail = error instanceof Error ? error.message : String(error);
+            await this.postMessage({ type: 'relatedTaskCandidates', candidates: [], error: `Unable to load tasks: ${detail}` });
+        }
+    }
+
     private async refresh(): Promise<void> {
         const view = this.view;
         if (!view) {
@@ -124,11 +135,16 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
                 return;
             }
             this.watchAgentOutputs(repositoryRoot);
-            const [tasks, currentUser] = await Promise.all([
+            const [tasks, currentUser, repositories] = await Promise.all([
                 this.taskRepository.listOpenTasks(repositoryRoot),
                 this.taskRepository.getCurrentUser(repositoryRoot),
+                this.taskRepository.listLinkableRepositories(repositoryRoot),
             ]);
-            await this.postMessage({ type: 'taskList', tasks, currentUser });
+            const current = repositories[0];
+            const currentRepository: CurrentRepositoryInfo | undefined = current
+                ? { name: current.name, path: current.path, originUrl: current.originUrl }
+                : undefined;
+            await this.postMessage({ type: 'taskList', tasks, currentUser, currentRepository });
             await this.restoreSelectedTask(repositoryRoot);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -143,6 +159,19 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         }
         if (isRefreshTasksMessage(message)) {
             await this.refresh();
+            return;
+        }
+        if (isLoadRelatedTaskCandidatesMessage(message)) {
+            await this.postRelatedTaskCandidates();
+            return;
+        }
+        if (isOpenRelatedTaskMessage(message)) {
+            try {
+                await this.openRelatedTask(message.taskId, message.reference);
+            } catch (error) {
+                const detail = error instanceof Error ? error.message : String(error);
+                void vscode.window.showErrorMessage(`Unable to open related task: ${detail}`);
+            }
             return;
         }
         if (isViewTodoMessage(message)) {
@@ -366,6 +395,23 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         });
     }
 
+    /** Opens a related task's JSON; only links stored on the given task are accepted. */
+    private async openRelatedTask(taskId: string, reference: RelatedTaskReference): Promise<void> {
+        const repositoryRoot = await this.requireRepositoryRoot();
+        const task = await this.taskRepository.getTask(repositoryRoot, taskId);
+        const link = task?.relatedTasks.find((candidate) => isSameRelatedTask(candidate, reference));
+        if (!link) {
+            throw new Error('The task no longer links to this related task.');
+        }
+        const [resolved] = await this.taskRepository.resolveRelatedTasks(repositoryRoot, [link]);
+        if (!resolved?.available) {
+            throw new Error(`"${link.taskName}" was not found at ${resolved?.taskFile ?? link.repositoryPath}. ` +
+                'Check the repository path in the vscode-workflow.repositoryGroups setting.');
+        }
+        const document = await vscode.workspace.openTextDocument(vscode.Uri.file(resolved.taskFile));
+        await vscode.window.showTextDocument(document, { viewColumn: vscode.ViewColumn.One, preview: true });
+    }
+
     private async restoreSelectedTask(repositoryRoot: string): Promise<void> {
         const taskId = this.workspaceState.get<string>(TasksViewProvider.selectedTaskKey);
         if (!taskId) {
@@ -457,6 +503,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
             projectManagementUrl: input.projectManagementUrl.trim(),
             description: input.description.trim(),
             assignee: input.assignee.trim(),
+            relatedTasks: readRelatedTasks(input.relatedTasks),
         };
         if (taskId) {
             await this.taskRepository.updateTask(repositoryRoot, taskId, normalizedInput);
@@ -613,6 +660,18 @@ function isRecordMessage(value: unknown): value is Record<string, any> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isLoadRelatedTaskCandidatesMessage(message: unknown): boolean {
+    return isRecordMessage(message) && message.type === 'loadRelatedTaskCandidates';
+}
+
+function isOpenRelatedTaskMessage(
+    message: unknown,
+): message is Extract<WebviewToExtensionMessage, { type: 'openRelatedTask' }> {
+    return isRecordMessage(message) && message.type === 'openRelatedTask' && typeof message.taskId === 'string' &&
+        isRecordMessage(message.reference) && typeof message.reference.taskId === 'string' &&
+        typeof message.reference.repositoryPath === 'string' && typeof message.reference.repositoryUrl === 'string';
+}
+
 function isRefreshTasksMessage(message: unknown): boolean {
     return typeof message === 'object' && message !== null && 'type' in message && message.type === 'refreshTasks';
 }
@@ -637,7 +696,12 @@ function isSaveTaskMessage(
         'name' in input && typeof input.name === 'string' &&
         'projectManagementUrl' in input && typeof input.projectManagementUrl === 'string' &&
         'description' in input && typeof input.description === 'string' &&
-        'assignee' in input && typeof input.assignee === 'string';
+        'assignee' in input && typeof input.assignee === 'string' &&
+        (!('relatedTasks' in input) || input.relatedTasks === undefined || Array.isArray(input.relatedTasks) &&
+        input.relatedTasks.every((reference: unknown) => isRecordMessage(reference) &&
+            typeof reference.taskId === 'string' && typeof reference.taskName === 'string' &&
+            typeof reference.repositoryName === 'string' && typeof reference.repositoryPath === 'string' &&
+            typeof reference.repositoryUrl === 'string'));
     const hasValidTaskId = !('taskId' in message) || typeof message.taskId === 'string';
     const hasValidSourceTodo = !('sourceTodo' in message) || message.sourceTodo === undefined || (
         isRecordMessage(message.sourceTodo) &&

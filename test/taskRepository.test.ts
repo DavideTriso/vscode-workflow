@@ -214,6 +214,7 @@ describe('task repository', () => {
             assignee: 'teammate@example.com <Teammate>',
             status: 0,
             timeTracking: [],
+            relatedTasks: [],
         });
     });
 
@@ -259,6 +260,7 @@ describe('task repository', () => {
             status: 0,
             timeTracking: [{ startDateTime: '2026-10-30T12:35:00Z', endDateTime: null }],
             futureField: { keep: true },
+            relatedTasks: [],
         });
     });
 

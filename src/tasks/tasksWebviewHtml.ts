@@ -29,6 +29,10 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
             <p id="task-action-error" role="alert" hidden></p>
             <p id="selected-task-description" class="is-collapsed"></p>
             <button id="description-toggle" type="button" aria-expanded="false" hidden>Show more</button>
+            <section id="selected-task-related" aria-labelledby="selected-task-related-heading" hidden>
+                <h3 id="selected-task-related-heading">Related tasks</h3>
+                <ul id="selected-task-related-list"></ul>
+            </section>
             <div id="agent-outputs" aria-label="Agent output"></div>
             <p id="agent-output-error" role="alert" hidden></p>
         </section>
@@ -55,6 +59,16 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                         <label for="task-description">Description <span aria-hidden="true">*</span></label>
                         <textarea id="task-description" name="description" rows="4" required aria-describedby="task-description-error"></textarea>
                         <p id="task-description-error" class="field-error" role="alert" hidden></p>
+                    </div>
+                    <div class="form-field related-tasks-field">
+                        <span id="task-related-label" class="form-field-label">Related tasks</span>
+                        <ul id="task-related-list" class="related-task-list" aria-labelledby="task-related-label"></ul>
+                        <button id="task-related-add" class="related-task-add" type="button" aria-describedby="task-related-error">
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+                            <span>Add related task</span>
+                        </button>
+                        <p id="task-related-status" class="related-task-status" role="status" hidden></p>
+                        <p id="task-related-error" class="field-error" role="alert" hidden></p>
                     </div>
                     <p id="create-task-error" role="alert" hidden></p>
                     <div class="form-actions">

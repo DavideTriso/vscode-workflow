@@ -8,6 +8,46 @@ export interface TaskSummary {
     assignee?: string;
     status: TaskStatus;
     timeTracking: TimeTrackingEntry[];
+    relatedTasks: RelatedTaskReference[];
+}
+
+/**
+ * A link from a task to another task in the same repository or in a repository of the same
+ * repository group. `repositoryUrl` identifies the repository across machines; `repositoryPath`
+ * is the local path when the link was made. Names are snapshots kept for display and for agents
+ * when the repository cannot be found.
+ */
+export interface RelatedTaskReference {
+    taskId: string;
+    taskName: string;
+    repositoryName: string;
+    repositoryPath: string;
+    repositoryUrl: string;
+}
+
+/** A task that can be linked as related task, offered in the task form. */
+export interface RelatedTaskCandidate extends RelatedTaskReference {
+    status: TaskStatus;
+    isCurrentRepository: boolean;
+}
+
+/** The open repository as related-task links describe it. */
+export interface CurrentRepositoryInfo {
+    name: string;
+    path: string;
+    originUrl: string;
+}
+
+export interface RepositoryConfig {
+    path: string;
+    originUrl: string;
+    name: string;
+    description: string;
+}
+
+export interface RepositoryGroup {
+    group: string;
+    repositories: RepositoryConfig[];
 }
 
 export type TaskStatus = 0 | 1 | 2;
@@ -23,6 +63,7 @@ export interface CreateTaskInput {
     projectManagementUrl: string;
     description: string;
     assignee: string;
+    relatedTasks: RelatedTaskReference[];
 }
 
 export interface UserIdentity {
@@ -96,7 +137,7 @@ export interface AgentOutputGroup {
 
 export type ExtensionToWebviewMessage =
     | { type: 'repositoryUnavailable' }
-    | { type: 'taskList'; tasks: TaskSummary[]; currentUser?: string }
+    | { type: 'taskList'; tasks: TaskSummary[]; currentUser?: string; currentRepository?: CurrentRepositoryInfo }
     | { type: 'openEditForm'; task: TaskSummary }
     | { type: 'createTaskValidationError'; errors: TaskFieldErrors }
     | { type: 'createTaskFailed'; message: string }
@@ -109,6 +150,7 @@ export type ExtensionToWebviewMessage =
     | { type: 'agentOutputs'; taskId: string; groups: AgentOutputGroup[]; error?: string }
     | { type: 'todoStatusResult'; taskId: string; itemId: string; done: boolean; error?: string }
     | { type: 'todoMutationResult'; taskId: string; error?: string }
+    | { type: 'relatedTaskCandidates'; candidates: RelatedTaskCandidate[]; error?: string }
     | { type: 'clearSelectedTask' };
 
 export type WebviewToExtensionMessage =
@@ -125,6 +167,8 @@ export type WebviewToExtensionMessage =
     | { type: 'editTask'; taskId: string }
     | { type: 'selectTask'; taskId: string }
     | { type: 'refreshTasks' }
+    | { type: 'loadRelatedTaskCandidates' }
+    | { type: 'openRelatedTask'; taskId: string; reference: RelatedTaskReference }
     | { type: 'markTaskDone'; taskId: string }
     | { type: 'toggleTimeTracking'; taskId: string }
     | { type: 'saveTask'; taskId?: string; input: CreateTaskInput; sourceTodo?: TodoReference };

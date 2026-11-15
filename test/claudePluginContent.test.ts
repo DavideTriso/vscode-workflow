@@ -83,6 +83,18 @@ describe('Claude Code plugin content', () => {
         expect(notices).toContain('MIT License');
     });
 
+    it('tells every task-reading agent and skill to read related tasks read-only', async () => {
+        const files = [
+            ...(await readdir(path.join(pluginRoot, 'agents'))).map((file) => ['agents', file]),
+            ...['implement', 'analyze-and-plan', 'debug'].map((name) => ['skills', name, 'SKILL.md']),
+        ];
+        for (const file of files) {
+            const text = await read(...file);
+            expect(text, file.join('/')).toContain('`relatedTasks`');
+            expect(text, file.join('/')).toContain('read-only context');
+        }
+    });
+
     it('preserves the planning contracts in the Claude skill', async () => {
         const planning = await read('skills', 'analyze-and-plan', 'SKILL.md');
         for (const phrase of [

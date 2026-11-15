@@ -4,18 +4,37 @@ import type { Dirent } from 'node:fs';
 import { mkdir, readdir, readFile, realpath, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { compareTasksNewestFirst, createOpenTaskSummary, createTaskSummary, formatUser } from './taskModel';
+import { compareTasksNewestFirst, createOpenTaskSummary, createTaskSummary, formatUser, readRelatedTasks } from './taskModel';
+import { listLinkableRepositories, resolveRelatedRepository, type LinkableRepository } from './repositoryGroups';
 import { parseImplementationTodo, renderImplementationTodoMarkdown, serializeImplementationTodo, summarizeImplementationTodo } from './implementationTodo';
-import { outputAgents, type AgentOutputGroup, type CreateTaskInput, type ImplementationTodoDocument, type ImplementationTodoGroup, type ImplementationTodoGroupOrder, type ImplementationTodoItem, type ImplementationTodoItemDraft, type ImplementationTodoSource, type TaskStatus, type TaskSummary, type TimeTrackingEntry, type UserIdentity } from './taskProtocol';
+import { outputAgents, type AgentOutputGroup, type CreateTaskInput, type ImplementationTodoDocument, type ImplementationTodoGroup, type ImplementationTodoGroupOrder, type ImplementationTodoItem, type ImplementationTodoItemDraft, type ImplementationTodoSource, type RelatedTaskCandidate, type RelatedTaskReference, type RepositoryGroup, type TaskStatus, type TaskSummary, type TimeTrackingEntry, type UserIdentity } from './taskProtocol';
 
 const execFileAsync = promisify(execFile);
 export type UserIdentityProvider = (repositoryRoot: string) => Promise<UserIdentity | undefined>;
+export type RepositoryGroupsProvider = () => RepositoryGroup[];
 
 export interface CurrentAgentTask {
     taskId: string;
     taskName: string;
     taskFile: string;
     startedAtDateTime: string;
+    /** Related tasks resolved to absolute paths on this machine, for agents to read as extra context. */
+    relatedTasks?: AgentRelatedTask[];
+}
+
+export interface AgentRelatedTask {
+    taskId: string;
+    taskName: string;
+    repositoryName: string;
+    repositoryDescription: string;
+    repositoryPath: string;
+    repositoryUrl: string;
+    /** Absolute path of the related task JSON. */
+    taskFile: string;
+    /** Absolute path of the related task's agent folder (plans, reviews, TODOs). */
+    taskFolder: string;
+    /** False when the task file could not be found at `taskFile`. */
+    available: boolean;
 }
 
 interface AgentTaskMarkerFile {
@@ -26,7 +45,10 @@ interface AgentTaskMarkerFile {
 export class TaskRepository {
     private readonly todoWriteLocks = new Map<string, Promise<void>>();
 
-    constructor(private readonly userIdentityProvider: UserIdentityProvider = readGitUserIdentity) { }
+    constructor(
+        private readonly userIdentityProvider: UserIdentityProvider = readGitUserIdentity,
+        private readonly repositoryGroupsProvider: RepositoryGroupsProvider = () => [],
+    ) { }
 
     async findRepositoryRoot(workspacePath: string): Promise<string | undefined> {
         try {
@@ -59,6 +81,73 @@ export class TaskRepository {
         return taskResults
             .filter((task): task is TaskSummary => task !== undefined)
             .sort(compareTasksNewestFirst);
+    }
+
+    /**
+     * Lists tasks of every status, newest first; unreadable or invalid task files are skipped.
+     * With `createdAfter`, older tasks are left out. Files whose name carries the creation time
+     * (`YYYYMMDD-HHMMSS-*.json`) are skipped by name, without being read.
+     */
+    async listAllTasks(repositoryRoot: string, createdAfter?: Date): Promise<TaskSummary[]> {
+        const directory = this.getTaskDirectory(repositoryRoot);
+        const entries = await this.readTaskEntries(directory);
+        const cutoff = createdAfter?.getTime();
+        const jsonFiles = entries.filter((entry) => {
+            if (!entry.isFile() || !entry.name.endsWith('.json')) {
+                return false;
+            }
+            const createdFromName = parseTaskFileTimestamp(entry.name);
+            return cutoff === undefined || createdFromName === undefined || createdFromName >= cutoff;
+        });
+        const taskResults = await Promise.all(jsonFiles.map(async (entry) => {
+            try {
+                const content = await readFile(path.join(directory, entry.name), 'utf8');
+                const task = createTaskSummary(entry.name, JSON.parse(content) as unknown);
+                return task && (cutoff === undefined || Date.parse(task.createdOnDateTime) >= cutoff) ? task : undefined;
+            } catch {
+                return undefined;
+            }
+        }));
+        return taskResults
+            .filter((task): task is TaskSummary => task !== undefined)
+            .sort(compareTasksNewestFirst);
+    }
+
+    /** Lists the current repository and the repositories that share a repository group with it. */
+    async listLinkableRepositories(repositoryRoot: string): Promise<LinkableRepository[]> {
+        const originUrl = await readGitConfigValue(repositoryRoot, 'remote.origin.url').catch(() => undefined);
+        return listLinkableRepositories(this.repositoryGroupsProvider(), repositoryRoot, originUrl);
+    }
+
+    /**
+     * Lists the tasks that can be linked as related tasks: every task in the current repository and
+     * in the repositories of its groups, current repository first and each newest first.
+     * Repositories that are missing or unreadable are skipped. With `maxAgeDays` above 0, tasks
+     * created more than that many days before `now` are left out.
+     */
+    async listRelatedTaskCandidates(repositoryRoot: string, maxAgeDays = 0, now = new Date()): Promise<RelatedTaskCandidate[]> {
+        const repositories = await this.listLinkableRepositories(repositoryRoot);
+        const createdAfter = maxAgeDays > 0 ? new Date(now.getTime() - maxAgeDays * 24 * 60 * 60 * 1000) : undefined;
+        const results = await Promise.all(repositories.map(async (repository) => {
+            if (repository.path === '') {
+                return [];
+            }
+            try {
+                const tasks = await this.listAllTasks(repository.path, createdAfter);
+                return tasks.map((task): RelatedTaskCandidate => ({
+                    taskId: task.id,
+                    taskName: task.name,
+                    repositoryName: repository.name,
+                    repositoryPath: repository.path,
+                    repositoryUrl: repository.originUrl,
+                    status: task.status,
+                    isCurrentRepository: repository.isCurrentRepository,
+                }));
+            } catch {
+                return [];
+            }
+        }));
+        return results.flat();
     }
 
     async getTask(repositoryRoot: string, taskId: string): Promise<TaskSummary | undefined> {
@@ -380,6 +469,7 @@ export class TaskRepository {
             assignee: input.assignee,
             status: 0,
             timeTracking: [],
+            relatedTasks: readRelatedTasks(input.relatedTasks),
         };
         const content = `${JSON.stringify(task, null, 2)}\n`;
 
@@ -410,6 +500,7 @@ export class TaskRepository {
             projectManagementUrl: input.projectManagementUrl,
             description: input.description,
             assignee: input.assignee,
+            relatedTasks: readRelatedTasks(input.relatedTasks),
         };
         await this.writeTaskRecord(taskPath, updatedTask);
     }
@@ -537,16 +628,50 @@ export class TaskRepository {
         const historyDirectory = this.getAgentHistoryDirectory(repositoryRoot);
         const taskDirectory = path.join(historyDirectory, path.basename(task.id));
         await mkdir(taskDirectory, { recursive: true });
+        const relatedTasks = await this.resolveRelatedTasks(repositoryRoot, task.relatedTasks ?? []);
         const context: CurrentAgentTask = {
             taskId: task.id,
             taskName: task.name,
             taskFile: path.posix.join('.history', 'tasks', task.id),
             startedAtDateTime: toIsoSeconds(now),
+            ...(relatedTasks.length > 0 ? { relatedTasks } : {}),
         };
         await writeFile(path.join(taskDirectory, '.current'), `${JSON.stringify(context, null, 2)}\n`, {
             encoding: 'utf8',
             mode: 0o600,
         });
+    }
+
+    /**
+     * Resolves related-task links to this machine's checkouts: by origin URL against the
+     * repository groups first, then by the stored path; `available` tells whether the task file exists.
+     */
+    async resolveRelatedTasks(
+        repositoryRoot: string,
+        references: readonly RelatedTaskReference[],
+    ): Promise<AgentRelatedTask[]> {
+        if (references.length === 0) {
+            return [];
+        }
+        const repositories = await this.listLinkableRepositories(repositoryRoot);
+        return Promise.all(references.map(async (reference): Promise<AgentRelatedTask> => {
+            const repository = resolveRelatedRepository(reference, repositories);
+            const repositoryPath = repository?.path || reference.repositoryPath;
+            const taskId = path.basename(reference.taskId);
+            const taskFile = path.join(repositoryPath, '.history', 'tasks', taskId);
+            const available = repositoryPath !== '' && await stat(taskFile).then((metadata) => metadata.isFile(), () => false);
+            return {
+                taskId,
+                taskName: reference.taskName,
+                repositoryName: repository?.name || reference.repositoryName,
+                repositoryDescription: repository?.description ?? '',
+                repositoryPath,
+                repositoryUrl: repository?.originUrl || reference.repositoryUrl,
+                taskFile,
+                taskFolder: path.join(repositoryPath, '.history', 'agents', taskId),
+                available,
+            };
+        }));
     }
 
     async stopAgentTask(repositoryRoot: string, taskId: string, now = new Date()): Promise<void> {
@@ -780,6 +905,17 @@ function extractOutputSummary(content: string): string {
 function getExitCode(error: unknown): number | undefined {
     const code = getErrorCode(error);
     return typeof code === 'number' ? code : undefined;
+}
+
+/** Reads the UTC creation time encoded in a task file name such as `20261030-123456-Abc.json`. */
+function parseTaskFileTimestamp(fileName: string): number | undefined {
+    const match = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})-/.exec(fileName);
+    if (!match) {
+        return undefined;
+    }
+    const [, year, month, day, hour, minute, second] = match.map(Number) as [number, ...number[]];
+    const time = Date.UTC(year!, month! - 1, day!, hour!, minute!, second!);
+    return Number.isFinite(time) ? time : undefined;
 }
 
 function createRandomSuffix(): string {

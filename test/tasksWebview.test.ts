@@ -98,7 +98,7 @@ describe('task webview TODO interactions', () => {
         click('#create-task-submit');
         expect(postMessage).toHaveBeenCalledWith({
             type: 'saveTask',
-            input: { name: 'New task', projectManagementUrl: '', description: 'Details', assignee: 'a@example.com <A>' },
+            input: { name: 'New task', projectManagementUrl: '', description: 'Details', assignee: 'a@example.com <A>', relatedTasks: [] },
         });
     });
 
@@ -320,5 +320,136 @@ describe('task webview TODO interactions', () => {
         expect(postMessage).toHaveBeenLastCalledWith({ type: 'setTodoStatus', taskId: task.id, itemId: 'first-item', done: true });
         send({ type: 'todoStatusResult', taskId: task.id, itemId: 'first-item', done: true, error: 'Write failed' });
         expect(checkboxes[0]!.checked).toBe(false);
+    });
+
+    it('lists the selected task\'s related tasks and opens one on click', () => {
+        const link = { taskId: 'api.json', taskName: 'Add orders API', repositoryName: 'Backend', repositoryPath: '/old/backend', repositoryUrl: 'https://github.com/org/backend' };
+        expect(document.querySelector<HTMLElement>('#selected-task-related')!.hidden).toBe(true);
+        send({ type: 'selectedTask', task: { ...task, relatedTasks: [link] } });
+        expect(document.querySelector<HTMLElement>('#selected-task-related')!.hidden).toBe(false);
+        const item = document.querySelector('.selected-task-related-item')!;
+        expect(item.querySelector('.selected-task-related-link')!.textContent).toBe('Add orders API');
+        expect(item.querySelector('.selected-task-related-repository')!.textContent).toBe('Backend');
+        click('.selected-task-related-link');
+        expect(postMessage).toHaveBeenLastCalledWith({ type: 'openRelatedTask', taskId: task.id, reference: link });
+    });
+
+    it('links a task created from a TODO back to its parent task', () => {
+        send({ type: 'taskSettings', requireProjectManagementUrl: false, teamMembers: [] });
+        send({
+            type: 'taskList', tasks: [task], currentUser: 'me@example.com',
+            currentRepository: { name: 'Frontend', path: '/repo', originUrl: 'https://github.com/org/frontend' },
+        });
+        click('.implementation-todo-item[data-todo-id="first-item"] .implementation-todo-create-task');
+        expect(document.querySelector<HTMLInputElement>('.related-task-input')!.value).toBe('Task');
+        click('#create-task-submit');
+        expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+            type: 'saveTask',
+            input: expect.objectContaining({
+                relatedTasks: [{
+                    taskId: task.id, taskName: 'Task', repositoryName: 'Frontend',
+                    repositoryPath: '/repo', repositoryUrl: 'https://github.com/org/frontend',
+                }],
+            }),
+        }));
+    });
+
+    describe('related tasks field', () => {
+        const backendTask = {
+            taskId: 'api.json', taskName: 'Add orders API', repositoryName: 'Backend', repositoryPath: '/repos/backend',
+            repositoryUrl: 'https://github.com/org/backend', status: 2 as const, isCurrentRepository: false,
+        };
+        const localTask = {
+            taskId: 'task.json', taskName: 'Task', repositoryName: 'Frontend', repositoryPath: '/repos/frontend',
+            repositoryUrl: '', status: 1 as const, isCurrentRepository: true,
+        };
+        const otherLocalTask = { ...localTask, taskId: 'orders.json', taskName: 'Show orders page', status: 0 as const };
+
+        beforeEach(() => send({ type: 'taskSettings', requireProjectManagementUrl: false, teamMembers: [] }));
+
+        function typeInRelatedTask(value: string, index = 0): HTMLInputElement {
+            const input = document.querySelectorAll<HTMLInputElement>('.related-task-input')[index]!;
+            input.focus();
+            input.value = value;
+            input.dispatchEvent(new dom.window.Event('input'));
+            return input;
+        }
+
+        function optionTexts(): string[][] {
+            return [...document.querySelectorAll('.related-task-options:not([hidden]) .related-task-option')].map((option) => [
+                option.querySelector('.related-task-option-name')!.textContent!,
+                option.querySelector('.related-task-option-repository')!.textContent!,
+            ]);
+        }
+
+        it('loads candidates when the form opens and lists matches with their repository name', () => {
+            send({ type: 'taskList', tasks: [task], currentUser: 'me@example.com <Me>' });
+            click('#add-task-button');
+            expect(postMessage).toHaveBeenCalledWith({ type: 'loadRelatedTaskCandidates' });
+            click('#task-related-add');
+            typeInRelatedTask('orders');
+            expect(document.querySelector('.related-task-options-message')?.textContent).toBe('Loading tasks…');
+
+            send({ type: 'relatedTaskCandidates', candidates: [localTask, otherLocalTask, backendTask] });
+            expect(optionTexts()).toEqual([['Show orders page', 'Frontend'], ['Add orders API', 'Backend · Done']]);
+
+            document.querySelectorAll<HTMLElement>('.related-task-option')[1]!.click();
+            expect(document.querySelector<HTMLInputElement>('.related-task-input')!.value).toBe('Add orders API');
+            expect(document.querySelector<HTMLElement>('.related-task-repository-tag')!.textContent).toBe('Backend');
+            expect(document.querySelector<HTMLElement>('.related-task-options')!.hidden).toBe(true);
+
+            document.querySelector<HTMLInputElement>('#task-name')!.value = 'New task';
+            document.querySelector<HTMLTextAreaElement>('#task-description')!.value = 'Details';
+            click('#create-task-submit');
+            expect(postMessage).toHaveBeenLastCalledWith({
+                type: 'saveTask',
+                input: expect.objectContaining({
+                    relatedTasks: [{
+                        taskId: 'api.json', taskName: 'Add orders API', repositoryName: 'Backend',
+                        repositoryPath: '/repos/backend', repositoryUrl: 'https://github.com/org/backend',
+                    }],
+                }),
+            });
+        });
+
+        it('selects with the keyboard and hides the edited task and tasks chosen in other rows', () => {
+            send({ type: 'openEditForm', task: { ...task, relatedTasks: [] } });
+            send({ type: 'relatedTaskCandidates', candidates: [localTask, otherLocalTask, backendTask] });
+            click('#task-related-add');
+            const input = typeInRelatedTask('');
+            expect(optionTexts().map(([name]) => name)).toEqual(['Show orders page', 'Add orders API']);
+            input.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowDown' }));
+            input.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter' }));
+            expect(input.value).toBe('Show orders page');
+
+            click('#task-related-add');
+            typeInRelatedTask('', 1);
+            expect(optionTexts().map(([name]) => name)).toEqual(['Add orders API']);
+        });
+
+        it('pre-fills existing links when editing and reports text that was not chosen from the list', () => {
+            const link = { taskId: 'api.json', taskName: 'Old name', repositoryName: 'Backend', repositoryPath: '/repos/backend', repositoryUrl: 'https://github.com/org/backend' };
+            send({ type: 'openEditForm', task: { ...task, assignee: 'me@example.com', relatedTasks: [link] } });
+            const inputs = () => document.querySelectorAll<HTMLInputElement>('.related-task-input');
+            expect(inputs()[0]!.value).toBe('Old name');
+            send({ type: 'relatedTaskCandidates', candidates: [backendTask] });
+            expect(inputs()[0]!.value).toBe('Add orders API');
+
+            click('#task-related-add');
+            typeInRelatedTask('something else', 1);
+            postMessage.mockClear();
+            click('#create-task-submit');
+            expect(postMessage).not.toHaveBeenCalled();
+            const error = document.querySelector<HTMLElement>('#task-related-error')!;
+            expect(error.hidden).toBe(false);
+            expect(error.textContent).toBe('Select each related task from the list.');
+
+            click('.related-task-row:nth-child(2) .related-task-remove');
+            click('#create-task-submit');
+            expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({
+                type: 'saveTask', taskId: 'task.json',
+                input: expect.objectContaining({ relatedTasks: [expect.objectContaining({ taskId: 'api.json', taskName: 'Add orders API' })] }),
+            }));
+        });
     });
 });

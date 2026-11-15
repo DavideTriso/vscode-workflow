@@ -6,6 +6,7 @@ import type { TaskRepository } from '../src/tasks/taskRepository';
 const vscodeMocks = vi.hoisted(() => ({
     preview: vi.fn(),
     showError: vi.fn(),
+    showTextDocument: vi.fn(),
     showWarning: vi.fn(async (_message: string, _options: unknown, confirmation: string) => confirmation),
     watcher: {
         onDidCreate: vi.fn((_callback: (uri: { fsPath: string }) => void) => ({ dispose: vi.fn() })),
@@ -31,7 +32,8 @@ vi.mock('vscode', () => ({
         onDidChangeConfiguration: () => ({ dispose: () => undefined }),
     },
     commands: { executeCommand: vscodeMocks.preview },
-    window: { showErrorMessage: vscodeMocks.showError, showWarningMessage: vscodeMocks.showWarning },
+    window: { showErrorMessage: vscodeMocks.showError, showWarningMessage: vscodeMocks.showWarning, showTextDocument: vscodeMocks.showTextDocument },
+    ViewColumn: { One: 1 },
 }));
 
 vi.mock('../src/tasks/tasksWebviewHtml', () => ({ getTasksWebviewHtml: () => '<html></html>' }));
@@ -57,6 +59,8 @@ describe('task view agent outputs', () => {
         reorderImplementationTodos: ReturnType<typeof vi.fn>;
         readImplementationTodo: ReturnType<typeof vi.fn>;
         startAgentTask: ReturnType<typeof vi.fn>;
+        listLinkableRepositories: ReturnType<typeof vi.fn>;
+        resolveRelatedTasks: ReturnType<typeof vi.fn>;
     };
 
     beforeEach(() => {
@@ -79,6 +83,10 @@ describe('task view agent outputs', () => {
             reorderImplementationTodos: vi.fn(async () => undefined),
             readImplementationTodo: vi.fn(async () => ({ groups: [{ name: 'Group', items: [{ id: 'todo-1', title: 'Remove me' }] }] })),
             startAgentTask: vi.fn(),
+            listLinkableRepositories: vi.fn(async () => [
+                { name: 'Frontend', path: '/repo', originUrl: 'https://github.com/org/frontend', description: '', isCurrentRepository: true },
+            ]),
+            resolveRelatedTasks: vi.fn(async () => [{ taskFile: '/repos/backend/.history/tasks/api.json', available: true }]),
         };
         provider = new TasksViewProvider(
             { fsPath: '/extension' } as vscode.Uri,
@@ -221,7 +229,7 @@ describe('task view agent outputs', () => {
     });
 
     it('removes the source TODO without confirmation after creating a task from it', async () => {
-        const input = { name: 'From TODO', projectManagementUrl: 'https://pm.example.com/1', description: 'Details', assignee: 'a@example.com <A>' };
+        const input = { name: 'From TODO', projectManagementUrl: 'https://pm.example.com/1', description: 'Details', assignee: 'a@example.com <A>', relatedTasks: [] };
         await receiveMessage({ type: 'saveTask', input, sourceTodo: { taskId: 'task.json', itemId: 'todo-1' } });
         expect(repository.createTask).toHaveBeenCalledWith('/repo', input);
         expect(repository.removeImplementationTodoItem).toHaveBeenCalledWith('/repo', 'task.json', 'todo-1', 'user');
@@ -234,6 +242,38 @@ describe('task view agent outputs', () => {
         await receiveMessage({ type: 'saveTask', input, sourceTodo: { taskId: 'task.json', itemId: 'todo-1' } });
         expect(repository.removeImplementationTodoItem).not.toHaveBeenCalled();
         expect(postMessage).toHaveBeenCalledWith({ type: 'createTaskFailed', message: 'Disk full' });
+    });
+
+    it('sends the current repository with the task list', async () => {
+        await receiveMessage({ type: 'refreshTasks' });
+        expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'taskList',
+            currentRepository: { name: 'Frontend', path: '/repo', originUrl: 'https://github.com/org/frontend' },
+        }));
+    });
+
+    it('opens a related task file only for links stored on the task', async () => {
+        const link = { taskId: 'api.json', taskName: 'Add orders API', repositoryName: 'Backend', repositoryPath: '/old/backend', repositoryUrl: 'https://github.com/org/backend' };
+        repository.getTask.mockResolvedValue({ id: 'task.json', status: 1, timeTracking: [], relatedTasks: [link] });
+        const vscodeWorkspace = await import('vscode');
+        const document = { uri: 'related' };
+        vi.spyOn(vscodeWorkspace.workspace, 'openTextDocument').mockResolvedValue(document as never);
+
+        await receiveMessage({ type: 'openRelatedTask', taskId: 'task.json', reference: link });
+        expect(repository.resolveRelatedTasks).toHaveBeenCalledWith('/repo', [link]);
+        expect(vscodeWorkspace.workspace.openTextDocument).toHaveBeenCalledWith({
+            fsPath: '/repos/backend/.history/tasks/api.json', path: '/repos/backend/.history/tasks/api.json',
+        });
+        expect(vscodeMocks.showTextDocument).toHaveBeenCalledWith(document, expect.objectContaining({ preview: true }));
+
+        repository.resolveRelatedTasks.mockClear();
+        await receiveMessage({ type: 'openRelatedTask', taskId: 'task.json', reference: { ...link, taskId: 'other.json' } });
+        expect(repository.resolveRelatedTasks).not.toHaveBeenCalled();
+        expect(vscodeMocks.showError).toHaveBeenCalledWith(expect.stringContaining('no longer links'));
+
+        repository.resolveRelatedTasks.mockResolvedValueOnce([{ taskFile: '/missing/api.json', available: false }]);
+        await receiveMessage({ type: 'openRelatedTask', taskId: 'task.json', reference: link });
+        expect(vscodeMocks.showError).toHaveBeenCalledWith(expect.stringContaining('was not found at /missing/api.json'));
     });
 
     it('rejects user TODO mutations for a non-selected task', async () => {

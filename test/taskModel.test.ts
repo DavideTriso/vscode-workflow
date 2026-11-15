@@ -15,6 +15,7 @@ describe('task model', () => {
             description: '',
             status: 0,
             timeTracking: [],
+            relatedTasks: [],
         });
         expect(createOpenTaskSummary('in-progress.json', {
             name: 'In progress task',
