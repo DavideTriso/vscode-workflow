@@ -5,11 +5,11 @@
   "description": "Where we have skill + agent it happens that the skill does not use the agent and therefore no reports are written to the task, because only the agent writes reports",
   "createdBy": "d.trisolini@totalcom.it <DavideTriso>",
   "assignee": "d.trisolini@totalcom.it <DavideTriso>",
-  "status": 1,
+  "status": 2,
   "timeTracking": [
     {
       "startDateTime": "2026-11-16T19:40:54Z",
-      "endDateTime": null,
+      "endDateTime": "2026-11-16T22:08:07Z",
       "user": "d.trisolini@totalcom.it <DavideTriso>"
     }
   ],
