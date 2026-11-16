@@ -1,0 +1,17 @@
+{
+  "name": "Documentation",
+  "createdOnDateTime": "2026-11-16T19:00:21Z",
+  "projectManagementUrl": "",
+  "description": "Add developer and user documentation",
+  "createdBy": "d.trisolini@totalcom.it <DavideTriso>",
+  "assignee": "d.trisolini@totalcom.it <DavideTriso>",
+  "status": 1,
+  "timeTracking": [
+    {
+      "startDateTime": "2026-11-16T19:00:24Z",
+      "endDateTime": null,
+      "user": "d.trisolini@totalcom.it <DavideTriso>"
+    }
+  ],
+  "relatedTasks": []
+}

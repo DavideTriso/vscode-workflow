@@ -31,14 +31,14 @@ jobs:
       - run: node esbuild.mjs --production
 
       - name: Package VSIX
-        run: npx vsce package --no-dependencies -o "copilot-workflow-guide-${{ inputs.tag }}.vsix"
+        run: npx vsce package --no-dependencies -o "vscode-workflow-${{ inputs.tag }}.vsix"
 
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag }}
         run: |
-          gh release create "$TAG" "copilot-workflow-guide-${TAG}.vsix" \
+          gh release create "$TAG" "vscode-workflow-${TAG}.vsix" \
             --target "${{ github.sha }}" \
             --title "$TAG" \
             --generate-notes

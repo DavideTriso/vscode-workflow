@@ -1,52 +1,26 @@
 # User documentation
 
-## Setup
+VS Code Workflow keeps your tasks next to your code and guides AI coding agents through a repeatable workflow, so you stop switching between a task tracker, your editor and a chat window.
 
-1. Install the extension and open a folder that is a Git repository. Set your identity in `vscode-workflow.user.email` / `vscode-workflow.user.name`, or leave them empty to use `git config user.email` / `user.name`. An email is required. To assign tasks to others, list them in `vscode-workflow.teamMembers` as `[{ "email": "...", "name": "..." }]`.
-   - **Multi-repository projects** (for example backend + frontend): list the repositories in `vscode-workflow.repositoryGroups`:
+It is built for **solo developers and small development teams** who work with Claude Code. What you gain:
 
-     ```json
-     "vscode-workflow.repositoryGroups": [{
-       "group": "Shop",
-       "repositories": [
-         { "path": "/home/me/shop-api", "originUrl": "https://github.com/org/shop-api", "name": "Backend", "description": "REST API" },
-         { "path": "/home/me/shop-web", "originUrl": "https://github.com/org/shop-web", "name": "Frontend", "description": "Web UI" }
-       ]
-     }]
-     ```
+- **One place for tasks.** Create, search, time-track and complete tasks in the VS Code activity bar.
+- **A consistent way of working.** Agents take a change from plan to implementation, review and documentation, in a fixed order.
+- **History in the repository.** Tasks, plans, reviews and TODO lists are stored as files under `.history/`, so they travel with the code and give later work full context.
+- **Better collaboration.** Assign tasks to teammates, link related tasks across repositories (for example backend and frontend), and let agents read the linked work.
 
-     The current repository is matched by path or origin URL. Links between tasks are matched by origin URL first, so they keep working for teammates whose checkouts live at other paths.
-2. **Claude Code:** run **Workflow: Register Agents and Skills with Claude Code** from the Command Palette (or accept the prompt shown once if `~/.claude` exists). Then run `/reload-plugins` in Claude Code and check `/mcp` shows `plugin:vscode-workflow:todos` as connected.
-   - The extension adds a local plugin to `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR`) and keeps it updated. Uninstalling the extension removes the entries.
-   - Set `vscode-workflow.claudeCode.registration` to `disabled` to never touch Claude Code settings.
+## Quick start
 
-## Daily use
+1. Open a Git repository in VS Code (1.105 or newer) and click the **Tasks** icon in the activity bar.
+2. Add a task, then start its timer to make it the active task.
+3. In Claude Code, run a skill such as `/vscode-workflow:analyze-and-plan`.
 
-1. **Create a task** with `+` in the Tasks view: name, optional description and project management URL. Set `vscode-workflow.tasks.requireProjectManagementUrl` to `false` to make the URL optional. Pick an **assignee** (defaults to you). The task file stores `createdBy` (set automatically) and `assignee`, both as `email <name>`; timer entries store their `user` the same way. The person icon next to search filters the list to tasks assigned to you.
-   - **Related tasks:** use **Add related task** in the form and type part of a task name. The list shows every matching task (any status) from this repository and from the repositories in its group, each with its repository name. Only tasks created in the last `vscode-workflow.relatedTasks.maxAgeDays` days (default 90, `0` for no limit) are listed; existing links are kept. The selected task shows its related tasks under the description; click one to open its task file from the matching local repository. The links are stored in the task file as `relatedTasks`. When the task is active, agents also read each related task and its agent reports (plans, reviews, TODOs) as read-only context, for example to update a frontend from the API changes planned or made in the backend.
-2. **Start the timer.** This marks the task active (only one at a time; other timers stop). Agents only work when a task is active. Stopping the timer ends the active state.
-3. **Run agents** in this order for best results:
+Setup details are in [Installation and setup](installation.md).
 
-   | Agent | Use it to |
-   | --- | --- |
-   | Analyze and Plan | Agree on an approach; saves a plan and TODOs. No code changes. |
-   | Implement | Build the planned change and tick off TODOs. |
-   | Debug | Reproduce and fix a bug. |
-   | Logic Review | Find confirmed bugs in the change. |
-   | Code Readability | Get clarity proposals. |
-   | Document | Update the docs. |
-   | Code Comments | Review or improve comments. |
+## How to use
 
-   - `/vscode-workflow:analyze-and-plan`, `/vscode-workflow:implement` and `/vscode-workflow:debug` are skills; the others are subagents, so ask for them by name ("use the vscode-workflow:logic-review subagent").
-   - To set up documentation for a repository that has none, or to bring existing docs into the standard layout, run `/vscode-workflow:documentation-create-default`. It does not need an active task. It proposes a table of contents and waits for your approval before writing. The layout is a short `README.md` (description, `## Documentation` with links to the developer and, when the software has users, user documentation, and `## License` when there is a license file) plus a flat `docs/` directory with `developer-documentation.md` and `user-documentation.md` as index pages. The Document agent follows the same layout. When a change needs many new pages, or it is unclear whether user documentation is needed, it stops and returns a proposal for you to confirm instead of writing.
-4. **Follow the results** in the Tasks view: select a task to see agent reports and its TODO list. Add, edit, reorder or check off your own TODOs; agents never change items you created. Each TODO's `⋮` menu has **Edit**, **Delete** and **Create task**: the last one opens the new-task form filled from the TODO (its title, all its details as the description, and the parent task's URL and assignee); saving the task removes the TODO. The new task is linked to the parent task as a related task (remove the link in the form if you don't want it).
-5. **Mark done** when finished. Done tasks leave the list; use the person icon to show only your tasks.
-
-Tip: the **Quick Reference** panel at the bottom of the view repeats this per tool.
-
-## Where data lives
-
-- `.history/tasks/*.json`: tasks.
-- `.history/agents/<task id>/`: agent reports and `implementation-todo.json`; a `.current` file marks the active task and lists its related tasks with absolute paths on this machine.
-
-Commit or ignore `.history/` as your team prefers.
+- [Installation and setup](installation.md): requirements, your identity, registering with Claude Code, uninstalling.
+- [Working with tasks](tasks.md): creating tasks, assignees, related tasks, the timer, TODOs, completing tasks, and where data lives.
+- [Skills and agents](skills-and-agents.md): the workflow order, what each agent does, and how to run them.
+- [Multi-repository projects](multi-repository.md): grouping repositories so tasks and agents can see each other's work.
+- [Settings](settings.md): every setting with description, default and example.
