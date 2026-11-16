@@ -1,22 +1,20 @@
 ---
 name: documentation-update-default
-description: Keep repository documentation aligned with material code, configuration, and workflow changes, following the README.md and flat docs/ structure standards.
+description: Keep repository documentation aligned with material code, configuration, and workflow changes by running the document subagent, which saves documentation-update.md in the active task folder.
 ---
 
 # Documentation Updates
 
-Review the complete task change, including relevant untracked files, and update the repository's canonical documentation to match verified behavior.
+This skill starts the `vscode-workflow:document` subagent. The subagent holds the update rules and writes the record, so do not edit the documentation yourself.
 
-Read `documentation-standards.md`, located next to this SKILL.md, before you write. It defines where documentation lives (`README.md` plus a flat `docs/` directory with `developer-documentation.md` and `user-documentation.md` as index pages), which audience each page serves, and when a table of contents must be approved first.
+The standards live in `documentation-standards.md`, located next to this SKILL.md (in the base directory shown at the top of this skill). It defines where documentation lives (`README.md` plus a flat `docs/` directory with `developer-documentation.md` and `user-documentation.md` as index pages), which audience each page serves, and when a table of contents must be approved first.
 
-- Document every material user-visible or maintainer-relevant change. Cover affected workflows, setup, configuration, constraints, and maintenance guidance.
-- Read the changed code and relevant tests before writing. Do not infer behavior from names or task descriptions when the implementation can verify it.
-- Put each change on the page for its audience: developer documentation for people who work on this code, user documentation for people who use what it produces, including developers who build on its API, library, or CLI.
-- Update existing documentation instead of creating duplicates. Follow its structure, terminology, and style. New pages go directly in `docs/` and must be linked from the relevant index page or parent page.
-- When the change needs a large amount of new documentation (several new pages or a major rewrite) and the user has not supplied a table of contents, propose one as described in `documentation-standards.md` and get confirmation before writing it.
-- When it is unclear whether a change needs user documentation and none exists yet, ask the user instead of guessing.
-- When the repository has no documentation, or its documentation does not follow the standard structure, do not restructure it as part of an update. Document the change in the existing location and recommend running `/vscode-workflow:documentation-create-default` to initialize or migrate the documentation.
-- Keep examples, commands, links, and configuration references accurate. Do not claim behavior that has not been verified.
-- Do not edit implementation code, tests, or configuration as part of documentation work. Report any mismatch that requires a code change.
-- Avoid line-by-line narration of internal code. Explain internal changes when maintainers need the information to use or safely change the repository.
-- If a change has no meaningful documentation impact, explain why in the task's documentation update record rather than inventing content.
+1. Your first action is one `Agent` tool call with `subagent_type` set to `vscode-workflow:document`. The subagent cannot see this conversation, so the prompt must contain:
+   - the user's request and any arguments given to this skill;
+   - what changed and why, from the conversation (say so if it is unknown);
+   - the absolute path of `documentation-standards.md`, built from this skill's base directory;
+   - any table of contents or answer the user already approved.
+2. If the subagent cannot be started, tell the user and suggest running `/reload-plugins`. Do not edit the documentation in this conversation instead.
+3. When the subagent returns, relay a summary of the documentation changes, the checks it ran, and the path of the saved `documentation-update.md`. If it reports a blocker, such as a missing active task, relay that and stop.
+4. If it reports `Status: Awaiting Confirmation`, no documentation was changed. Show the user its table-of-contents proposal or question and wait for the answer. Then run the subagent again with the answer, and the same standards path, in the prompt.
+5. When the repository has no documentation or does not follow the standard structure, the subagent documents the change where it fits and recommends `/vscode-workflow:documentation-create-default`. Pass that recommendation on to the user.

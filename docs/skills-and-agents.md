@@ -14,8 +14,12 @@ The extension registers seven agents and a documentation skill with Claude Code.
 
 ## How to run them
 
-- `/vscode-workflow:analyze-and-plan`, `/vscode-workflow:implement` and `/vscode-workflow:debug` are skills. Type them as slash commands.
-- Logic Review, Code Readability, Document and Code Comments are subagents. Ask for them by name, for example "use the vscode-workflow:logic-review subagent". Matching slash commands also exist, such as `/vscode-workflow:logic-review-default`, `/vscode-workflow:code-readability-default`, `/vscode-workflow:code-comment-review` and `/vscode-workflow:code-comment-improve`.
+- `/vscode-workflow:analyze-and-plan`, `/vscode-workflow:implement` and `/vscode-workflow:debug` run in your conversation. Type them as slash commands.
+- Logic Review, Code Readability, Document and Code Comments are subagents, and each has slash commands that always start it: `/vscode-workflow:logic-review-default`, `/vscode-workflow:code-readability-default`, `/vscode-workflow:documentation-update-default`, `/vscode-workflow:code-comment-review` and `/vscode-workflow:code-comment-improve`. The command starts the subagent for you, so its report is always saved in the task (except for Code Comments, see below). You can also ask for a subagent by name, for example "use the vscode-workflow:logic-review subagent".
+- Each of these commands needs an active task, because the subagent finds the task through the active-task marker. Without one, it stops and asks you to start a timer.
+- After Code Readability returns, the command asks which proposals to apply and applies only those.
+- If the Document subagent needs a table of contents or an answer from you, it saves a record with `Status: Awaiting Confirmation` and changes nothing. The command shows you the question and runs the subagent again with your answer.
+- Code Comments does not save a report. The command shows its findings or the list of changed comments in the chat.
 - Agent reports and TODOs appear in the Tasks view when you select the task.
 
 ## Set up documentation for a repository

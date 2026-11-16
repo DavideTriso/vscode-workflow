@@ -115,7 +115,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                 <div id="quick-reference-content" hidden>
                     <ol class="quick-reference-steps">
                         <li>Run <strong>Workflow: Register Agents and Skills with Claude Code</strong> from the Command Palette, then <code>/reload-plugins</code> in Claude Code. Check with <code>/mcp</code> that <code>plugin:vscode-workflow:todos</code> is connected.</li>
-                        <li>Start a skill by typing its <code>/vscode-workflow:…</code> command in Claude Code.</li>
+                        <li>Start a skill by typing its <code>/vscode-workflow:…</code> command in Claude Code. The review, documentation and comment skills start their subagent for you.</li>
                         <li>Start a subagent by asking for it by name, for example "use the vscode-workflow:logic-review subagent on my changes".</li>
                     </ol>
                     <section class="quick-reference-agent">
@@ -129,22 +129,22 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     <section class="quick-reference-agent">
                         <h3>Logic Review</h3>
                         <p>Subagent: <code>vscode-workflow:logic-review</code>. Investigates changed behavior and reports only confirmed bugs or regressions.</p>
-                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:logic-review-default</code> validates findings before reporting.</p>
+                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:logic-review-default</code> starts the subagent and saves its report in the task.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Code Readability</h3>
                         <p>Subagent: <code>vscode-workflow:code-readability</code>. Reviews clarity and maintainability and proposes focused improvements before editing.</p>
-                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-readability-default</code> guides the review.</p>
+                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-readability-default</code> starts the subagent, saves its report in the task, then asks which proposals to apply.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Document</h3>
                         <p>Subagent: <code>vscode-workflow:document</code>. Updates repository documentation to reflect verified code and workflow changes.</p>
-                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:documentation-update-default</code> guides documentation updates. <code>/vscode-workflow:documentation-create-default</code> initializes a repository's README and <code>docs/</code> after you approve a proposed table of contents.</p>
+                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:documentation-update-default</code> starts the subagent and saves its record in the task. <code>/vscode-workflow:documentation-create-default</code> initializes a repository's README and <code>docs/</code> after you approve a proposed table of contents.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Code Comments</h3>
                         <p>Subagent: <code>vscode-workflow:code-comments</code>. Reviews comments or applies comment-only improvements; it does not change executable code.</p>
-                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-comment-review</code> reports findings without edits. <code>/vscode-workflow:code-comment-improve</code> applies safe comment-only changes.</p>
+                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-comment-review</code> starts the subagent and reports findings without edits. <code>/vscode-workflow:code-comment-improve</code> starts it to apply safe comment-only changes. Neither saves a report.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Debug</h3>

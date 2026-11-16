@@ -1,0 +1,17 @@
+{
+  "name": "Fix agents and skills",
+  "createdOnDateTime": "2026-11-16T19:40:48Z",
+  "projectManagementUrl": "",
+  "description": "Where we have skill + agent it happens that the skill does not use the agent and therefore no reports are written to the task, because only the agent writes reports",
+  "createdBy": "d.trisolini@totalcom.it <DavideTriso>",
+  "assignee": "d.trisolini@totalcom.it <DavideTriso>",
+  "status": 1,
+  "timeTracking": [
+    {
+      "startDateTime": "2026-11-16T19:40:54Z",
+      "endDateTime": null,
+      "user": "d.trisolini@totalcom.it <DavideTriso>"
+    }
+  ],
+  "relatedTasks": []
+}

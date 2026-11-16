@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "summary": "2 done, 5 open. Next: Logic Review: self-contained agent and launcher skill.",
+  "plan": "implementation-plan.md",
+  "planSyncedAt": "2026-11-16T19:51:55Z",
+  "groups": [
+    {
+      "name": "Agents and launcher skills",
+      "items": [
+        {
+          "id": "logic-review-self-contained-agent-and-la-yw9akxb6nqzagjn",
+          "title": "Logic Review: self-contained agent and launcher skill",
+          "done": false,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-1",
+          "why": "The skill must always start the agent so logic-review.md is written.",
+          "files": [
+            "claude-plugin/agents/logic-review.md",
+            "claude-plugin/skills/logic-review-default/SKILL.md"
+          ],
+          "decisions": "Criteria move into the agent; Skill tool removed from the agent; skill name and slash command unchanged.",
+          "acceptance": "Running /vscode-workflow:logic-review-default starts vscode-workflow:logic-review and logic-review.md is written.",
+          "evidence": "Criteria inlined into agents/logic-review.md; Skill tool removed from its tools; skills/logic-review-default/SKILL.md is now a launcher that names subagent_type vscode-workflow:logic-review. Plugin content tests pass.",
+          "remaining": "Live check pending: run the skill once after the plugin is re-synced and reloaded, and confirm logic-review.md appears.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T19:55:43Z"
+        },
+        {
+          "id": "code-readability-self-contained-agent-an-i7om3l8j1sutpzu",
+          "title": "Code Readability: self-contained agent and launcher skill",
+          "done": false,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-2",
+          "why": "The skill must always start the agent so readability-review.md is written, and keep the apply-proposals step in the main session.",
+          "files": [
+            "claude-plugin/agents/code-readability.md",
+            "claude-plugin/skills/code-readability-default/SKILL.md"
+          ],
+          "decisions": "Launcher asks which proposals to apply, applies them and re-syncs the TODO list after the agent returns.",
+          "acceptance": "Running /vscode-workflow:code-readability-default starts vscode-workflow:code-readability, writes readability-review.md and asks which proposals to apply.",
+          "evidence": "Criteria inlined into agents/code-readability.md; Skill tool removed; skills/code-readability-default/SKILL.md is a launcher with the apply-proposals and TODO re-sync steps. Plugin content tests pass.",
+          "remaining": "Live check pending: run the skill once after re-sync and reload; confirm readability-review.md appears and the apply question is asked.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T19:55:44Z"
+        },
+        {
+          "id": "document-agent-with-rules-and-standards--qeo1asi0dxcpu5a",
+          "title": "Document: agent with rules and standards path, launcher skill with confirmation loop",
+          "done": false,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-3",
+          "why": "The documentation update skill must always start the document agent so documentation-update.md is written.",
+          "files": [
+            "claude-plugin/agents/document.md",
+            "claude-plugin/skills/documentation-update-default/SKILL.md"
+          ],
+          "decisions": "Launcher passes the absolute path of documentation-standards.md in the brief; keep the sentence a test requires; documentation-create-default and the standards copies stay unchanged; launcher relays Awaiting Confirmation and re-runs with the answer.",
+          "acceptance": "Running /vscode-workflow:documentation-update-default writes documentation-update.md; an Awaiting Confirmation result is shown to the user and re-run with the answer.",
+          "evidence": "Rules merged into agents/document.md, which reads documentation-standards.md from the path in its brief; Skill tool removed. skills/documentation-update-default/SKILL.md is a launcher that passes the path and handles Awaiting Confirmation. documentation-create-default and both standards copies are unchanged; the identical-copies test passes.",
+          "remaining": "Live check pending: run the skill once after re-sync and reload; confirm documentation-update.md appears, and try an Awaiting Confirmation case.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T19:55:46Z"
+        },
+        {
+          "id": "code-comments-agent-with-both-modes-and--dlpcilhvudsxke9",
+          "title": "Code Comments: agent with both modes and two launcher skills",
+          "done": false,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-4",
+          "why": "The comment skills should use the agent like the other three, for isolation.",
+          "files": [
+            "claude-plugin/agents/code-comments.md",
+            "claude-plugin/skills/code-comment-review/SKILL.md",
+            "claude-plugin/skills/code-comment-improve/SKILL.md"
+          ],
+          "decisions": "Keep the no-report contract and the rule never to write under .history/agents/; launchers pass the mode and scope in the brief.",
+          "acceptance": "Both commands start vscode-workflow:code-comments in the right mode and relay its message; no file is written under .history/agents/.",
+          "evidence": "Review and improve criteria inlined into agents/code-comments.md; Skill tool removed; the no-report rule is kept. Both skills are launchers that pass the mode and scope. Plugin content tests pass.",
+          "remaining": "Live check pending: run both commands once after re-sync and reload; confirm no file is written under .history/agents/. A report and accordion for Code Comments is a separate follow-up if wanted.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T19:55:47Z"
+        }
+      ]
+    },
+    {
+      "name": "Texts and tests",
+      "items": [
+        {
+          "id": "update-quick-reference-and-documentation-fmedjb77nzawgsq",
+          "title": "Update Quick Reference and documentation",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-5",
+          "why": "The texts must describe that skills start the subagents.",
+          "files": [
+            "src/tasks/tasksWebviewHtml.ts",
+            "docs/skills-and-agents.md",
+            "docs/architecture.md"
+          ],
+          "decisions": "Keep every skill command and agent name that the Quick Reference tests look for.",
+          "acceptance": "Quick Reference and docs describe the launcher behavior; tasksWebviewHtml tests pass.",
+          "evidence": "Quick Reference in src/tasks/tasksWebviewHtml.ts, docs/skills-and-agents.md and docs/architecture.md describe the launcher behavior. tasksWebviewHtml tests pass (full run: 10 files, 112 tests).",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T19:55:55Z"
+        },
+        {
+          "id": "add-plugin-content-tests-fwny6xfmrtexowg",
+          "title": "Add plugin content tests",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-6",
+          "why": "Guard that launchers name their agent and agents no longer load skills.",
+          "files": [
+            "test/claudePluginContent.test.ts"
+          ],
+          "decisions": "Check subagent_type in the five launcher skills, no Skill tool in the four agents, the standards sentence in documentation-update-default, and the Document agent reading the standards path from its brief.",
+          "acceptance": "New and existing tests pass.",
+          "evidence": "Four tests added to test/claudePluginContent.test.ts: launchers name their subagent_type, agents have no Skill tool or skill loading, Document launcher passes the standards path, Code Comments keeps the no-report rule. Full run: 10 files, 112 tests pass.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T19:55:50Z"
+        },
+        {
+          "id": "verify-and-note-the-release-step-lamylyxhiy3uhlt",
+          "title": "Verify and note the release step",
+          "done": false,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-7",
+          "why": "Confirm the change works end to end.",
+          "files": [
+            "package.json"
+          ],
+          "decisions": "The version bump in package.json is the maintainer's release step so the plugin re-syncs.",
+          "acceptance": "npm run typecheck and npm test pass; each launcher run once in a task writes its report; the Awaiting Confirmation case is relayed and re-run.",
+          "evidence": "Tightened the weak launcher test assertion (now matches the full 'cannot be started ... Do not ... instead' sentence). vitest with Node v22: 10 files, 112 tests pass. npm is not on PATH, so tsc/vitest were called directly (tsc passed earlier).",
+          "remaining": "Open: bump version in package.json (maintainer release step), re-sync and /reload-plugins, then run each launcher once in a task and the Awaiting Confirmation case.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T21:20:45Z"
+        }
+      ]
+    }
+  ]
+}

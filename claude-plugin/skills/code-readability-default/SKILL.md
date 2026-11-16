@@ -1,18 +1,17 @@
 ---
 name: code-readability-default
-description: Assess changed code for clarity, maintainability, and consistency without changing behavior.
+description: Review the changed code for clarity and maintainability by running the code-readability subagent, which saves readability-review.md in the active task folder, then apply the proposals the user approves.
 ---
 
 # Code Readability Review
 
-Evaluate whether another developer can understand and safely change the code. Review the changed code in its local context and follow the repository's existing conventions.
+This skill starts the `vscode-workflow:code-readability` subagent. The subagent holds the review criteria and writes the report, so do not review the code yourself.
 
-Focus on:
-
-- Cohesion and whether functions or methods carry more responsibility than their names suggest.
-- Control flow, nesting, and avoidable branching that makes the main path hard to follow.
-- Names that obscure purpose, domain meaning, or important constraints.
-- Duplication and abstractions that make future changes harder rather than easier.
-- Comments and documentation needed to explain intent that is not clear from the code.
-
-For each proposed improvement, identify the code, explain the specific comprehension or maintenance cost, and suggest a concrete alternative. Separate objective problems from personal style preferences. Do not recommend behavior changes as readability fixes, and do not edit code before the user approves specific changes.
+1. Your first action is one `Agent` tool call with `subagent_type` set to `vscode-workflow:code-readability`. The subagent cannot see this conversation, so the prompt must contain:
+   - the user's request and any arguments given to this skill;
+   - what the change is meant to do, from the conversation (say so if it is unknown);
+   - the scope to review, if the user named one.
+2. If the subagent cannot be started, tell the user and suggest running `/reload-plugins`. Do not run the review in this conversation instead.
+3. When the subagent returns, show its numbered proposals in short form and the path of the saved `readability-review.md`. If it reports a blocker, such as a missing active task, relay that and stop.
+4. Ask the user which numbered proposals to apply. Apply only those, and make no behavior changes.
+5. Re-sync the recommendation set with `read_implementation_todos` and `sync_code_readability_todos`: applied items `done: true`, rejected items removed, the rest open with "pending user approval" in `remaining`. Never edit `implementation-todo.json` directly.

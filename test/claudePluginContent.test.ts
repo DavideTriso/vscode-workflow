@@ -112,4 +112,44 @@ describe('Claude Code plugin content', () => {
             expect(planning).toContain(phrase);
         }
     });
+
+    const launchers = [
+        { skill: 'logic-review-default', agent: 'logic-review' },
+        { skill: 'code-readability-default', agent: 'code-readability' },
+        { skill: 'documentation-update-default', agent: 'document' },
+        { skill: 'code-comment-review', agent: 'code-comments' },
+        { skill: 'code-comment-improve', agent: 'code-comments' },
+    ];
+
+    it('makes each review, documentation and comment skill start its subagent', async () => {
+        for (const { skill, agent } of launchers) {
+            const text = await read('skills', skill, 'SKILL.md');
+            expect(text, skill).toContain(`\`subagent_type\` set to \`vscode-workflow:${agent}\``);
+            expect(text, skill).toMatch(/If the subagent cannot be started, tell the user and suggest running `\/reload-plugins`\. Do not .+ in this conversation instead\./);
+        }
+    });
+
+    it('keeps the criteria in the subagents, which do not load skills', async () => {
+        for (const agent of ['logic-review', 'code-readability', 'document', 'code-comments']) {
+            const text = await read('agents', agent + '.md');
+            expect(frontmatter(text).tools.split(',').map((tool) => tool.trim()), agent).not.toContain('Skill');
+            expect(text, agent).not.toMatch(/with the `vscode-workflow:[\w-]+` skill/);
+        }
+    });
+
+    it('passes the documentation standards path from the launcher to the Document subagent', async () => {
+        const skill = await read('skills', 'documentation-update-default', 'SKILL.md');
+        expect(skill).toContain('the absolute path of `documentation-standards.md`');
+        expect(skill).toContain('Status: Awaiting Confirmation');
+        const agent = await read('agents', 'document.md');
+        expect(agent).toContain('at the absolute path given in your brief');
+    });
+
+    it('keeps the Code Comments subagent from writing reports', async () => {
+        const agent = await read('agents', 'code-comments.md');
+        expect(agent).toContain('Never write a summary, report, or any file under `.history/agents/`');
+        for (const skill of ['code-comment-review', 'code-comment-improve']) {
+            expect(await read('skills', skill, 'SKILL.md'), skill).toContain('.history/agents/');
+        }
+    });
 });
