@@ -28,7 +28,9 @@ async function syncOnActivation(context: vscode.ExtensionContext): Promise<void>
         await askToRegister(context);
         return;
     }
-    if (context.globalState.get(syncedVersionKey) === syncStamp(context)) {
+    // A development host runs unreleased plugin files under an unchanged version, so it must copy them every time.
+    const isDevelopment = context.extensionMode === vscode.ExtensionMode.Development;
+    if (!isDevelopment && context.globalState.get(syncedVersionKey) === syncStamp(context)) {
         return;
     }
     await runRegistration(context, false);

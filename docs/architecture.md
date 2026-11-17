@@ -17,6 +17,13 @@ src/tasks/                  task domain + Tasks view
   todoToolOperations.ts     provider-neutral TODO tool logic
 src/ui/tasks/main.ts        webview script (browser bundle)
 src/claude/                 Claude Code plugin sync + registration prompt/command
+src/scm/                    Generate Commit Message button
+  commitMessageCommand.ts   the only file that uses `vscode`: command, progress, Git API, settings
+  commitMessageGenerator.ts reads the diff, builds the prompt, runs Claude, cleans the answer
+  taskContext.ts            reads the active task name, description and Markdown reports
+  claudeCli.ts              finds the `claude` executable
+  processRunner.ts          runs a program with input, abort signal and timeout
+  repositoryArgument.ts     reads the repository folder from the menu command argument
 src/mcp/                    stdio MCP server: the Claude Code adapter for the TODO tools
 claude-plugin/              agents, skills, .mcp.json for Claude Code
 scripts/uninstall.js        vscode:uninstall hook; removes Claude settings entries
@@ -55,7 +62,7 @@ TODO tools are declared once in `todoToolDefinitions.ts` and implemented in `tod
 
 ## Claude Code plugin
 
-`claudePlugin.ts` copies `claude-plugin/` plus `mcp-server.js` into `<globalStorage>/claude-marketplace`. It stamps the extension version, pins `.mcp.json` to an absolute Node path, and enables the plugin in the Claude Code settings (`~/.claude/settings.json` or `$CLAUDE_CONFIG_DIR`). It is idempotent and reruns when the extension version or the Node path changes. `claudeRegistration.ts` owns the registration prompt, the `vscode-workflow.claudeCode.registration` setting and the register command.
+`claudePlugin.ts` copies `claude-plugin/` plus `mcp-server.js` into `<globalStorage>/claude-marketplace`. It stamps the extension version, pins `.mcp.json` to an absolute Node path, and enables the plugin in the Claude Code settings (`~/.claude/settings.json` or `$CLAUDE_CONFIG_DIR`). It is idempotent and reruns when the extension version or the Node path changes. In a development host (`extensionMode` is Development) `syncOnActivation` skips that check and copies on every start, because unreleased plugin files keep the same version; otherwise new skills such as `commit-message` would never reach Claude Code. After a sync, run `/reload-plugins` in Claude Code. `commit-message` has `disable-model-invocation: true`, so Claude never starts it on its own; invoke it as `/vscode-workflow:commit-message`. With `vscode-workflow.claudeCode.registration` set to `disabled` nothing is copied. `claudeRegistration.ts` owns the registration prompt, the `vscode-workflow.claudeCode.registration` setting and the register command.
 
 Things to keep in sync:
 
@@ -63,5 +70,6 @@ Things to keep in sync:
 - **New agent or skill.** Add it under `claude-plugin/agents` or `claude-plugin/skills`. A new agent report file must be added to `outputAgents` in `taskProtocol.ts` to appear in the view. Update the Quick Reference text in `tasksWebviewHtml.ts`.
 - **Skill plus subagent.** The review, documentation and comment capabilities are a subagent that holds the criteria and writes the report, plus one or more launcher skills (`logic-review-default`, `code-readability-default`, `documentation-update-default`, `code-comment-review`, `code-comment-improve`) whose first action is the `Agent` call. The agent must not load its launcher skill. Subagents cannot see the conversation, so a launcher passes the request, intent and scope in the brief. The Document launcher also passes the absolute path of `documentation-standards.md`, since an agent has no sibling files.
 - **Shared skill files.** A file used by several skills is copied into each skill folder (`todo-contract.md`, `documentation-standards.md`). Edit all copies together; a test checks that the documentation standards copies match.
+- **Commit messages.** The skill `claude-plugin/skills/commit-message` and the Source Control button share one rules file, `commit-message-rules.md`. The skill reads it next to its `SKILL.md`; the extension reads it at runtime from `<extensionPath>/claude-plugin/skills/commit-message/`, so keep it inside `claude-plugin/`, which the package ships. Change the format only in that file; a test checks that it names every prefix. The button starts `claude -p` with the prompt on standard input and with `--tools ""`, `--no-session-persistence`, `--disable-slash-commands`, `--strict-mcp-config` and `--setting-sources user`, so the run cannot act on the repository and ignores project and local settings. It does not use `--bare`, which skips the keychain and breaks login-based authentication. The diff leaves out `.history/`, lock files and `package-lock.json`, because task records say nothing about the change; the task records reach the model through `taskContext.ts` instead. `commitMessageCommand.ts` imports `vscode`, so keep logic that needs a test in the other `src/scm/` files.
 - **New setting.** Add it under `contributes.configuration` in `package.json`, read it in `userSettings.ts` or the view provider, and push it to the webview when the view needs it (see `taskSettings`). Add it to the [settings reference](settings.md).
 - **New task field or action.** Extend types and messages in `taskProtocol.ts`, implement in `taskRepository.ts`, handle in `tasksViewProvider.ts`, render in `main.ts` and `tasksWebviewHtml.ts`, and add tests.

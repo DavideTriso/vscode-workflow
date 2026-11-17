@@ -15,7 +15,7 @@ describe('task webview quick reference', () => {
 
         expect(html.indexOf('id="task-list-panel"')).toBeLessThan(html.indexOf('id="quick-reference-panel"'));
         expect(html).toContain('id="quick-reference-toggle" class="tasks-accordion-toggle" type="button" aria-expanded="false"');
-        for (const agent of ['Analyze and Plan', 'Implement', 'Logic Review', 'Code Readability', 'Document', 'Code Comments', 'Debug']) {
+        for (const agent of ['Analyze and Plan', 'Implement', 'Logic Review', 'Code Readability', 'Document', 'Code Comments', 'Debug', 'Commit Message']) {
             expect(html).toContain(`<h3>${agent}</h3>`);
         }
         for (const skill of ['logic-review-default', 'code-readability-default', 'documentation-update-default', 'documentation-create-default', 'code-comment-review', 'code-comment-improve']) {
@@ -31,7 +31,7 @@ describe('task webview quick reference', () => {
 
         expect(html).not.toContain('Copilot');
         expect(html).not.toContain('<details');
-        for (const name of ['analyze-and-plan', 'implement', 'debug']) {
+        for (const name of ['analyze-and-plan', 'implement', 'debug', 'commit-message']) {
             expect(html).toContain(`/vscode-workflow:${name}`);
         }
         for (const name of ['logic-review', 'code-readability', 'document', 'code-comments']) {

@@ -10,6 +10,9 @@ Set these in VS Code settings under **Workflow**, or in `settings.json`. "Mandat
 | `vscode-workflow.tasks.requireProjectManagementUrl` | Require a project management URL on tasks. An entered URL must still be a valid http(s) URL. | No | `true` | `false` |
 | `vscode-workflow.repositoryGroups` | Groups of related repositories whose tasks can be linked. See [Multi-repository projects](multi-repository.md). | No | `[]` | see below |
 | `vscode-workflow.relatedTasks.maxAgeDays` | Maximum age in days of tasks offered as related tasks. `0` means no limit. Existing links are kept. | No | `90` | `30` |
+| `vscode-workflow.commitMessage.claudePath` | Full path of the `claude` executable that generates commit messages. When empty, the extension uses `claude` from `PATH`, then the binary bundled with the Claude Code extension. A path that does not work is an error; there is no fallback. | No | `""` | `"/usr/local/bin/claude"` |
+| `vscode-workflow.commitMessage.maxDiffChars` | Maximum number of diff characters sent to Claude. A longer diff is cut and a diff summary is added. Values below `1000` are ignored. | No | `60000` | `100000` |
+| `vscode-workflow.commitMessage.model` | Model that generates commit messages, for example `sonnet`. When empty, the Claude Code default is used. | No | `""` | `"sonnet"` |
 | `vscode-workflow.claudeCode.registration` | Whether the extension installs its Claude Code plugin: `ask` (prompt once), `enabled` (keep installed and updated) or `disabled` (never touch Claude Code settings). | No | `"ask"` | `"enabled"` |
 
 ## Team member object
@@ -45,3 +48,4 @@ Set these in VS Code settings under **Workflow**, or in `settings.json`. "Mandat
 | Command | Description |
 | --- | --- |
 | **Workflow: Register Agents and Skills with Claude Code** | Installs or updates the Claude Code plugin and sets `vscode-workflow.claudeCode.registration` to `enabled`. |
+| **Workflow: Generate Commit Message** | Fills the Source Control commit message box. Also available as the sparkle button in the title bar of the repository in the Source Control view. See [Commit messages](commit-messages.md). |

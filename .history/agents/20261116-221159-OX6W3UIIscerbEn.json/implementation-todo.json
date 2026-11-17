@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "summary": "8 done, 0 open. No open items.",
+  "plan": "implementation-plan.md",
+  "planSyncedAt": "2026-11-16T22:32:03Z",
+  "groups": [
+    {
+      "name": "Plugin skill",
+      "items": [
+        {
+          "id": "write-the-shared-commit-message-rules-fmuz8jatt8dvf5b",
+          "title": "Write the shared commit message rules",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-1-shared-message-rules",
+          "why": "One rules file keeps the skill and the button consistent.",
+          "files": [
+            "claude-plugin/skills/commit-message/commit-message-rules.md"
+          ],
+          "decisions": "Format: '<Prefix>: <few-word summary>', prefix one of BC, New, Ref, Fix, Doc. Priority when mixed: BC, New, Fix, Ref, Doc. Doc only when no executable code changed. Details only when really necessary, one '- ' entry per line. No trailing period, no attribution lines, output only the message. Revision 1 replaces 'derive style from git log'.",
+          "acceptance": "File exists, lists all five prefixes with meanings and the '- ' detail format, and is read by both the skill and the extension.",
+          "evidence": "Created claude-plugin/skills/commit-message/commit-message-rules.md with format, five prefixes, priority order, BC rule, sources. Plugin-content test not yet written.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T22:34:45Z"
+        },
+        {
+          "id": "add-the-commit-message-skill-wluzdf3hqc1mcog",
+          "title": "Add the commit-message skill with task context",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-2-the-commit-message-skill",
+          "why": "The user wants a skill that proposes a commit message from the change and the task context, and never commits.",
+          "files": [
+            "claude-plugin/skills/commit-message/SKILL.md"
+          ],
+          "decisions": "Interactive, user-invoked (disable-model-invocation: true). Reads the single .current marker, the task JSON name and description, and every *.md in the task folder; falls back to the diff alone without a unique marker. Excludes .history/ from the diff. Staged diff preferred, unstaged fallback. The diff decides content; reports give intent and type. Describes this change set, not the whole task. States nothing was committed.",
+          "acceptance": "Frontmatter name equals folder name; skill states it does not commit; /vscode-workflow:commit-message prints a message in the required format and git log is unchanged.",
+          "evidence": "Created claude-plugin/skills/commit-message/SKILL.md. test/claudePluginContent.test.ts checks: name equals folder name, disable-model-invocation is true, it reads the rules next to SKILL.md, the task JSON name and description, every *.md in the task folder, excludes .history, does not stage or commit, and does not read implementation-todo.json. The same rules gave a correctly formatted message in a live run through the generator.",
+          "remaining": "Manual run of /vscode-workflow:commit-message in Claude Code after re-registering the plugin (Workflow: Register Agents and Skills with Claude Code, then /reload-plugins): it must print a message in the required format and leave git log unchanged.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "user",
+          "updatedAt": "2026-11-17T21:06:14Z"
+        }
+      ]
+    },
+    {
+      "name": "Source Control button",
+      "items": [
+        {
+          "id": "resolve-the-claude-cli-executable-3sjxjzgmmyf1lji",
+          "title": "Resolve the Claude CLI executable",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-3-extension-cli-resolution",
+          "why": "claude is not always on PATH; the button must still work or fail clearly.",
+          "files": [
+            "src/scm/claudeCli.ts"
+          ],
+          "decisions": "Order: setting claudePath, PATH, newest Claude Code extension binary. Pure, injectable lookup functions. Error names the setting.",
+          "acceptance": "Unit tests cover the order, newest-version selection, and the missing-CLI error.",
+          "evidence": "src/scm/claudeCli.ts plus src/scm/processRunner.ts. test/claudeCli.test.ts (7 tests) covers: configured path first, no fallback from a wrong configured path, PATH search, bundled binary, Windows claude.exe, missing-CLI error naming the setting, directory and non-executable files. test/processRunner.test.ts (8 tests) covers input, cwd, exit codes, missing program, abort, timeout. Full suite 164 tests pass. Design change: the bundled binary comes from the Claude Code extension's own path, not a folder scan.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T22:42:31Z"
+        },
+        {
+          "id": "read-the-active-task-context-for-the-pro-o2gi6lxafpjon3k",
+          "title": "Read the active task context for the prompt",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#changes-to-the-selected-plan",
+          "why": "Revision 1: the button must use the task name, description and reports, like the skill.",
+          "files": [
+            "src/scm/taskContext.ts"
+          ],
+          "decisions": "Locate the unique .current marker, read task name and description from the task JSON and every *.md in the task folder; cap each file and the total size; fall back to no context when there is no unique marker. Do not read implementation-todo.json.",
+          "acceptance": "Unit tests cover no marker, two markers, caps, and the returned context text.",
+          "evidence": "src/scm/taskContext.ts. test/taskContext.test.ts (6 tests) covers: name, description and Markdown reports in name order; implementation-todo.json and non-Markdown files ignored; no history, no active task, and two markers give undefined; malformed marker ignored; missing task file falls back to the marker name; per-report and total caps with omitted names; formatting. Suite passes.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T22:42:33Z"
+        },
+        {
+          "id": "generate-the-message-from-the-diff-7gtprugfm9hfmr6",
+          "title": "Generate the message from the diff and task context",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-4-extension-generator",
+          "why": "Core logic behind the button.",
+          "files": [
+            "src/scm/commitMessageGenerator.ts"
+          ],
+          "decisions": "Staged diff with unstaged fallback; exclude .history/**, lock files and binaries from the diff; cap by maxDiffChars (default 60000); prompt built from the shared rules, task context and diff; headless CLI with no tools, no session persistence, no slash commands; abort and timeout; typed errors.",
+          "acceptance": "Unit tests with a fake runner cover prompt, truncation, exclusions, CLI args, errors, and abort.",
+          "evidence": "src/scm/commitMessageGenerator.ts. test/commitMessageGenerator.test.ts (26 tests): fake-runner unit tests for prompt, staged and unstaged scope, no task, pathspec exclusions, truncation with diff stat, model, untracked-only changes, NoChangesError, ClaudeRunError, abort pass-through, empty answer, argument list, cleanMessage, readMaxDiffChars; plus 5 functional tests with a real git repository and a fake claude program (stdin delivery, args, cwd, .history and lock files excluded, unstaged fallback, only-task-records case, failing program, not a repository). Found and fixed a real defect: outside a repository git diff failed with a confusing no-index message, so a rev-parse check now runs first. Live end-to-end run with the real claude 2.1.325 binary on this repository returned 'New: Add commit message generation' with three '- ' detail lines in about 2 seconds.",
+          "remaining": "--setting-sources user still applies the user's own hooks and plugins; project and local settings are skipped.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T22:42:37Z"
+        },
+        {
+          "id": "register-the-command-and-the-source-cont-alxxa82m7iq2ecv",
+          "title": "Register the command and the Source Control menu",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-5-extension-command-and-menu",
+          "why": "Gives the user the Generate Commit Message button in the Source Control input box.",
+          "files": [
+            "src/scm/commitMessageCommand.ts",
+            "src/extension.ts",
+            "package.json"
+          ],
+          "decisions": "Command vscode-workflow.generateCommitMessage on scm/inputBox; uses the passed SourceControl rootUri; progress with cancel; asks before replacing existing text; settings claudePath, maxDiffChars, model.",
+          "acceptance": "Button appears and fills the box in the Extension Development Host; errors are clear; cancel works; existing text is never lost silently.",
+          "evidence": "Created src/scm/commitMessageCommand.ts and src/scm/repositoryArgument.ts; registered in src/extension.ts; package.json has the command, the scm/inputBox menu entry (when scmProvider == git) and the settings claudePath, maxDiffChars, model. Typecheck passes.",
+          "remaining": "Manual check in the Extension Development Host: the button, what VS Code passes to the scm/inputBox command (the code accepts a Uri or an object with rootUri and falls back to the Git API repositories), cancel, and the replace prompt. This cannot be run from this session.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "user",
+          "updatedAt": "2026-11-17T21:06:18Z"
+        }
+      ]
+    },
+    {
+      "name": "Tests and documentation",
+      "items": [
+        {
+          "id": "add-and-update-tests-a3tndl4scdfddss",
+          "title": "Add and update tests",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-6-tests",
+          "why": "Protect the new plugin content and the new extension logic.",
+          "files": [
+            "test/claudePluginContent.test.ts",
+            "test/commitMessageGenerator.test.ts",
+            "test/claudeCli.test.ts",
+            "test/taskContext.test.ts"
+          ],
+          "decisions": "Add commit-message to the interactive skill list; assert the does-not-commit statement, the rules file, the five prefixes and the '- ' detail format; assert the skill reads the task JSON and reports and excludes .history/.",
+          "acceptance": "npm run typecheck and npm test pass.",
+          "evidence": "Added test/claudeCli.test.ts, test/taskContext.test.ts, test/commitMessageGenerator.test.ts, test/processRunner.test.ts, test/repositoryArgument.test.ts; updated test/claudePluginContent.test.ts (commit-message is a user-invoked skill; rules name all five prefixes and the '- ' format; skill reads rules, task JSON, reports, excludes .history, never commits) and test/tasksWebviewHtml.test.ts (Quick Reference). npm run typecheck passes and npm test passes: 15 files, 164 tests, run in the dev container. The esbuild bundle of src/extension.ts also builds.",
+          "remaining": "No automated test covers commitMessageCommand.ts, which needs the VS Code API; it is checked manually (see the command item).",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T22:42:39Z"
+        },
+        {
+          "id": "update-the-documentation-ph7l10v3ij6kwsh",
+          "title": "Update the documentation",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-7-documentation",
+          "why": "The new skill, settings and button change user and maintainer behavior.",
+          "files": [
+            "docs/skills-and-agents.md",
+            "docs/settings.md",
+            "docs/user-documentation.md",
+            "docs/developer-documentation.md",
+            "docs/architecture.md",
+            "README.md"
+          ],
+          "decisions": "Fix the agent and skill counts; document the message format and five prefixes; document that the diff, task text and reports are sent to Claude; document the shared rules file.",
+          "acceptance": "Docs match the implemented behavior and links resolve.",
+          "evidence": "New docs/commit-messages.md (sources, format, prefixes, button, requirements, privacy, skill, troubleshooting), linked from docs/user-documentation.md. Updated docs/settings.md (three settings and the command), docs/skills-and-agents.md (commit-message section), docs/architecture.md (src/scm layout and a keep-in-sync note on the shared rules file and the CLI flags), and the Quick Reference panel in src/tasks/tasksWebviewHtml.ts. README.md needs no change: it lists only the two index pages.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-16T22:42:41Z"
+        }
+      ]
+    }
+  ]
+}

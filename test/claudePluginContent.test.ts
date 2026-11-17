@@ -34,7 +34,7 @@ describe('Claude Code plugin content', () => {
     });
 
     it('ships the interactive workflows as user-invoked skills, not subagents', async () => {
-        for (const name of ['implement', 'analyze-and-plan', 'debug']) {
+        for (const name of ['implement', 'analyze-and-plan', 'debug', 'commit-message']) {
             const meta = frontmatter(await read('skills', name, 'SKILL.md'));
             expect(meta.name).toBe(name);
             expect(meta['disable-model-invocation']).toBe('true');
@@ -143,6 +143,28 @@ describe('Claude Code plugin content', () => {
         expect(skill).toContain('Status: Awaiting Confirmation');
         const agent = await read('agents', 'document.md');
         expect(agent).toContain('at the absolute path given in your brief');
+    });
+
+    it('ships the commit-message skill with rules that name every prefix and the detail format', async () => {
+        const rules = await read('skills', 'commit-message', 'commit-message-rules.md');
+        for (const prefix of ['BC', 'New', 'Ref', 'Fix', 'Doc']) {
+            expect(rules, prefix).toContain(`| \`${prefix}\` |`);
+        }
+        expect(rules).toContain('<Prefix>: <short summary>');
+        expect(rules).toContain('Each detail line starts with `- `');
+        expect(rules).toContain('`BC`, `New`, `Fix`, `Ref`, `Doc`');
+        expect(rules).toContain('`Co-Authored-By`');
+    });
+
+    it('makes the commit-message skill read its rules, the task and the reports, and never commit', async () => {
+        const skill = await read('skills', 'commit-message', 'SKILL.md');
+        expect(skill).toContain('`commit-message-rules.md`, located next to this SKILL.md');
+        expect(skill).toContain('`name` and `description`');
+        expect(skill).toContain('every `*.md` file in the folder that contains the marker');
+        expect(skill).toContain("':(exclude).history'");
+        expect(skill).toContain('does not stage files and does not run `git commit`');
+        expect(skill).toContain('Do not read `implementation-todo.json`');
+        expect(skill).not.toContain('allowed-tools');
     });
 
     it('keeps the Code Comments subagent from writing reports', async () => {

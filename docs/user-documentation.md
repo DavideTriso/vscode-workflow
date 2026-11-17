@@ -22,5 +22,6 @@ Setup details are in [Installation and setup](installation.md).
 - [Installation and setup](installation.md): requirements, your identity, registering with Claude Code, uninstalling.
 - [Working with tasks](tasks.md): creating tasks, assignees, related tasks, the timer, TODOs, completing tasks, and where data lives.
 - [Skills and agents](skills-and-agents.md): the workflow order, what each agent does, and how to run them.
+- [Commit messages](commit-messages.md): the Generate Commit Message button and the `commit-message` skill, with the message format.
 - [Multi-repository projects](multi-repository.md): grouping repositories so tasks and agents can see each other's work.
 - [Settings](settings.md): every setting with description, default and example.

@@ -2,7 +2,7 @@
     "name": "vscode-workflow",
     "displayName": "VS Code Workflow",
     "description": "Track tasks in VS Code and build with AI coding agents through a repeatable workflow. Every change is recorded in the repo, so agents and teammates, human or AI, keep the context they need.",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "publisher": "davidetriso",
     "license": "MIT",
     "repository": {
@@ -44,6 +44,11 @@
             {
                 "command": "vscode-workflow.registerClaudeCode",
                 "title": "Workflow: Register Agents and Skills with Claude Code"
+            },
+            {
+                "command": "vscode-workflow.generateCommitMessage",
+                "title": "Workflow: Generate Commit Message",
+                "icon": "$(sparkle)"
             }
         ],
         "configuration": {
@@ -156,8 +161,33 @@
                         "Never touch Claude Code settings."
                     ],
                     "description": "Controls whether the extension registers its agents and skills as a Claude Code plugin."
+                },
+                "vscode-workflow.commitMessage.claudePath": {
+                    "type": "string",
+                    "default": "",
+                    "markdownDescription": "Full path of the `claude` executable that generates commit messages. When empty, `claude` on `PATH` is used, then the binary bundled with the Claude Code extension."
+                },
+                "vscode-workflow.commitMessage.maxDiffChars": {
+                    "type": "number",
+                    "default": 60000,
+                    "minimum": 1000,
+                    "markdownDescription": "Maximum number of diff characters sent to Claude when generating a commit message. A longer diff is cut and a diff summary is added."
+                },
+                "vscode-workflow.commitMessage.model": {
+                    "type": "string",
+                    "default": "",
+                    "markdownDescription": "Model that generates commit messages, for example `sonnet`. When empty, the Claude Code default is used."
                 }
             }
+        },
+        "menus": {
+            "scm/title": [
+                {
+                    "command": "vscode-workflow.generateCommitMessage",
+                    "when": "scmProvider == git",
+                    "group": "navigation"
+                }
+            ]
         }
     },
     "scripts": {

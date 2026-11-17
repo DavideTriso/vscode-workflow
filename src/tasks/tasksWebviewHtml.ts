@@ -150,6 +150,10 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                         <h3>Debug</h3>
                         <p>Skill: <code>/vscode-workflow:debug</code>. Reproduces a bug, investigates its root cause, applies a minimal fix when requested, and verifies it.</p>
                     </section>
+                    <section class="quick-reference-agent">
+                        <h3>Commit Message</h3>
+                        <p>Skill: <code>/vscode-workflow:commit-message</code>. Proposes a commit message from the changes, the task and its reports. It never commits. The Source Control <strong>Generate Commit Message</strong> button does the same inside VS Code.</p>
+                    </section>
                 </div>
             </section>
         </section>

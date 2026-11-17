@@ -22,6 +22,10 @@ The extension registers seven agents and a documentation skill with Claude Code.
 - Code Comments does not save a report. The command shows its findings or the list of changed comments in the chat.
 - Agent reports and TODOs appear in the Tasks view when you select the task.
 
+## Propose a commit message
+
+Run `/vscode-workflow:commit-message` to get a commit message for your current changes. It reads the diff, the active task's name and description, and the task's report files, and it never stages or commits. The message format and the matching Source Control button are described in [Commit messages](commit-messages.md).
+
 ## Set up documentation for a repository
 
 Run `/vscode-workflow:documentation-create-default` to create documentation for a repository that has none, or to bring existing documentation into the standard layout. It does not need an active task. It proposes a table of contents and waits for your approval before writing.

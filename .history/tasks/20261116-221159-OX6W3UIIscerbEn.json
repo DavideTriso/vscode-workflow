@@ -1,0 +1,17 @@
+{
+  "name": "Commit solutions",
+  "createdOnDateTime": "2026-11-16T22:11:59Z",
+  "projectManagementUrl": "",
+  "description": "Implement skill / agent to commit changes and genrate commit message.\nAdd \"generate commit message\" button to VS Code Source Control extension.",
+  "createdBy": "d.trisolini@totalcom.it <DavideTriso>",
+  "assignee": "d.trisolini@totalcom.it <DavideTriso>",
+  "status": 2,
+  "timeTracking": [
+    {
+      "startDateTime": "2026-11-16T22:12:05Z",
+      "endDateTime": "2026-11-17T21:06:22Z",
+      "user": "d.trisolini@totalcom.it <DavideTriso>"
+    }
+  ],
+  "relatedTasks": []
+}
