@@ -1294,3 +1294,268 @@ body {
     color: var(--vscode-errorForeground);
     font-size: 0.9em;
 }
+
+#history-encryption-panel {
+    margin-top: 12px;
+    border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+#history-encryption-content {
+    padding: 2px 6px 10px 24px;
+    overflow-wrap: anywhere;
+}
+
+#history-encryption-content p {
+    margin: 6px 0;
+}
+
+#history-encryption-content code {
+    color: var(--vscode-textPreformat-foreground, var(--vscode-foreground));
+}
+
+.encryption-badge {
+    flex: none;
+    padding: 0 6px;
+    color: var(--vscode-badge-foreground);
+    background: var(--vscode-badge-background);
+    border-radius: 8px;
+    font-size: 0.85em;
+}
+
+.encryption-badge[data-state="not-enabled"] {
+    color: var(--vscode-descriptionForeground);
+    background: transparent;
+    border: 1px solid var(--vscode-widget-border, var(--vscode-descriptionForeground));
+}
+
+.encryption-badge[data-state="locked"],
+.encryption-badge[data-state="not-installed"] {
+    color: var(--vscode-editorWarning-foreground, var(--vscode-badge-foreground));
+    background: transparent;
+    border: 1px solid currentColor;
+}
+
+.history-encryption-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.history-encryption-status.is-ok .history-encryption-icon {
+    color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, currentColor));
+}
+
+.history-encryption-status.is-warning {
+    color: var(--vscode-editorWarning-foreground, var(--vscode-foreground));
+}
+
+.history-encryption-status.is-muted {
+    color: var(--vscode-descriptionForeground);
+}
+
+.history-encryption-icon {
+    display: inline-grid;
+    flex: none;
+}
+
+.history-encryption-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.history-encryption-note {
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9em;
+}
+
+.history-encryption-success {
+    color: var(--vscode-descriptionForeground);
+}
+
+.history-encryption-error {
+    color: var(--vscode-errorForeground);
+}
+
+.history-encryption-link {
+    margin-left: auto;
+    padding: 0 2px;
+    color: var(--vscode-textLink-foreground);
+    background: transparent;
+    border: 0;
+    font: inherit;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.history-encryption-link:hover {
+    color: var(--vscode-textLink-activeForeground);
+    text-decoration: underline;
+}
+
+.history-encryption-link:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.history-encryption-section {
+    padding: 8px 0;
+}
+
+.history-encryption-section + .history-encryption-section {
+    border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border));
+}
+
+.history-encryption-section-header {
+    display: flex;
+    min-height: 24px;
+    align-items: center;
+    gap: 4px;
+}
+
+.history-encryption-section-header h3 {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.history-encryption-list {
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Same look as a task row: name and secondary line on the left, icon actions on the right. */
+.history-encryption-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 34px;
+    border-radius: 4px;
+}
+
+.history-encryption-row:hover {
+    background: var(--vscode-list-hoverBackground);
+}
+
+.history-encryption-row .task-details {
+    padding: 3px 6px;
+}
+
+.history-encryption-row .task-date {
+    overflow: hidden;
+    font-family: var(--vscode-editor-font-family, monospace);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-encryption-row-actions {
+    display: flex;
+    gap: 2px;
+    padding-right: 2px;
+}
+
+.history-encryption-key,
+.history-encryption-teammate {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.history-encryption-key label,
+.history-encryption-teammate label {
+    color: var(--vscode-descriptionForeground);
+    font-size: 0.9em;
+}
+
+.history-encryption-teammate textarea {
+    resize: vertical;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 0.85em;
+}
+
+.history-encryption-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.history-encryption-actions .history-encryption-link {
+    margin-left: 0;
+}
+
+.history-encryption-actions.is-end {
+    justify-content: flex-end;
+}
+
+.history-encryption-section > .history-encryption-status:first-child {
+    margin-top: 0;
+}
+
+#history-locked-notice {
+    margin: 8px 0 0;
+    color: var(--vscode-editorWarning-foreground, var(--vscode-foreground));
+}
+
+.accordion-icon-button.is-copied {
+    color: var(--vscode-testing-iconPassed, var(--vscode-charts-green, #3fb950));
+}
+
+.accordion-icon-button.is-copied svg {
+    stroke-width: 2;
+}
+
+.accordion-icon-button.is-copied svg,
+.accordion-icon-button.is-copy-failed svg {
+    animation: history-encryption-copied 200ms ease-out;
+}
+
+.accordion-icon-button.is-copy-failed {
+    color: var(--vscode-errorForeground, #f14c4c);
+}
+
+.accordion-icon-button.is-copy-failed svg {
+    stroke-width: 2;
+}
+
+.accordion-icon-button.is-copying {
+    cursor: progress;
+}
+
+.history-encryption-spinner {
+    animation: history-encryption-spin 800ms linear infinite;
+}
+
+@keyframes history-encryption-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes history-encryption-copied {
+    from {
+        transform: scale(0.6);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .accordion-icon-button.is-copied svg,
+    .accordion-icon-button.is-copy-failed svg,
+    .history-encryption-spinner {
+        animation: none;
+    }
+}

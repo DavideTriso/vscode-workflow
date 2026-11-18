@@ -1,0 +1,17 @@
+{
+  "name": "Support encrypted .history",
+  "createdOnDateTime": "2026-11-18T16:27:06Z",
+  "projectManagementUrl": "",
+  "description": "Encrypt .hisotry content on push with git-crypt",
+  "createdBy": "d.trisolini@totalcom.it <DavideTriso>",
+  "assignee": "d.trisolini@totalcom.it <DavideTriso>",
+  "status": 1,
+  "timeTracking": [
+    {
+      "startDateTime": "2026-11-18T16:27:11Z",
+      "endDateTime": null,
+      "user": "d.trisolini@totalcom.it <DavideTriso>"
+    }
+  ],
+  "relatedTasks": []
+}

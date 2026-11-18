@@ -2,7 +2,7 @@
     "name": "vscode-workflow",
     "displayName": "VS Code Workflow",
     "description": "Track tasks in VS Code and build with AI coding agents through a repeatable workflow. Every change is recorded in the repo, so agents and teammates, human or AI, keep the context they need.",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "publisher": "davidetriso",
     "license": "MIT",
     "repository": {
@@ -44,6 +44,10 @@
             {
                 "command": "vscode-workflow.registerClaudeCode",
                 "title": "Workflow: Register Agents and Skills with Claude Code"
+            },
+            {
+                "command": "vscode-workflow.openHistoryEncryption",
+                "title": "Workflow: Open History Encryption"
             },
             {
                 "command": "vscode-workflow.generateCommitMessage",

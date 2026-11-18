@@ -34,7 +34,7 @@ describe('Claude Code plugin content', () => {
     });
 
     it('ships the interactive workflows as user-invoked skills, not subagents', async () => {
-        for (const name of ['implement', 'analyze-and-plan', 'debug', 'commit-message']) {
+        for (const name of ['implement', 'analyze-and-plan', 'debug', 'commit-message', 'install-git-crypt']) {
             const meta = frontmatter(await read('skills', name, 'SKILL.md'));
             expect(meta.name).toBe(name);
             expect(meta['disable-model-invocation']).toBe('true');
@@ -172,6 +172,16 @@ describe('Claude Code plugin content', () => {
         expect(agent).toContain('Never write a summary, report, or any file under `.history/agents/`');
         for (const skill of ['code-comment-review', 'code-comment-improve']) {
             expect(await read('skills', skill, 'SKILL.md'), skill).toContain('.history/agents/');
+        }
+    });
+
+    it('guides git-crypt installation one step at a time and never asks for secrets', async () => {
+        const text = await read('skills', 'install-git-crypt', 'SKILL.md');
+        expect(text).toContain('One step per message');
+        expect(text).toContain('wait');
+        expect(text).toMatch(/Never ask for a passphrase/);
+        for (const check of ['uname -a', '/etc/os-release', 'sw_vers', 'git --version', 'gpg --version', 'git-crypt --version']) {
+            expect(text).toContain(check);
         }
     });
 });

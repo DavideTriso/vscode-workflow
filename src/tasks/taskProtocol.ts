@@ -1,3 +1,5 @@
+import type { HistoryEncryptionNotice, HistoryEncryptionRequest } from '../crypt/historyEncryptionMessages';
+
 export interface TaskSummary {
     id: string;
     name: string;
@@ -151,7 +153,8 @@ export type ExtensionToWebviewMessage =
     | { type: 'todoStatusResult'; taskId: string; itemId: string; done: boolean; error?: string }
     | { type: 'todoMutationResult'; taskId: string; error?: string }
     | { type: 'relatedTaskCandidates'; candidates: RelatedTaskCandidate[]; error?: string }
-    | { type: 'clearSelectedTask' };
+    | { type: 'clearSelectedTask' }
+    | HistoryEncryptionNotice;
 
 export type WebviewToExtensionMessage =
     | { type: 'ready' }
@@ -171,7 +174,8 @@ export type WebviewToExtensionMessage =
     | { type: 'openRelatedTask'; taskId: string; reference: RelatedTaskReference }
     | { type: 'markTaskDone'; taskId: string }
     | { type: 'toggleTimeTracking'; taskId: string }
-    | { type: 'saveTask'; taskId?: string; input: CreateTaskInput; sourceTodo?: TodoReference };
+    | { type: 'saveTask'; taskId?: string; input: CreateTaskInput; sourceTodo?: TodoReference }
+    | HistoryEncryptionRequest;
 
 /** A TODO item a new task is created from; it is removed once the task is saved. */
 export interface TodoReference {

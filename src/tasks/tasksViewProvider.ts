@@ -3,6 +3,8 @@ import path from 'node:path';
 import { missingUserEmailMessage, TaskRepository } from './taskRepository';
 import { isSameRelatedTask, readRelatedTasks, validateTaskInput, type TaskValidationOptions } from './taskModel';
 import type { CreateTaskInput, CurrentRepositoryInfo, ExtensionToWebviewMessage, RelatedTaskReference, TaskSummary, TodoReference, WebviewToExtensionMessage } from './taskProtocol';
+import { isHistoryEncryptionRequest } from '../crypt/historyEncryptionMessages';
+import type { HistoryEncryptionController } from '../crypt/historyEncryptionController';
 import { getTasksWebviewHtml } from './tasksWebviewHtml';
 import { getFormattedTeamMembers, getRelatedTaskMaxAgeDays, repositoryGroupsSettingKey, userSettingKeys } from './userSettings';
 
@@ -15,16 +17,35 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
     private outputWatcher: vscode.FileSystemWatcher | undefined;
     private outputWatcherRoot: string | undefined;
     private outputRequest = 0;
+    private webviewReady = false;
+    private revealRequested = false;
 
     constructor(
         private readonly extensionUri: vscode.Uri,
         private readonly workspaceState: vscode.Memento,
         private readonly taskRepository = new TaskRepository(),
+        private readonly historyEncryption?: HistoryEncryptionController,
     ) { }
+
+    /** Focuses the Tasks view and expands its History encryption section. */
+    async revealHistoryEncryption(): Promise<void> {
+        this.revealRequested = true;
+        await vscode.commands.executeCommand(`${TasksViewProvider.viewType}.focus`);
+        await this.flushReveal();
+    }
+
+    private async flushReveal(): Promise<void> {
+        if (!this.view || !this.webviewReady || !this.revealRequested) {
+            return;
+        }
+        this.revealRequested = false;
+        await this.postMessage({ type: 'expandHistoryEncryption' });
+    }
 
     resolveWebviewView(view: vscode.WebviewView): void {
         this.disposeViewListeners();
         this.view = view;
+        this.webviewReady = false;
         view.webview.options = {
             enableScripts: true,
             localResourceRoots: [
@@ -35,6 +56,7 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
         view.webview.html = getTasksWebviewHtml(view.webview, this.extensionUri);
         this.viewDisposables.push(
             view.webview.onDidReceiveMessage((message: unknown) => this.handleMessage(message)),
+            ...(this.historyEncryption ? [this.historyEncryption.onDidNotify((notice) => void this.postMessage(notice))] : []),
             vscode.workspace.onDidChangeConfiguration((event) => {
                 if ([...userSettingKeys, repositoryGroupsSettingKey].some((key) => event.affectsConfiguration(key))) {
                     void this.refresh();
@@ -154,7 +176,14 @@ export class TasksViewProvider implements vscode.WebviewViewProvider, vscode.Dis
 
     private async handleMessage(message: unknown): Promise<void> {
         if (isWebviewReadyMessage(message)) {
+            this.webviewReady = true;
             await this.refresh();
+            await this.historyEncryption?.refresh();
+            await this.flushReveal();
+            return;
+        }
+        if (isHistoryEncryptionRequest(message)) {
+            await this.historyEncryption?.handle(message);
             return;
         }
         if (isRefreshTasksMessage(message)) {

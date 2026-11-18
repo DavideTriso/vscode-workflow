@@ -101,8 +101,27 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                             <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5"/><path d="M3 14c.3-2.4 2.2-4 5-4s4.7 1.6 5 4"/></svg>
                         </button>
                     </div>
+                    <p id="history-locked-notice" role="alert" hidden>.history is encrypted and not readable on this machine, so no tasks are shown. Open History Encryption below to unlock.</p>
                     <ul id="task-list" aria-live="polite"></ul>
                     <p id="empty-message" role="status" hidden></p>
+                </div>
+            </section>
+            <section id="history-encryption-panel" aria-label="History encryption">
+                <header class="tasks-accordion-header">
+                    <button id="history-encryption-toggle" class="tasks-accordion-toggle" type="button" aria-expanded="false" aria-controls="history-encryption-content">
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"/></svg>
+                        <span>History Encryption</span>
+                    </button>
+                    <span id="history-encryption-badge" class="encryption-badge" hidden></span>
+                    <div class="accordion-actions">
+                        <button id="history-encryption-refresh" class="accordion-icon-button" type="button" title="Check encryption status" aria-label="Check encryption status">
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 5V2m0 3h-3M13 5a5.5 5.5 0 1 0 1 4"/></svg>
+                        </button>
+                    </div>
+                </header>
+                <div id="history-encryption-content" hidden>
+                    <p id="history-encryption-result" role="status" hidden></p>
+                    <div id="history-encryption-body"></div>
                 </div>
             </section>
             <section id="quick-reference-panel" aria-label="Agent quick reference">
@@ -153,6 +172,10 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     <section class="quick-reference-agent">
                         <h3>Commit Message</h3>
                         <p>Skill: <code>/vscode-workflow:commit-message</code>. Proposes a commit message from the changes, the task and its reports. It never commits. The Source Control <strong>Generate Commit Message</strong> button does the same inside VS Code.</p>
+                    </section>
+                    <section class="quick-reference-agent">
+                        <h3>Install git-crypt</h3>
+                        <p>Skill: <code>/vscode-workflow:install-git-crypt</code>. Checks your system, then guides you one step at a time through installing git-crypt and GPG, creating a key, enabling <code>.history</code> encryption, and sharing access with teammates.</p>
                     </section>
                 </div>
             </section>

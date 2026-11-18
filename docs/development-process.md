@@ -46,6 +46,8 @@ Runs vitest (`vitest run`) over `test/*.test.ts`. The webview tests run in jsdom
 | Tasks view host and HTML | `tasksViewProvider.test.ts`, `tasksWebviewHtml.test.ts`, `tasksWebview.test.ts` |
 | TODO model and MCP server | `implementationTodo.test.ts`, `todoMcpServer.test.ts` |
 | Claude plugin sync and content | `claudePlugin.test.ts`, `claudePluginContent.test.ts` |
+| History encryption: status parsing, actions, messages | `historyEncryption.test.ts` |
+| History Encryption accordion and copy feedback | `historyEncryptionView.test.ts`, `historyEncryptionCopyFlow.test.ts` |
 
 `claudePluginContent.test.ts` also guards consistency between plugin files, for example identical `documentation-standards.md` copies and the related-tasks paragraph. See [Architecture](architecture.md#claude-code-plugin).
 

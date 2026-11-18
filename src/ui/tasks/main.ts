@@ -1,6 +1,8 @@
 import { buildAssigneeOptions, filterTasks, getUserEmail, isSameRelatedTask, validateTaskInput } from '../../tasks/taskModel';
 import { describeImplementationTodoItem } from '../../tasks/implementationTodo';
 import { outputAgents } from '../../tasks/taskProtocol';
+import { isHistoryEncryptionNotice, type HistoryEncryptionNotice } from '../../crypt/historyEncryptionMessages';
+import { initHistoryEncryptionView } from './historyEncryptionView';
 import type {
     AgentOutputGroup,
     CreateTaskInput,
@@ -114,7 +116,12 @@ if (
     createTaskForm && taskNameInput && taskUrlInput && taskDescriptionInput && taskAssigneeInput && createTaskSubmit &&
     cancelCreateTask && createTaskError
 ) {
+    const handleHistoryEncryptionNotice = initHistoryEncryptionView((request) => vscode.postMessage(request));
     window.addEventListener('message', (event: MessageEvent<ExtensionToWebviewMessage>) => {
+        if (isHistoryEncryptionNotice(event.data)) {
+            handleHistoryEncryptionNotice?.(event.data);
+            return;
+        }
         if (event.data.type === 'repositoryUnavailable') {
             taskPanel.hidden = true;
             selectedTaskPanel.hidden = true;
@@ -151,7 +158,7 @@ if (
     vscode.postMessage({ type: 'ready' });
 }
 
-function handleExtensionMessage(message: Exclude<ExtensionToWebviewMessage, { type: 'repositoryUnavailable' }>): void {
+function handleExtensionMessage(message: Exclude<ExtensionToWebviewMessage, { type: 'repositoryUnavailable' } | HistoryEncryptionNotice>): void {
     if (message.type === 'taskSettings') {
         requireProjectManagementUrl = message.requireProjectManagementUrl;
         teamMembers = message.teamMembers;

@@ -48,4 +48,5 @@ Set these in VS Code settings under **Workflow**, or in `settings.json`. "Mandat
 | Command | Description |
 | --- | --- |
 | **Workflow: Register Agents and Skills with Claude Code** | Installs or updates the Claude Code plugin and sets `vscode-workflow.claudeCode.registration` to `enabled`. |
+| **Workflow: Open History Encryption** | Opens the Tasks view and expands the History Encryption accordion. Also runs when you click the History item in the status bar. See [History encryption](history-encryption.md). |
 | **Workflow: Generate Commit Message** | Fills the Source Control commit message box. Also available as the sparkle button in the title bar of the repository in the Source Control view. See [Commit messages](commit-messages.md). |

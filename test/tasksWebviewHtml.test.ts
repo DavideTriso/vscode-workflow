@@ -38,4 +38,17 @@ describe('task webview quick reference', () => {
             expect(html).toContain(`vscode-workflow:${name}`);
         }
     });
+
+    it('places History Encryption as a top-level accordion between Open Tasks and Quick Reference', () => {
+        const html = getTasksWebviewHtml({
+            asWebviewUri: (uri) => uri as unknown as vscode.Uri,
+            cspSource: 'vscode-webview:',
+        } as vscode.Webview, {} as vscode.Uri);
+
+        expect(html.indexOf('id="task-list-panel"')).toBeLessThan(html.indexOf('id="history-encryption-panel"'));
+        expect(html.indexOf('id="history-encryption-panel"')).toBeLessThan(html.indexOf('id="quick-reference-panel"'));
+        expect(html).not.toContain('configuration-panel');
+        expect(html).toContain('id="history-encryption-toggle" class="tasks-accordion-toggle" type="button" aria-expanded="false"');
+        expect(html).toContain('<code>/vscode-workflow:install-git-crypt</code>');
+    });
 });

@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "summary": "10 done, 0 open. No open items.",
+  "plan": "implementation-plan.md",
+  "planSyncedAt": "2026-11-18T18:37:50Z",
+  "groups": [
+    {
+      "name": "History encryption core",
+      "items": [
+        {
+          "id": "status-detection-and-actions-src-crypt-npn74rwmjstn43w",
+          "title": "Status detection and actions (src/crypt)",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-1",
+          "why": "Detect the four states and run enable, add-teammate, export and renormalize.",
+          "files": [
+            "src/crypt/historyEncryptionStatus.ts",
+            "src/crypt/historyEncryptionActions.ts",
+            "src/crypt/historyEncryptionTypes.ts",
+            "src/crypt/historyEncryptionMessages.ts"
+          ],
+          "decisions": "D1, D4: silent child processes for steps without a passphrase; never commit or rewrite history.",
+          "acceptance": "Unit tests in test/historyEncryption.test.ts pass.",
+          "evidence": "Implemented in the first implement run; tests pass; user tested manually.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T18:37:50Z"
+        },
+        {
+          "id": "controller-status-bar-item-and-reveal-co-clpwr4hxs2zno2o",
+          "title": "Controller, status bar item and reveal command",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-4",
+          "why": "Status bar badge opens the panel at the encryption section.",
+          "files": [
+            "src/crypt/historyEncryptionController.ts",
+            "src/tasks/tasksViewProvider.ts",
+            "src/extension.ts",
+            "package.json"
+          ],
+          "decisions": "D2, D3: left status bar item, first workspace folder.",
+          "acceptance": "Clicking the status bar expands the section.",
+          "evidence": "User tested manually.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T18:37:50Z"
+        },
+        {
+          "id": "install-git-crypt-skill-and-docs-tzb16rw91xnhfed",
+          "title": "install-git-crypt skill and docs",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#step-7",
+          "why": "Guided one-step-at-a-time setup.",
+          "files": [
+            "claude-plugin/skills/install-git-crypt/SKILL.md",
+            "docs/history-encryption.md"
+          ],
+          "decisions": "D5: user-invoked only.",
+          "acceptance": "Plugin content tests pass.",
+          "evidence": "Implemented in the first implement run.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T18:37:50Z"
+        }
+      ]
+    },
+    {
+      "name": "UI follow-up",
+      "items": [
+        {
+          "id": "make-history-encryption-a-top-level-acco-rofjqrpzgz8litj",
+          "title": "Make History encryption a top-level accordion and declutter it",
+          "done": true,
+          "source": "plan",
+          "sourceRef": "implementation-plan.md#ui-follow-up",
+          "why": "User feedback: the section is cluttered with text and the nested Configuration accordion is unwanted.",
+          "files": [
+            "src/tasks/tasksWebviewHtml.ts",
+            "src/ui/tasks/historyEncryptionView.ts",
+            "media/tasks.css",
+            "test/historyEncryptionView.test.ts",
+            "test/tasksWebviewHtml.test.ts"
+          ],
+          "decisions": "Remove Configuration; one status line, one primary action per state; teammate form on demand; versions in a tooltip.",
+          "acceptance": "Webview tests pass; no Configuration markup remains.",
+          "evidence": "Removed the Configuration accordion; History Encryption is top level between Open Tasks and Quick Reference. Each state shows one status line with an icon, one primary action and compact secondary actions; key picker only with 2+ keys; teammate form opens on demand; versions moved to the badge tooltip; people list with per-row copy icon. Webview tests (historyEncryptionView, tasksWebviewHtml, tasksWebview) pass: 35/35. Full suite 189 passed, 5 claudePlugin tests fail only because this machine has Node 18. Typecheck and esbuild build pass.",
+          "remaining": "Visual check in VS Code by the user (jsdom does not render CSS).",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T18:40:57Z"
+        },
+        {
+          "id": "split-history-encryption-into-status-you-j1bcbqqh6vnjzyl",
+          "title": "Split History Encryption into Status, Your key and Teammates sections",
+          "done": true,
+          "source": "request",
+          "sourceRef": "request:three-sections-ui",
+          "why": "User feedback: separate the accordion into three sections; teammates in the task-list style; add form replaces the list; no file option.",
+          "files": [
+            "src/ui/tasks/historyEncryptionView.ts",
+            "media/tasks.css",
+            "src/crypt/historyEncryptionMessages.ts",
+            "src/crypt/historyEncryptionController.ts",
+            "test/historyEncryptionView.test.ts",
+            "test/historyEncryption.test.ts",
+            "docs/history-encryption.md",
+            "claude-plugin/skills/install-git-crypt/SKILL.md"
+          ],
+          "decisions": "Sections separated by a thin border. Your key: fingerprint row with copy icon, public key row with copy and view icons. Teammates: header with + (unlocked only) and reload, rows with copy-fingerprint icon. Form: textarea, Cancel, Save. Removed addTeammateKeyFromFile end to end. Accordion header refresh kept for the not-installed state.",
+          "acceptance": "Webview tests cover each state, the form replace/cancel/save flow and the removed file option; full suite passes except the Node 20 tests.",
+          "evidence": "tsc both configs OK; esbuild OK; vitest 190 passed, 5 failed (claudePlugin.test.ts, needs Node 20, unrelated).",
+          "remaining": "Visual check in VS Code by the user.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T18:56:53Z"
+        },
+        {
+          "id": "remove-lock-show-only-unlock-when-the-cl-8aa5bhppmvn7snd",
+          "title": "Remove Lock; show only Unlock when the clone is locked",
+          "done": true,
+          "source": "request",
+          "sourceRef": "request:remove-lock",
+          "why": "Locking adds nothing for normal use (Git and the remote are always encrypted) and can lock a user out; the button confused the user.",
+          "files": [
+            "src/ui/tasks/historyEncryptionView.ts",
+            "src/crypt/historyEncryptionMessages.ts",
+            "src/crypt/historyEncryptionController.ts",
+            "test/historyEncryptionView.test.ts",
+            "test/historyEncryption.test.ts",
+            "docs/history-encryption.md",
+            "claude-plugin/skills/install-git-crypt/SKILL.md"
+          ],
+          "decisions": "Removed lockHistory end to end (button, message, guard, controller terminal command). Unlock already appears only in the locked state. Docs explain Unlock once per clone and point to manual git-crypt lock.",
+          "acceptance": "No Lock or Unlock button in the unlocked state; lockHistory is rejected by the guard; full suite passes except Node 20 tests.",
+          "evidence": "tsc both configs OK; esbuild OK; vitest 190 passed, 5 failed (claudePlugin.test.ts, needs Node 20, unrelated).",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T19:06:41Z"
+        },
+        {
+          "id": "private-key-row-no-view-button-checkmark-s9pea1zwql7u5ig",
+          "title": "Private key row, no View button, checkmark copy feedback",
+          "done": true,
+          "source": "request",
+          "sourceRef": "request:private-key-copy-feedback",
+          "why": "User wants a private key backup copy, fewer buttons, and no text message after copying.",
+          "files": [
+            "src/ui/tasks/historyEncryptionView.ts",
+            "src/crypt/historyEncryptionActions.ts",
+            "src/crypt/historyEncryptionController.ts",
+            "src/crypt/historyEncryptionMessages.ts",
+            "media/tasks.css",
+            "test/historyEncryptionView.test.ts",
+            "test/historyEncryption.test.ts",
+            "docs/history-encryption.md"
+          ],
+          "decisions": "Your key has three rows (fingerprint, public key, private key), each with one copy icon. viewPublicKey removed end to end. Copy success sends historyEncryptionCopied; the clicked button shows a green checkmark for 3 s (reduced-motion respected); failures or cancel show the error and keep the icon. Private key export: confirmation modal, gpg --armor --export-secret-keys without --batch so pinentry can ask for the passphrase, 3 min timeout, error message with the terminal command when pinentry cannot open.",
+          "acceptance": "Webview tests cover rows, checkmark and restore, and the failed-copy path; action tests cover private key export success and failures.",
+          "evidence": "Superseded: the private key copy was removed in the 'Fast copy feedback' item; the row now shows the key file location. tsc, esbuild and tests passed at the time.",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T19:55:25Z"
+        },
+        {
+          "id": "hide-your-own-key-from-the-teammates-lis-wcf35iskte2c9ef",
+          "title": "Hide your own key from the Teammates list",
+          "done": true,
+          "source": "request",
+          "sourceRef": "request:hide-own-teammate-row",
+          "why": "Your key details are already in the Your key section; the duplicate row with the 'you' pill was noise.",
+          "files": [
+            "src/ui/tasks/historyEncryptionView.ts",
+            "media/tasks.css",
+            "test/historyEncryptionView.test.ts",
+            "docs/history-encryption.md"
+          ],
+          "decisions": "Teammates list and count use authorizedKeys without isYours. Empty list says 'No teammates yet.' and still offers +. Removed the 'you' pill code and CSS.",
+          "acceptance": "Teammates shows only other keys; with only your key it shows 'Teammates · 0' and the empty note.",
+          "evidence": "tsc both configs OK; esbuild OK; vitest 194 passed, 5 failed (claudePlugin.test.ts, needs Node 20, unrelated).",
+          "remaining": "",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T19:33:35Z"
+        },
+        {
+          "id": "fix-copy-checkmark-lost-on-status-re-ren-24yazkn149cr4ed",
+          "title": "Fix copy checkmark lost on status re-render",
+          "done": true,
+          "source": "request",
+          "sourceRef": "request:copy-animation-bug",
+          "why": "User reported the copy animation does not work.",
+          "files": [
+            "src/ui/tasks/historyEncryptionView.ts",
+            "media/tasks.css",
+            "test/historyEncryptionView.test.ts",
+            "test/historyEncryptionCopyFlow.test.ts"
+          ],
+          "decisions": "Root cause: the controller sends a fresh status after every copy; when it differs (for example the encrypted file count changed because .history files were written), the section re-renders and the button with the checkmark is replaced. Copy buttons are now tracked by key (action + fingerprint), the copied key survives re-renders and is redrawn after each render, and one timer restores it after 3 s. Checkmark stroke made bolder.",
+          "acceptance": "End-to-end test (real controller + webview bundle, changing status) and a webview regression test pass; reproduced failing before the fix.",
+          "evidence": "Harness reproduced the bug (same element false, copied false) and passes after the fix. tsc both configs OK; esbuild OK; vitest 196 passed, 5 failed (claudePlugin.test.ts, needs Node 20, unrelated).",
+          "remaining": "User retest in VS Code.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T19:41:46Z"
+        },
+        {
+          "id": "fast-copy-feedback-spinner-check-cross-p-dq9d7pckizjvaeg",
+          "title": "Fast copy feedback (spinner, check, cross); private key shows its file location",
+          "done": true,
+          "source": "request",
+          "sourceRef": "request:copy-loading-and-private-key-location",
+          "why": "Copy feedback was slow and the private key confirmation took too long; user asked for loading and failure states and to show only the private key location.",
+          "files": [
+            "src/crypt/historyEncryptionController.ts",
+            "src/crypt/historyEncryptionMessages.ts",
+            "src/crypt/historyEncryptionActions.ts",
+            "src/crypt/historyEncryptionStatus.ts",
+            "src/crypt/historyEncryptionTypes.ts",
+            "src/ui/tasks/historyEncryptionView.ts",
+            "media/tasks.css",
+            "test/historyEncryption.test.ts",
+            "test/historyEncryptionView.test.ts",
+            "test/historyEncryptionCopyFlow.test.ts",
+            "docs/history-encryption.md",
+            "docs/architecture.md"
+          ],
+          "decisions": "Root cause of the delay: copies waited in the controller queue behind repository lookups and full status refreshes, and each ended with another refresh. Copies now bypass the queue and the refresh (public key export runs in the home directory), carry a requestId, and are answered with historyEncryptionCopied {requestId, ok, message}. The webview shows a spinner on click, then a green check or a red cross (reason in the tooltip) for 3 s; repeated clicks while copying are ignored; state survives re-renders. Private key copy removed end to end (button, request, exportPrivateKey, confirmation); the row shows <gpg home>/private-keys-v1.d/<keygrip>.key from gpg --version Home and --with-keygrip.",
+          "acceptance": "End-to-end test checks that a copy fires no status refresh, plus the check, the cross and the private key path; webview tests cover spinner, check, cross, overlapping copies and re-render.",
+          "evidence": "Verified the real gpg colon output (sec, fpr, grp) and the Home line on this machine. tsc both configs OK; esbuild OK; vitest 198 passed, 5 failed (claudePlugin.test.ts, needs Node 20, unrelated).",
+          "remaining": "User retest in VS Code.",
+          "alert": null,
+          "createdBy": "agent",
+          "updatedBy": "agent",
+          "updatedAt": "2026-11-18T19:55:31Z"
+        }
+      ]
+    }
+  ]
+}

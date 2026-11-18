@@ -26,6 +26,10 @@ The extension registers seven agents and a documentation skill with Claude Code.
 
 Run `/vscode-workflow:commit-message` to get a commit message for your current changes. It reads the diff, the active task's name and description, and the task's report files, and it never stages or commits. The message format and the matching Source Control button are described in [Commit messages](commit-messages.md).
 
+## Install git-crypt
+
+Run `/vscode-workflow:install-git-crypt` to install git-crypt and GPG, create a GPG key, enable `.history` encryption and share access with teammates. It checks your operating system and the versions of git, gpg and git-crypt first, then gives one step per message and waits for your reply. It runs only read-only checks itself and never asks for a passphrase or private key. See [History encryption](history-encryption.md).
+
 ## Set up documentation for a repository
 
 Run `/vscode-workflow:documentation-create-default` to create documentation for a repository that has none, or to bring existing documentation into the standard layout. It does not need an active task. It proposes a table of contents and waits for your approval before writing.

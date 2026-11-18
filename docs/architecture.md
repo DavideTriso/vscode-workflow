@@ -24,6 +24,14 @@ src/scm/                    Generate Commit Message button
   claudeCli.ts              finds the `claude` executable
   processRunner.ts          runs a program with input, abort signal and timeout
   repositoryArgument.ts     reads the repository folder from the menu command argument
+src/crypt/                  History encryption (git-crypt)
+  historyEncryptionTypes.ts   status types shared with the webview (no Node imports)
+  historyEncryptionStatus.ts  reads the state (not-installed, not-enabled, locked, unlocked), keys and files; status bar text
+  historyEncryptionActions.ts enable, add a teammate key, export a public key, re-stage `.history`
+  historyEncryptionMessages.ts webview <-> extension messages for this feature and their type guards
+  historyEncryptionController.ts the only file that uses `vscode`: status bar item, command, terminals, confirmations
+  installHint.ts            install command per platform
+src/ui/tasks/historyEncryptionView.ts  renders the History Encryption accordion in the webview
 src/mcp/                    stdio MCP server: the Claude Code adapter for the TODO tools
 claude-plugin/              agents, skills, .mcp.json for Claude Code
 scripts/uninstall.js        vscode:uninstall hook; removes Claude settings entries
@@ -48,6 +56,18 @@ test/                       vitest suites
 - Starting a timer writes `.history/agents/<id>/.current`. Agents find the active task through it.
 - Agent output lives in `.history/agents/<id>/`: reports (see `outputAgents` in `taskProtocol.ts`) and `implementation-todo.json`.
 - All reads and writes go through `taskRepository.ts`.
+
+## History encryption
+
+`.history/` can be stored encrypted in Git with git-crypt. The extension reads the state from repository files (`.gitattributes` rule, `.git/git-crypt/keys/default`, `.git-crypt/keys/default/0/*.gpg`) so a machine without git-crypt can still say the history is encrypted. States: `not-installed`, `not-enabled`, `locked` (rule present, no local key, files unreadable), `unlocked`.
+
+- `HistoryEncryptionController` owns the status bar item and runs panel requests one at a time, each followed by a status refresh. Copy requests are the exception: they run at once, skip the refresh, and answer with `historyEncryptionCopied` and the request's `requestId`, so the panel can show a spinner, then a check or a cross, on the right button. Enable, add teammate and the public key export use `runProcess`, because they need no passphrase. Unlock runs `git-crypt unlock` in a terminal named `git-crypt`, because gpg may ask for the key passphrase. There is no lock action on purpose. The controller also refreshes when `.gitattributes` changes, the window gets focus, the workspace folders change, or the `git-crypt` terminal closes.
+- Enabling runs `git-crypt init`, writes `.history/** filter=git-crypt diff=git-crypt` to `.gitattributes`, runs `git-crypt add-gpg-user --no-commit <fingerprint>`, then `git add` and `git add --renormalize -- .history`. It never commits and never rewrites history. Adding a teammate imports the pasted armored key (`gpg --import`), wraps the key the same way, and stages `.git-crypt`; it needs an unlocked clone. There is no remove action, because git-crypt has no command to remove a key. A teammate cannot add themselves: they send their public key to someone who can unlock.
+- `TasksViewProvider` forwards `isHistoryEncryptionRequest` messages to the controller, posts its notices to the webview, and expands the section on `revealHistoryEncryption()` (the status bar click). The webview shows a notice above the task list when the clone is locked, because task files are unreadable then and the list would look empty.
+- The repository is the one that contains the first workspace folder (`extension.ts`).
+- The private key is never read. `readHistoryEncryptionStatus` lists secret keys with `--with-keygrip` and reads `Home:` from `gpg --version`, so the panel can show the key file path `<home>/private-keys-v1.d/<keygrip>.key`. Do not add a private key export.
+- The shared types file must not import Node modules; the webview bundle imports it.
+- Keep the Quick Reference entry and the `install-git-crypt` skill in step with the panel states.
 
 ## Related tasks
 

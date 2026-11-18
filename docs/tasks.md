@@ -40,4 +40,4 @@ The **Quick Reference** panel at the bottom of the Tasks view summarizes how to 
 - `.history/tasks/*.json`: tasks.
 - `.history/agents/<task id>/`: agent reports and `implementation-todo.json`. A `.current` file marks the active task and lists its related tasks with absolute paths on this machine.
 
-Commit or ignore `.history/` as your team prefers. Commit it to share tasks and agent history with teammates and give future agents context.
+Commit or ignore `.history/` as your team prefers. Commit it to share tasks and agent history with teammates and give future agents context. To keep it private on the remote, see [History encryption](history-encryption.md).
