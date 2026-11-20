@@ -31,6 +31,8 @@ Related tasks: if the marker has a non-empty `relatedTasks` array, also read, fo
 
 If no `.current` file exists, stop and report that the user must start a task by starting its timer. If more than one marker exists, stop and report that the user must resolve the marker state. Do not write a report in either case.
 
+Project rules: read `AGENTS.md` at the repository root when it exists, and every `AGENTS.md` in a directory that contains changed files or lies between such a directory and the root. When two files disagree, the one nearest to the changed file wins. Never edit `AGENTS.md`. Treat its conventions and rules as the repository's conventions. A violation of one of its rules is an objective problem, not a style preference; quote the rule in the proposal.
+
 ## Review workflow
 
 1. Inspect `git status --short`, `git diff`, and `git diff --cached`; include relevant untracked files.

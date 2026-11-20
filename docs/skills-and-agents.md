@@ -22,6 +22,15 @@ The extension registers seven agents and a documentation skill with Claude Code.
 - Code Comments does not save a report. The command shows its findings or the list of changed comments in the chat.
 - Agent reports and TODOs appear in the Tasks view when you select the task.
 
+## AGENTS.md
+
+`AGENTS.md` at the repository root holds the lasting rules for agents: build and test commands, architecture, conventions, and rules the team agreed on.
+
+- Run `/vscode-workflow:agents-md` to create or update it. It does not need an active task. It looks through the repository, proposes the content (or a numbered list of changes to an existing file), and writes only after you approve. It keeps every existing rule unless you approve a change. It then offers to add `@AGENTS.md` to `CLAUDE.md`, so Claude Code loads the rules in every session, not only in these skills.
+- Analyze and Plan, Implement and Debug read `AGENTS.md` and follow its rules. When a rule conflicts with your request, they name the rule and ask. Logic Review and Code Readability also read it; Code Readability reports a rule violation as an objective problem. Nested `AGENTS.md` files in the directories of changed files also apply, and the nearest one wins.
+- When `AGENTS.md` exists, Analyze and Plan, Implement and Debug look for general rules in your messages, such as "`Utility` holds only methods that are portable to other projects". At the end of the run they ask once whether to add them, and they write only the rules you approve. Without `AGENTS.md` they skip this.
+- The layout and the rule criteria are in `claude-plugin/skills/agents-md/agents-md-rules.md`. The other skills read that one file.
+
 ## Propose a commit message
 
 Run `/vscode-workflow:commit-message` to get a commit message for your current changes. It reads the diff, the active task's name and description, and the task's report files, and it never stages or commits. The message format and the matching Source Control button are described in [Commit messages](commit-messages.md).

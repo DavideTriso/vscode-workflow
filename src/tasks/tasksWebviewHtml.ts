@@ -139,11 +139,11 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </ol>
                     <section class="quick-reference-agent">
                         <h3>Analyze and Plan</h3>
-                        <p>Skill: <code>/vscode-workflow:analyze-and-plan</code>. Clarifies requirements, compares approaches, and saves the selected implementation plan and initial TODOs without changing code.</p>
+                        <p>Skill: <code>/vscode-workflow:analyze-and-plan</code>. Clarifies requirements, compares approaches, and saves the selected implementation plan and initial TODOs without changing code. Follows <code>AGENTS.md</code> and offers to add general rules from your prompt to it.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Implement</h3>
-                        <p>Skill: <code>/vscode-workflow:implement</code>. Implements the selected work, maintains the task TODOs, and runs functional and end-to-end checks.</p>
+                        <p>Skill: <code>/vscode-workflow:implement</code>. Implements the selected work, maintains the task TODOs, and runs functional and end-to-end checks. Follows <code>AGENTS.md</code> and offers to add general rules from your prompt to it.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Logic Review</h3>
@@ -172,6 +172,10 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     <section class="quick-reference-agent">
                         <h3>Commit Message</h3>
                         <p>Skill: <code>/vscode-workflow:commit-message</code>. Proposes a commit message from the changes, the task and its reports. It never commits. The Source Control <strong>Generate Commit Message</strong> button does the same inside VS Code.</p>
+                    </section>
+                    <section class="quick-reference-agent">
+                        <h3>AGENTS.md</h3>
+                        <p>Skill: <code>/vscode-workflow:agents-md</code>. Creates or updates the repository's <code>AGENTS.md</code> after you approve a proposal, and offers to import it from <code>CLAUDE.md</code>.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Install git-crypt</h3>

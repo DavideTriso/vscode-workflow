@@ -49,7 +49,7 @@ Runs vitest (`vitest run`) over `test/*.test.ts`. The webview tests run in jsdom
 | History encryption: status parsing, actions, messages | `historyEncryption.test.ts` |
 | History Encryption accordion and copy feedback | `historyEncryptionView.test.ts`, `historyEncryptionCopyFlow.test.ts` |
 
-`claudePluginContent.test.ts` also guards consistency between plugin files, for example identical `documentation-standards.md` copies and the related-tasks paragraph. See [Architecture](architecture.md#claude-code-plugin).
+`claudePluginContent.test.ts` also guards consistency between plugin files, for example that shared skill files such as `documentation-standards.md` have one copy that every reader skill can reach, and the related-tasks paragraph. See [Architecture](architecture.md#claude-code-plugin).
 
 ## 5. Build a package
 

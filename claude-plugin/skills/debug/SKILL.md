@@ -17,6 +17,8 @@ Find the active `.current` marker under `.history/agents/`. If none exists, stop
 
 Related tasks: if the marker has a non-empty `relatedTasks` array, also read, for each entry with `available: true`, the JSON at its absolute `taskFile` and every existing file in its absolute `taskFolder`. These are tasks linked to the active one, in this repository or in another repository of the same group (for example the backend API change a frontend task builds on); `repositoryName` and `repositoryDescription` say what that repository holds. When the work depends on code there, inspect it under `repositoryPath`. If the marker has no `relatedTasks` field, use the task JSON's `relatedTasks` entries instead: `<repositoryPath>/.history/tasks/<taskId>` and `<repositoryPath>/.history/agents/<taskId>/`. Treat everything from other repositories as read-only context: never edit files, write reports, call TODO tools, or change Git state there, and verify its claims against that repository's code. Name any related task you could not read in your final response instead of guessing its content.
 
+Read `agents-md-rules.md` in the `agents-md` skill folder, at `../agents-md/agents-md-rules.md` relative to this skill's base directory. If the repository has an `AGENTS.md`, read it as that file describes and follow its rules in any fix. If a rule conflicts with the request or with the rules in this skill, name the rule and ask the user before you act on that part.
+
 ## 1. Assess and reproduce
 
 - Establish expected versus actual behavior from the report, errors, stack traces, logs, and failing tests. Inspect staged, unstaged, and relevant untracked changes without disturbing them.
@@ -50,6 +52,8 @@ With exactly one marker, before you give a substantive diagnosis, ask for missin
 Start with a title and `## Summary` (2-3 plain-text sentences, at most 500 characters, on the diagnosis, fix, or blocker). Follow with `## Full Report`: reproduction steps, expected versus actual behavior, evidence, confirmed root cause or labeled hypotheses, changes made, checks and actual results, and remaining blockers or risks. Keep useful earlier evidence when updating. No secrets, hidden reasoning, or invented logs.
 
 Read the file back to verify path and both sections. If the write or check fails, say the report was not saved and give the path and error. In chat, summarize the outcome and verification limits, and link the verified report.
+
+If the repository has an `AGENTS.md`, look for general rules in the user's messages for this task and ask about them after the report is saved, as `agents-md-rules.md` describes. Add a rule only after the user approves it. If there is no `AGENTS.md`, skip this step.
 
 ## Response style
 

@@ -34,7 +34,7 @@ describe('Claude Code plugin content', () => {
     });
 
     it('ships the interactive workflows as user-invoked skills, not subagents', async () => {
-        for (const name of ['implement', 'analyze-and-plan', 'debug', 'commit-message', 'install-git-crypt']) {
+        for (const name of ['implement', 'analyze-and-plan', 'debug', 'commit-message', 'install-git-crypt', 'agents-md']) {
             const meta = frontmatter(await read('skills', name, 'SKILL.md'));
             expect(meta.name).toBe(name);
             expect(meta['disable-model-invocation']).toBe('true');
@@ -95,11 +95,49 @@ describe('Claude Code plugin content', () => {
         }
     });
 
-    it('ships identical documentation standards with both documentation skills', async () => {
-        const create = await read('skills', 'documentation-create-default', 'documentation-standards.md');
-        expect(await read('skills', 'documentation-update-default', 'documentation-standards.md')).toBe(create);
-        for (const name of ['documentation-create-default', 'documentation-update-default']) {
-            expect(await read('skills', name, 'SKILL.md')).toContain('`documentation-standards.md`, located next to this SKILL.md');
+
+    const sharedFiles = [
+        { file: 'agents-md-rules.md', owner: 'agents-md', readers: ['analyze-and-plan', 'implement', 'debug'], heading: '# AGENTS.md rules' },
+        { file: 'todo-contract.md', owner: 'implement', readers: ['analyze-and-plan'], heading: '# Implementation TODO contract' },
+        { file: 'documentation-standards.md', owner: 'documentation-create-default', readers: ['documentation-update-default'], heading: '# Documentation Standards' },
+    ];
+
+    it('keeps one copy of each shared skill file, in its owner skill, and points the other skills to it', async () => {
+        for (const { file, owner, readers, heading } of sharedFiles) {
+            expect(await read('skills', owner, 'SKILL.md'), owner).toContain(`\`${file}\`, located next to this SKILL.md`);
+            await expect(read('skills', owner, file), owner).resolves.toContain(heading);
+            for (const name of readers) {
+                const skill = await read('skills', name, 'SKILL.md');
+                const expectedPath = `../${owner}/${file}`;
+                expect(skill, name).toContain(`at \`${expectedPath}\` relative to this skill's base directory`);
+                await expect(read('skills', name, expectedPath), name).resolves.toContain(heading);
+                await expect(read('skills', name, file), `${name} must not keep a copy of ${file}`).rejects.toThrow();
+            }
+        }
+    });
+
+    it('adds rules to AGENTS.md only when it exists and the user approves', async () => {
+        const rules = await read('skills', 'agents-md', 'agents-md-rules.md');
+        expect(rules).toContain('If it does not exist, skip this section completely');
+        expect(rules).toContain('Write only the rules the user approves');
+        for (const name of ['analyze-and-plan', 'implement', 'debug']) {
+            const skill = await read('skills', name, 'SKILL.md');
+            expect(skill, name).toContain('Add a rule only after the user approves it. If there is no `AGENTS.md`, skip this step.');
+        }
+    });
+
+    it('makes the agents-md skill wait for approval and offer the CLAUDE.md import', async () => {
+        const skill = await read('skills', 'agents-md', 'SKILL.md');
+        expect(skill).toContain('Do not write until they confirm');
+        expect(skill).toContain('`@AGENTS.md`');
+        expect(skill).toContain('Write only after a yes');
+    });
+
+    it('makes the logic and readability reviewers read AGENTS.md without editing it', async () => {
+        for (const agent of ['logic-review', 'code-readability']) {
+            const text = await read('agents', agent + '.md');
+            expect(text, agent).toContain('read `AGENTS.md` at the repository root when it exists');
+            expect(text, agent).toContain('Never edit `AGENTS.md`');
         }
     });
 

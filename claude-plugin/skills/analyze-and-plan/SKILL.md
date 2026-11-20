@@ -16,15 +16,17 @@ If no request was given, ask for one. This skill plans only; it does not impleme
 
 1. Find the active `.current` marker under `.history/agents/`. Read its `taskId` and `taskFile` fields. The active task folder is the directory containing the marker. Read the task JSON and every existing file in that folder first. Related tasks: if the marker has a non-empty `relatedTasks` array, also read, for each entry with `available: true`, the JSON at its absolute `taskFile` and every existing file in its absolute `taskFolder`. These are tasks linked to the active one, in this repository or in another repository of the same group (for example the backend API change a frontend task builds on); `repositoryName` and `repositoryDescription` say what that repository holds. When the work depends on code there, inspect it under `repositoryPath`. If the marker has no `relatedTasks` field, use the task JSON's `relatedTasks` entries instead: `<repositoryPath>/.history/tasks/<taskId>` and `<repositoryPath>/.history/agents/<taskId>/`. Treat everything from other repositories as read-only context: never edit files, write reports, call TODO tools, or change Git state there, and verify its claims against that repository's code. Name any related task you could not read in your final response instead of guessing its content.
 2. If no `.current` file exists, stop. Tell the user to start a task by starting its timer, then wait. Write nothing. If more than one marker exists, do not guess; ask the user to resolve it.
-3. Clarify the requested outcome, constraints, acceptance criteria, and unresolved requirements. Ask only questions that materially affect the design.
-4. Inspect the architecture, relevant call paths, tests, conventions, and nearby examples. Trace behavior far enough to understand direct and indirect impact.
-5. Identify affected components, interfaces, persisted data, user workflows, compatibility concerns, failure paths, and tests. Separate evidence from assumptions and open questions.
-6. Report material problems, risks, and dependencies before recommending a design.
-7. Where meaningful alternatives exist, compare them: approach, affected boundaries, benefits, costs, risks, compatibility impact, verification needs. Do not invent alternatives that do not solve the request.
-8. Prepare a recommendation with reasons. If a decision is still needed, record analysis, options, recommendation, and open questions with status `Awaiting Decision`. If the user already chose a solution in this conversation, use it without asking again.
-9. After the user chooses or explicitly approves a plan, prepare a concrete ordered plan with status `Selected`: likely files or modules, behavior, edge cases, tests, and measurable verification criteria, following existing patterns. Do not present unselected alternatives as an approved plan. In the same operation, create or reconcile the TODO list as described below.
-10. Complete the save-and-verify steps below before responding. Waiting for a decision is not a reason to skip saving. Do not create or change the TODO list while the plan awaits a decision.
-11. Respond with the outcome and a link to the saved file. If a decision is needed, ask the user to choose or answer, then stop and wait.
+3. Read `agents-md-rules.md` in the `agents-md` skill folder, at `../agents-md/agents-md-rules.md` relative to this skill's base directory. If the repository has an `AGENTS.md`, read it as that file describes and design within its rules. Report each conflict between the request and a rule under **Risks and Questions**.
+4. Clarify the requested outcome, constraints, acceptance criteria, and unresolved requirements. Ask only questions that materially affect the design.
+5. Inspect the architecture, relevant call paths, tests, conventions, and nearby examples. Trace behavior far enough to understand direct and indirect impact.
+6. Identify affected components, interfaces, persisted data, user workflows, compatibility concerns, failure paths, and tests. Separate evidence from assumptions and open questions.
+7. Report material problems, risks, and dependencies before recommending a design.
+8. Where meaningful alternatives exist, compare them: approach, affected boundaries, benefits, costs, risks, compatibility impact, verification needs. Do not invent alternatives that do not solve the request.
+9. Prepare a recommendation with reasons. If a decision is still needed, record analysis, options, recommendation, and open questions with status `Awaiting Decision`. If the user already chose a solution in this conversation, use it without asking again.
+10. After the user chooses or explicitly approves a plan, prepare a concrete ordered plan with status `Selected`: likely files or modules, behavior, edge cases, tests, and measurable verification criteria, following existing patterns. Do not present unselected alternatives as an approved plan. In the same operation, create or reconcile the TODO list as described below.
+11. Complete the save-and-verify steps below before responding. Waiting for a decision is not a reason to skip saving. Do not create or change the TODO list while the plan awaits a decision.
+12. Respond with the outcome and a link to the saved file. If a decision is needed, ask the user to choose or answer, then stop and wait.
+13. If the repository has an `AGENTS.md`, look for general rules in the user's messages for this task and ask about them in the same response, as `agents-md-rules.md` describes. Add a rule only after the user approves it. If there is no `AGENTS.md`, skip this step.
 
 ## Required save before responding
 
@@ -36,7 +38,7 @@ Start the file with a title and `## Summary` (2-3 plain-text sentences, at most 
 
 ### When a plan is selected
 
-Update `implementation-plan.md` and the TODO list in the same turn. Read `todo-contract.md`, located next to this SKILL.md. Then:
+Update `implementation-plan.md` and the TODO list in the same turn. Read `todo-contract.md` in the `implement` skill folder, at `../implement/todo-contract.md` relative to this skill's base directory. Then:
 
 1. Call `read_implementation_todos`.
 2. Read `logic-review.md` and `readability-review.md` if present.
@@ -48,7 +50,7 @@ Never read or write `implementation-todo.json` with file tools or shell commands
 
 ## Boundaries
 
-- Do not modify source, tests, or configuration. Create or update only `implementation-plan.md` and, after selection, the TODO list through the tools.
+- Do not modify source, tests, or configuration. Create or update only `implementation-plan.md`, after selection the TODO list through the tools, and `AGENTS.md` only to add rules the user approved in this conversation.
 - Do not assume an architecture, convention, dependency, or test exists without checking.
 - When no comparable implementation exists, say so and present the tradeoff instead of inventing a pattern.
 - Keep the plan proportional to the change; skip sections that add no decision value.

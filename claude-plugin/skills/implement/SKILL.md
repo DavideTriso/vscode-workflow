@@ -20,6 +20,8 @@ Related tasks: if the marker has a non-empty `relatedTasks` array, also read, fo
 
 If no `.current` file exists, stop. Tell the user to start a task by starting its timer, then wait. If more than one marker exists, do not guess a task folder; ask the user to resolve it.
 
+Read `agents-md-rules.md` in the `agents-md` skill folder, at `../agents-md/agents-md-rules.md` relative to this skill's base directory. If the repository has an `AGENTS.md`, read it as that file describes and follow its rules. If a rule conflicts with the request or with the rules in this skill, name the rule and ask the user before you act on that part.
+
 ## Before editing
 
 1. Restate the requested behavior and identify its owning code path.
@@ -50,7 +52,9 @@ If the list is absent when implementation begins, create it from the selected pl
 
 After implementation and verification, write one new Markdown run record in the task folder. Use a unique name such as `implement-<UTC timestamp>-<random suffix>.md`; never overwrite an earlier run. Start with a title and `## Summary` (2-3 plain-text sentences, at most 500 characters, on the changes and verification outcome), then `## Full Record` with the user request, implementation summary, files changed, checks run and results, and remaining risks. Do not include hidden reasoning. Read the file back to verify both sections; if the write or check fails, report the path and the failure.
 
-In the final response, summarize what changed, where, and which checks passed. Link the verified record and `implementation-todo.json`, list open items including deferred work, and state any limitation plainly. When it fits, suggest running the `logic-review` and `code-readability` subagents next.
+If the repository has an `AGENTS.md`, look for general rules in the user's messages for this task and ask about them, as `agents-md-rules.md` describes. Add a rule only after the user approves it. If there is no `AGENTS.md`, skip this step.
+
+In the final response, summarize what changed, where, and which checks passed. Name any rules you added to `AGENTS.md`. Link the verified record and `implementation-todo.json`, list open items including deferred work, and state any limitation plainly. When it fits, suggest running the `logic-review` and `code-readability` subagents next.
 
 ## Response style
 
