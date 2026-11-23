@@ -36,6 +36,8 @@ npm run package    # typecheck, test, production build, vsce package
 
 ## Conventions
 
+Code you write must follow [docs/coding-standard.md](docs/coding-standard.md).
+
 - TypeScript in strict mode with `noUncheckedIndexedAccess`. 4-space indentation, single quotes.
 - Tests: one vitest suite per area in `test/*.test.ts`. Webview tests use jsdom. Mirror the existing suite for the area you change.
 - Documentation: a short `README.md` and a flat `docs/` directory with `developer-documentation.md` and `user-documentation.md` as index pages.

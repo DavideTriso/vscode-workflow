@@ -139,11 +139,11 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </ol>
                     <section class="quick-reference-agent">
                         <h3>Analyze and Plan</h3>
-                        <p>Skill: <code>/vscode-workflow:analyze-and-plan</code>. Clarifies requirements, compares approaches, and saves the selected implementation plan and initial TODOs without changing code. Follows <code>AGENTS.md</code> and offers to add general rules from your prompt to it.</p>
+                        <p>Skill: <code>/vscode-workflow:analyze-and-plan</code>. Clarifies requirements, compares approaches, and saves the selected implementation plan and initial TODOs without changing code. Follows <code>AGENTS.md</code> and <code>docs/coding-standard.md</code>, and offers to add general rules from your prompt to it.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Implement</h3>
-                        <p>Skill: <code>/vscode-workflow:implement</code>. Implements the selected work, maintains the task TODOs, and runs functional and end-to-end checks. Changes documentation only when <code>AGENTS.md</code> says so; otherwise suggests updating it. Follows <code>AGENTS.md</code> and offers to add general rules from your prompt to it.</p>
+                        <p>Skill: <code>/vscode-workflow:implement</code>. Implements the selected work, maintains the task TODOs, and runs functional and end-to-end checks. Changes documentation only when <code>AGENTS.md</code> says so; otherwise suggests updating it. Follows <code>AGENTS.md</code> and <code>docs/coding-standard.md</code>, and offers to add general rules from your prompt to it.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Logic Review</h3>
@@ -152,13 +152,13 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Code Readability</h3>
-                        <p>Subagent: <code>vscode-workflow:code-readability</code>. Reviews clarity and maintainability and proposes numbered, focused improvements. It never edits code.</p>
+                        <p>Subagent: <code>vscode-workflow:code-readability</code>. Reviews clarity and maintainability and proposes numbered, focused improvements. Treats a broken rule of <code>AGENTS.md</code> or <code>docs/coding-standard.md</code> as a real problem. It never edits code.</p>
                         <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-readability-default</code> starts the subagent, saves its report in the task, then asks which proposals to add to the TODO list under <strong>Code Readability</strong>. <code>/vscode-workflow:implement</code> implements them.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Document</h3>
                         <p>Subagent: <code>vscode-workflow:document</code>. Updates repository documentation to reflect verified code and workflow changes.</p>
-                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:documentation-update-default</code> starts the subagent and saves its record in the task. <code>/vscode-workflow:documentation-create-default</code> initializes a repository's README and <code>docs/</code> after you approve a proposed table of contents.</p>
+                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:documentation-update-default</code> starts the subagent and saves its record in the task. <code>/vscode-workflow:documentation-create-default</code> initializes a repository's README and <code>docs/</code> after you approve a proposed table of contents. It always creates <code>docs/coding-standard.md</code> with default rules for the main language; review and customize it.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Code Comments</h3>
@@ -167,7 +167,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Debug</h3>
-                        <p>Skill: <code>/vscode-workflow:debug</code>. Reproduces a bug, investigates its root cause, applies a minimal fix when requested, and verifies it. Changes documentation only when <code>AGENTS.md</code> says so; otherwise suggests updating it.</p>
+                        <p>Skill: <code>/vscode-workflow:debug</code>. Reproduces a bug, investigates its root cause, applies a minimal fix when requested, and verifies it. Follows <code>docs/coding-standard.md</code>. Changes documentation only when <code>AGENTS.md</code> says so; otherwise suggests updating it.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Commit Message</h3>
@@ -175,7 +175,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </section>
                     <section class="quick-reference-agent">
                         <h3>AGENTS.md</h3>
-                        <p>Skill: <code>/vscode-workflow:agents-md</code>. Creates or updates the repository's <code>AGENTS.md</code> after you approve a proposal, and offers to import it from <code>CLAUDE.md</code>.</p>
+                        <p>Skill: <code>/vscode-workflow:agents-md</code>. Creates or updates the repository's <code>AGENTS.md</code> after you approve a proposal, and offers to import it from <code>CLAUDE.md</code>. Links <code>docs/coding-standard.md</code> when it exists.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Install git-crypt</h3>

@@ -28,5 +28,6 @@ Open the folder in VS Code and press **F5** to launch an Extension Development H
 
 - [Architecture](architecture.md): source layout, bundles, how repository state and the Claude Code plugin work, and what to keep in sync when changing them.
 - [Development process](development-process.md): from cloning the repository to building, debugging, testing and releasing.
+- [Coding standard](coding-standard.md): the rules for writing TypeScript and tests in this repository. Agents and developers follow it when they write code.
 
 For what the extension does and how it is used, see the [User documentation](user-documentation.md).

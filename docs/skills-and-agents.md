@@ -32,6 +32,15 @@ The extension registers seven agents and a documentation skill with Claude Code.
 - When `AGENTS.md` exists, Analyze and Plan, Implement and Debug look for general rules in your messages, such as "`Utility` holds only methods that are portable to other projects". At the end of the run they ask once whether to add them, and they write only the rules you approve. Without `AGENTS.md` they skip this.
 - The layout and the rule criteria are in `claude-plugin/skills/agents-md/agents-md-rules.md`. The other skills read that one file.
 
+## Coding standard
+
+`docs/coding-standard.md` in your repository holds the standards and preferences for writing code. `/vscode-workflow:documentation-create-default` creates it (see below).
+
+- Implement and Debug make the code they write follow it. Analyze and Plan designs within it. Code Readability reports a broken rule as a real problem. None of them changes the file on their own.
+- `/vscode-workflow:agents-md` links it from the `## Conventions` section of `AGENTS.md` and states that code the agent writes must follow it. It does not copy the rules into `AGENTS.md`.
+- When a rule in `docs/coding-standard.md` conflicts with `AGENTS.md`, the agent names both rules, asks you what to do in this case, and offers to fix the conflicting rules. It changes either file only after you approve. Code Readability cannot ask, so it adds a proposal that names both rules.
+- Without `docs/coding-standard.md`, the agents work as before.
+
 ## Propose a commit message
 
 Run `/vscode-workflow:commit-message` to get a commit message for your current changes. It reads the diff, the active task's name and description, and the task's report files, and it never stages or commits. The message format and the matching Source Control button are described in [Commit messages](commit-messages.md).
@@ -44,4 +53,6 @@ Run `/vscode-workflow:install-git-crypt` to install git-crypt and GPG, create a 
 
 Run `/vscode-workflow:documentation-create-default` to create documentation for a repository that has none, or to bring existing documentation into the standard layout. It does not need an active task. It proposes a table of contents and waits for your approval before writing.
 
-The layout is a short `README.md` (description, `## Documentation` with links to the developer and, when the software has users, user documentation, and `## License` when there is a license file) plus a flat `docs/` directory with `developer-documentation.md` and `user-documentation.md` as index pages. The Document agent follows the same layout. When a change needs many new pages, or it is unclear whether user documentation is needed, it stops and returns a proposal for you to confirm instead of writing.
+The layout is a short `README.md` (description, `## Documentation` with links to the developer and, when the software has users, user documentation, and `## License` when there is a license file) plus a flat `docs/` directory with `developer-documentation.md` and `user-documentation.md` as index pages. The Document agent follows the same layout. When a change needs many new pages, or it is unclear whether user documentation is needed, it stops and returns a proposal for you to confirm instead of writing. It does not change the rules in `docs/coding-standard.md` unless you ask.
+
+The skill always sets up `docs/coding-standard.md`, linked from the developer documentation. Its default rules come from the common style guide of the repository's main language, adjusted to the repository's formatter, linter and existing code. Review and customize the file after the skill finishes: agents follow it when they write code (see [Coding standard](#coding-standard)). If the file already exists, the skill keeps it unchanged and only adds the link when it is missing. The table of contents it proposes always lists the file and says which language and configuration the defaults are based on, or that the existing file stays unchanged.

@@ -25,11 +25,21 @@ Do not add other sections to `README.md` unless the user asks for them. Content 
 - All documentation pages live directly in `docs/`. Do not create subdirectories: `docs/` is flat.
 - `docs/developer-documentation.md` is the index page of the developer documentation.
 - `docs/user-documentation.md` is the index page of the user documentation, and exists only when user documentation is required.
+- `docs/coding-standard.md` is always required. It is a developer page, linked from `docs/developer-documentation.md`. See [Coding standard](#coding-standard).
 - Organize the remaining content into further Markdown pages in `docs/` according to the repository's size, content, and the user's instructions. A small repository may need only the index pages; a larger one splits topics into separate pages.
 - Hierarchy is expressed by content, not by folders. An index page links to its top-level pages; a page links to its sub-pages from the place where the topic is introduced. Every page must be reachable from one of the two index pages.
 - Name pages in lowercase kebab-case after their topic (for example `docs/api-authentication.md`). When a page belongs to only one audience and the topic name alone is ambiguous, prefix it with the audience (for example `docs/developer-testing.md`, `docs/user-installation.md`).
 - Each page starts with a single `#` heading and uses relative links between pages (for example `[Authentication](api-authentication.md)` inside `docs/`).
 - Keep developer and user content apart. A page serves one audience. When both audiences need the same fact, write it once on the user-facing page and link to it from the developer documentation.
+
+## Coding standard
+
+`docs/coding-standard.md` holds all standards and preferences for writing code in the repository. Agents read it and make the code they write follow it.
+
+- Start the page with `# Coding standard` and one sentence that says agents and developers follow it when they write code.
+- Group the rules by topic, for example naming, formatting, file and module structure, error handling, comments, tests, and language idioms. Write each rule as one short imperative bullet.
+- Base the default rules on the widely used style guide of the repository's main programming language. Then adjust them to what the repository already does: its formatter, linter, and editor configuration (for example `.editorconfig`, ESLint, Prettier, Ruff, or `tsconfig.json`) and the conventions the existing code follows. A rule must not contradict that configuration or the existing code. When the repository has more than one main language, add a section per language.
+- The team owns this page. When it already exists, keep its rules unchanged; only make sure `docs/developer-documentation.md` links it. Change its rules only when the user asks; fixing links is allowed.
 
 ## Table of contents approval
 

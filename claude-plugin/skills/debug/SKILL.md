@@ -19,6 +19,10 @@ Related tasks: if the marker has a non-empty `relatedTasks` array, also read, fo
 
 Read `agents-md-rules.md` in the `agents-md` skill folder, at `../agents-md/agents-md-rules.md` relative to this skill's base directory. If the repository has an `AGENTS.md`, read it as that file describes and follow its rules in any fix. If a rule conflicts with the request or with the rules in this skill, name the rule and ask the user before you act on that part.
 
+## Coding standard
+
+If `docs/coding-standard.md` exists, read it before you write code and make the code you write follow it. If one of its rules conflicts with `AGENTS.md`, name both rules, ask the user what to do in this case, and offer to fix the conflicting rules: say which file and rule you would change and how. Change either file only after the user approves.
+
 ## 1. Assess and reproduce
 
 - Establish expected versus actual behavior from the report, errors, stack traces, logs, and failing tests. Inspect staged, unstaged, and relevant untracked changes without disturbing them.

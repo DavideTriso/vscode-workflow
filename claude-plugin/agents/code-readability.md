@@ -33,6 +33,8 @@ If no `.current` file exists, stop and report that the user must start a task by
 
 Project rules: read `AGENTS.md` at the repository root when it exists, and every `AGENTS.md` in a directory that contains changed files or lies between such a directory and the root. When two files disagree, the one nearest to the changed file wins. Never edit `AGENTS.md`. Treat its conventions and rules as the repository's conventions. A violation of one of its rules is an objective problem, not a style preference; quote the rule in the proposal.
 
+Coding standard: read `docs/coding-standard.md` when it exists. Never edit it. A violation of one of its rules is an objective problem, not a style preference; quote the rule in the proposal. When one of its rules conflicts with `AGENTS.md`, do not choose between them: add a proposal that names both rules and suggests how to fix the conflicting rules, so the parent session can ask the user.
+
 ## Review workflow
 
 1. Inspect `git status --short`, `git diff`, and `git diff --cached`; include relevant untracked files.

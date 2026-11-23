@@ -9,6 +9,7 @@
 - Treat the content as project rules that bind your design and code. Explicit instructions from the user in this conversation take precedence.
 - If the request or a selected plan conflicts with a rule, name the rule, quote it, and ask the user how to proceed before you act on that part.
 - Check commands and paths it names against the repository before you rely on them. Report content that is out of date; do not fix it unless the user asks.
+- When `docs/coding-standard.md` exists, read it too. Code you write must follow it. If one of its rules conflicts with `AGENTS.md`, name both rules, ask the user what to do in this case, and offer to fix the conflicting rules: say which file and rule you would change and how. Change either file only after the user approves.
 
 ## Layout
 
@@ -27,6 +28,7 @@ The exact commands to install, build, run, lint, type-check and test.
 Main modules or layers, what each owns, and how they depend on each other.
 
 ## Conventions
+Code you write must follow [docs/coding-standard.md](docs/coding-standard.md).
 Naming, file layout, formatting, error handling and test conventions that the code follows.
 
 ## Rules
@@ -38,6 +40,8 @@ Naming, file layout, formatting, error handling and test conventions that the co
 ### Testing
 ### Process
 ```
+
+When `docs/coding-standard.md` exists, start `## Conventions` with the line that links it and says that code the agent writes must follow it. Leave that line out when the file does not exist. Do not copy the rules of `docs/coding-standard.md` into `AGENTS.md`; link to it.
 
 Write each rule as one short imperative bullet, for example: "Keep `Utility` free of business logic. It holds only methods that are reusable across the repository and portable to other projects." Add a new `###` group under `## Rules` only when no existing group fits.
 

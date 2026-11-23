@@ -130,6 +130,52 @@ describe('Claude Code plugin content', () => {
         expect(debug).toContain(`## Documentation\n\n${paragraph}\n`);
     });
 
+    const codingStandardConflictRule = 'name both rules, ask the user what to do in this case, and offer to fix the conflicting rules';
+
+    it('makes implement and debug follow docs/coding-standard.md with the same paragraph', async () => {
+        const implement = await read('skills', 'implement', 'SKILL.md');
+        const debug = await read('skills', 'debug', 'SKILL.md');
+        const paragraph = implement.match(/## Coding standard\n\n(.+)\n/)?.[1];
+        expect(paragraph).toContain('If `docs/coding-standard.md` exists, read it before you write code and make the code you write follow it.');
+        expect(paragraph).toContain(codingStandardConflictRule);
+        expect(paragraph).toContain('Change either file only after the user approves.');
+        expect(debug).toContain(`## Coding standard\n\n${paragraph}\n`);
+    });
+
+    it('makes the planner, the AGENTS.md rules and the readability reviewer use docs/coding-standard.md', async () => {
+        const planning = await read('skills', 'analyze-and-plan', 'SKILL.md');
+        expect(planning).toContain('If `docs/coding-standard.md` exists, read it and design within it too');
+        expect(planning).toContain(codingStandardConflictRule);
+        const rules = await read('skills', 'agents-md', 'agents-md-rules.md');
+        expect(rules).toContain('When `docs/coding-standard.md` exists, read it too. Code you write must follow it.');
+        expect(rules).toContain(codingStandardConflictRule);
+        const reviewer = await read('agents', 'code-readability.md');
+        expect(reviewer).toContain('read `docs/coding-standard.md` when it exists. Never edit it.');
+        expect(reviewer).toContain('do not choose between them');
+    });
+
+    it('makes the agents-md skill link docs/coding-standard.md without copying it', async () => {
+        const rules = await read('skills', 'agents-md', 'agents-md-rules.md');
+        expect(rules).toContain('## Conventions\nCode you write must follow [docs/coding-standard.md](docs/coding-standard.md).');
+        expect(rules).toContain('Do not copy the rules of `docs/coding-standard.md` into `AGENTS.md`');
+        const skill = await read('skills', 'agents-md', 'SKILL.md');
+        expect(skill).toContain('states that code the agent writes must follow the coding standard in that file');
+        expect(skill).toContain('a missing link to `docs/coding-standard.md`');
+    });
+
+    it('makes documentation-create always set up docs/coding-standard.md and ask the user to review it', async () => {
+        const standards = await read('skills', 'documentation-create-default', 'documentation-standards.md');
+        expect(standards).toContain('`docs/coding-standard.md` is always required. It is a developer page, linked from `docs/developer-documentation.md`.');
+        expect(standards).toContain('## Coding standard');
+        expect(standards).toContain('widely used style guide of the repository\'s main programming language');
+        expect(standards).toContain('When it already exists, keep its rules unchanged');
+        const skill = await read('skills', 'documentation-create-default', 'SKILL.md');
+        expect(skill).toContain('Always list `docs/coding-standard.md` under the developer index');
+        expect(skill).toContain('If it already exists, keep its content unchanged and only add the link when it is missing.');
+        expect(skill).toContain('`docs/coding-standard.md` exists and `docs/developer-documentation.md` links it.');
+        expect(skill).toContain('Tell the user to review and customize `docs/coding-standard.md`');
+    });
+
 
     const sharedFiles = [
         { file: 'agents-md-rules.md', owner: 'agents-md', readers: ['analyze-and-plan', 'implement', 'debug'], heading: '# AGENTS.md rules' },
