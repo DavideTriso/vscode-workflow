@@ -39,6 +39,10 @@ Read `agents-md-rules.md` in the `agents-md` skill folder, at `../agents-md/agen
 - Run the relevant functional and end-to-end tests before delivery. If the framework or environment is unavailable, report the missing coverage and the blocker in the run record and final response. Ask before adding infrastructure that expands the agreed scope.
 - Do not claim tests or behavior were verified unless you ran them.
 
+## Documentation
+
+Change documentation (`README.md`, the `docs/` folder, and other guides for readers) only when `AGENTS.md` tells you to. Otherwise do not change it, and leave documentation TODO items open. Code comments are not documentation. At the end of your final response, if the change affects what the documentation describes, suggest that the user update it with `/vscode-workflow:documentation-update-default`, or with `/vscode-workflow:documentation-create-default` when the repository has no documentation yet.
+
 ## TODO list
 
 Read `todo-contract.md`, located next to this SKILL.md, before you touch the TODO list. It defines the schema and rules. Access the list only through the `read_implementation_todos`, `manage_implementation_todos`, `sync_logic_review_todos`, and `sync_code_readability_todos` tools; never read or write `implementation-todo.json` with file tools or shell commands.
@@ -51,7 +55,7 @@ After implementation and verification, write one new Markdown run record in the 
 
 If the repository has an `AGENTS.md`, look for general rules in the user's messages for this task and ask about them, as `agents-md-rules.md` describes. Add a rule only after the user approves it. If there is no `AGENTS.md`, skip this step.
 
-In the final response, summarize what changed, where, and which checks passed. Name any rules you added to `AGENTS.md`. Link the verified record and `implementation-todo.json`, list open items including deferred work, and state any limitation plainly. When it fits, suggest running the `logic-review` and `code-readability` subagents next.
+In the final response, summarize what changed, where, and which checks passed. Name any rules you added to `AGENTS.md`. Link the verified record and `implementation-todo.json`, list open items including deferred work, and state any limitation plainly. When it fits, suggest running the `logic-review` and `code-readability` subagents next. End with the documentation suggestion from **Documentation** when it applies.
 
 ## Response style
 

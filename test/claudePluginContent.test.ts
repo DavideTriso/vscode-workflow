@@ -120,6 +120,16 @@ describe('Claude Code plugin content', () => {
         }
     });
 
+    it('lets implement and debug change documentation only when AGENTS.md says so', async () => {
+        const implement = await read('skills', 'implement', 'SKILL.md');
+        const debug = await read('skills', 'debug', 'SKILL.md');
+        const paragraph = implement.match(/## Documentation\n\n(.+)\n/)?.[1];
+        expect(paragraph).toContain('only when `AGENTS.md` tells you to');
+        expect(paragraph).toContain('/vscode-workflow:documentation-update-default');
+        expect(paragraph).toContain('/vscode-workflow:documentation-create-default');
+        expect(debug).toContain(`## Documentation\n\n${paragraph}\n`);
+    });
+
 
     const sharedFiles = [
         { file: 'agents-md-rules.md', owner: 'agents-md', readers: ['analyze-and-plan', 'implement', 'debug'], heading: '# AGENTS.md rules' },

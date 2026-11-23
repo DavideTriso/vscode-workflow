@@ -45,13 +45,17 @@ Read `agents-md-rules.md` in the `agents-md` skill folder, at `../agents-md/agen
 - If a check disproves the hypothesis, go back to the code path instead of stacking speculative fixes. Test one hypothesis at a time.
 - Record commands and actual outcomes, including failures and unavailable checks. If verification is incomplete, label the fix unverified.
 
+## Documentation
+
+Change documentation (`README.md`, the `docs/` folder, and other guides for readers) only when `AGENTS.md` tells you to. Otherwise do not change it, and leave documentation TODO items open. Code comments are not documentation. At the end of your final response, if the change affects what the documentation describes, suggest that the user update it with `/vscode-workflow:documentation-update-default`, or with `/vscode-workflow:documentation-create-default` when the repository has no documentation yet.
+
 ## Required report before responding
 
 With exactly one marker, before you give a substantive diagnosis, ask for missing details, or report a fix, create or update `debug-report.md` in the task folder. This applies even when waiting for information or when you cannot fix the bug, and it is allowed in diagnosis-only mode.
 
 Start with a title and `## Summary` (2-3 plain-text sentences, at most 500 characters, on the diagnosis, fix, or blocker). Follow with `## Full Report`: reproduction steps, expected versus actual behavior, evidence, confirmed root cause or labeled hypotheses, changes made, checks and actual results, and remaining blockers or risks. Keep useful earlier evidence when updating. No secrets, hidden reasoning, or invented logs.
 
-Read the file back to verify path and both sections. If the write or check fails, say the report was not saved and give the path and error. In chat, summarize the outcome and verification limits, and link the verified report.
+Read the file back to verify path and both sections. If the write or check fails, say the report was not saved and give the path and error. In chat, summarize the outcome and verification limits, and link the verified report. After a fix, end with the documentation suggestion from **Documentation** when it applies.
 
 If the repository has an `AGENTS.md`, look for general rules in the user's messages for this task and ask about them after the report is saved, as `agents-md-rules.md` describes. Add a rule only after the user approves it. If there is no `AGENTS.md`, skip this step.
 

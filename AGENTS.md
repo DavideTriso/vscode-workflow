@@ -61,4 +61,3 @@ npm run package    # typecheck, test, production build, vsce package
 
 - `.vscodeignore` is an allowlist. Add every new runtime file or folder to it, or it does not ship.
 - Bump `version` in `package.json` for a release. Claude Code sees a plugin update through that version.
-- Update `docs/` in the same change when behavior, commands or settings change.
