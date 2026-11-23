@@ -50,7 +50,7 @@ describe('Claude Code plugin content', () => {
     it('only references MCP tools the server actually exposes', async () => {
         const files = [
             ...(await readdir(path.join(pluginRoot, 'agents'))).map((file) => ['agents', file]),
-            ...['implement', 'analyze-and-plan', 'debug'].map((name) => ['skills', name, 'SKILL.md']),
+            ...['implement', 'analyze-and-plan', 'debug', 'code-readability-default'].map((name) => ['skills', name, 'SKILL.md']),
         ];
         for (const file of files) {
             const text = await read(...file);
@@ -61,13 +61,38 @@ describe('Claude Code plugin content', () => {
         }
     });
 
-    it('gives each reviewer agent only the TODO sync tool it owns', async () => {
-        const readability = frontmatter(await read('agents', 'code-readability.md')).tools;
-        expect(readability).toContain(`${mcpPrefix}sync_code_readability_todos`);
-        expect(readability).not.toContain('sync_logic_review_todos');
+    it('gives logic-review its own sync tool and code-readability only the read tool', async () => {
+        const readabilityAgent = await read('agents', 'code-readability.md');
+        const readability = frontmatter(readabilityAgent).tools;
+        expect(readability).toContain(`${mcpPrefix}read_implementation_todos`);
+        expect(readability).not.toContain('sync_');
+        expect(readabilityAgent).not.toContain('sync_code_readability_todos');
+        expect(readabilityAgent).toContain('Number your proposals from `N+1`');
         const logic = frontmatter(await read('agents', 'logic-review.md')).tools;
         expect(logic).toContain(`${mcpPrefix}sync_logic_review_todos`);
         expect(logic).not.toContain('sync_code_readability_todos');
+    });
+
+    it('lets the readability launcher add only the selected proposals to Code Readability', async () => {
+        const skill = await read('skills', 'code-readability-default', 'SKILL.md');
+        const tools = frontmatter(skill)['allowed-tools'];
+        expect(tools).toContain(`${mcpPrefix}read_implementation_todos`);
+        expect(tools).toContain(`${mcpPrefix}sync_code_readability_todos`);
+        expect(skill).toContain('Ask the user which numbered proposals to add to the TODO list.');
+        expect(skill).toContain('`Code Readability` group');
+        expect(skill).toContain('/vscode-workflow:implement');
+        expect(skill).not.toMatch(/proposals to apply|Apply only/);
+    });
+
+    it('limits every complete-set readability sync to the Code Readability group', async () => {
+        const contract = await read('skills', 'implement', 'todo-contract.md');
+        expect(contract).toContain('with every agent-created item with `source: "code-readability"` in the `Code Readability` group');
+        expect(contract).toContain('Never send items from other groups');
+        const launcher = await read('skills', 'code-readability-default', 'SKILL.md');
+        expect(launcher).toContain('in the `Code Readability` group, unchanged');
+        const tool = todoToolDefinitions.find((definition) => definition.name === 'sync_code_readability_todos');
+        expect(tool?.description).toContain('Send the complete set of the Code Readability group on every call');
+        expect(tool?.description).toContain('Never send items from other groups');
     });
 
     it('points the MCP config at the bundled server and the plugin name matches', async () => {

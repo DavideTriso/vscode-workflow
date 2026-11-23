@@ -86,6 +86,56 @@ describe('TODO MCP server for Claude Code', () => {
         expect(after.groups[0].items[0]).toMatchObject({ title: 'Write tests', createdBy: 'agent' });
     });
 
+    it('keeps the selected readability proposals in the Code Readability group across reviews', async () => {
+        const itemFields = {
+            done: false, why: 'Hard to follow', files: ['src/a.ts'], decisions: 'Extract a helper', acceptance: 'Same behavior',
+            evidence: '', remaining: 'Not implemented', alert: null,
+        };
+        const proposal = (number: number) => ({
+            ...itemFields, title: `Readability proposal ${number}`, sourceRef: `readability-review.md#recommendation-${number}`,
+        });
+        await call('manage_implementation_todos', {
+            action: 'add',
+            group: 'Code Readability',
+            item: { ...itemFields, title: 'Note from another source', source: 'user-note', sourceRef: 'user:note' },
+        });
+        await call('sync_code_readability_todos', { items: [proposal(1), proposal(3)] });
+        const secondReview = await call('sync_code_readability_todos', { items: [proposal(1), proposal(3), proposal(5)] });
+        expect(secondReview?.result).not.toHaveProperty('isError');
+
+        let todo = JSON.parse(textOf(await call('read_implementation_todos', {})));
+        expect(todo.groups.map((group: { name: string }) => group.name)).toEqual(['Code Readability']);
+        expect(todo.groups[0].items.map((item: { title: string }) => item.title)).toEqual([
+            'Note from another source', 'Readability proposal 1', 'Readability proposal 3', 'Readability proposal 5',
+        ]);
+        expect(todo.groups[0].items[1]).toMatchObject({ source: 'code-readability', createdBy: 'agent', done: false });
+
+        await call('sync_code_readability_todos', { items: [{ ...proposal(1), done: true }, proposal(5)] });
+        todo = JSON.parse(textOf(await call('read_implementation_todos', {})));
+        expect(todo.groups[0].items.map((item: { title: string; done: boolean }) => [item.title, item.done])).toEqual([
+            ['Note from another source', false], ['Readability proposal 1', true], ['Readability proposal 5', false],
+        ]);
+    });
+
+    it('leaves readability items in other groups untouched when the Code Readability set is synced', async () => {
+        const legacy = {
+            title: 'Legacy proposal', done: false, source: 'code-readability', sourceRef: 'readability-review.md#recommendation-1',
+            why: '', files: [], decisions: '', acceptance: '', evidence: '', remaining: 'pending user approval', alert: null,
+        };
+        await call('manage_implementation_todos', { action: 'add', group: 'Readability', item: legacy });
+        const { source: _source, ...selected } = { ...legacy, title: 'Selected proposal', sourceRef: 'readability-review.md#recommendation-2', remaining: '' };
+        await call('sync_code_readability_todos', { items: [selected] });
+        await call('sync_code_readability_todos', { items: [{ ...selected, done: true }] });
+
+        const todo = JSON.parse(textOf(await call('read_implementation_todos', {})));
+        expect(todo.groups.map((group: { name: string; items: Array<{ title: string; done: boolean }> }) => [
+            group.name, group.items.map((item) => [item.title, item.done]),
+        ])).toEqual([
+            ['Readability', [['Legacy proposal', false]]],
+            ['Code Readability', [['Selected proposal', true]]],
+        ]);
+    });
+
     it('returns tool failures as isError results the model can read', async () => {
         const response = await call('manage_implementation_todos', { action: 'add' });
         expect(response?.result).toMatchObject({ isError: true });

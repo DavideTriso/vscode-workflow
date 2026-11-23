@@ -42,7 +42,10 @@ Update `implementation-plan.md` and the TODO list in the same turn. Read `todo-c
 
 1. Call `read_implementation_todos`.
 2. Read `logic-review.md` and `readability-review.md` if present.
-3. Build complete ordered groups with every plan step and every applicable review proposal. Use `source: "plan"` and plan-section `sourceRef` values for plan steps. New steps and unresolved review findings use `done: false`; verified completed work uses `done: true`. Record pending approval or deferral in `remaining`. Keep stable review references such as `readability-review.md#recommendation-N`.
+3. Build complete ordered groups. `sync-plan` removes agent-created items missing from the call, so include every item below:
+   - Plan steps: `source: "plan"` and plan-section `sourceRef` values. New steps use `done: false`; verified completed work uses `done: true`. Record deferral in `remaining`.
+   - Logic-review findings: every applicable finding, with stable references such as `logic-review.md#finding-N`. Unresolved findings use `done: false`; record pending approval or deferral in `remaining`.
+   - Readability items: carry over every agent-created item with `source: "code-readability"` in the `Code Readability` group unchanged (group, `source`, `sourceRef`, `done`), because the user selected them. Do not add readability proposals that are not in the list.
 4. Call `manage_implementation_todos` exactly once with `action: "sync-plan"`, the plan path, and the full `planGroups`. The tool reconciles by source reference, writes atomically, and preserves user-created items. On an explicit plan revision this one sync may reconcile agent-owned items and completion.
 5. Call `read_implementation_todos` again and verify the full list. If `sync-plan` fails or returns no list, report the failure and do not claim the checklist exists.
 

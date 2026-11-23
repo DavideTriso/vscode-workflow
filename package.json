@@ -2,7 +2,7 @@
     "name": "vscode-workflow",
     "displayName": "VS Code Workflow",
     "description": "Track tasks in VS Code and build with AI coding agents through a repeatable workflow. Every change is recorded in the repo, so agents and teammates, human or AI, keep the context they need.",
-    "version": "0.8.0",
+    "version": "0.8.1",
     "publisher": "davidetriso",
     "license": "MIT",
     "repository": {

@@ -32,9 +32,6 @@ Read `agents-md-rules.md` in the `agents-md` skill folder, at `../agents-md/agen
 ## Implementation rules
 
 - Keep changes focused, readable, testable, and consistent with existing public APIs unless the request requires a change.
-- Prefer clear names, small cohesive functions, explicit error handling, and reuse of existing utilities.
-- Avoid `else` and `else if` when guard clauses, early returns, or clearer control flow work.
-- Never use `continue` or `break` in loops. Restructure the loop or extract a helper.
 - Do not add unrelated cleanup, dependencies, or abstractions.
 - Add or update tests for behavior changes. Run the narrowest relevant checks first, then the required project checks.
 - Cover the common workflows the change affects with functional tests: the main success path, validation and expected failures, and cancellation, retry, or repeated-action behavior where they apply. Do not rely on unit tests alone.

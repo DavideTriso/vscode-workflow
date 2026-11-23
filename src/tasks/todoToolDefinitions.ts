@@ -346,7 +346,7 @@ export const todoToolDefinitions: TodoToolDefinition[] = [
     },
     {
         "name": "sync_code_readability_todos",
-        "description": "Add or update Code Readability proposals in the active task checklist by stable sourceRef. Use done=false for open proposals and record pending approval or deferral in remaining. Use done=true only after approved improvements are implemented and verified. Remove stale agent-owned readability proposals not present in the latest report. User-created items are preserved and cannot be changed.",
+        "description": "Set the readability proposals the user selected in the Code Readability group of the active task checklist, matched by stable sourceRef. Send the complete set of the Code Readability group on every call: its earlier agent-owned readability items plus new selections, because agent-owned readability items of that group missing from the call are removed. Never send items from other groups: they are added to Code Readability as copies; update those with manage_implementation_todos instead. Use done=false until an item is implemented and verified, then done=true. User-created items are preserved and cannot be changed.",
         "inputSchema": {
             "type": "object",
             "properties": {

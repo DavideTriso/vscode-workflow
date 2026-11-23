@@ -152,8 +152,8 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Code Readability</h3>
-                        <p>Subagent: <code>vscode-workflow:code-readability</code>. Reviews clarity and maintainability and proposes focused improvements before editing.</p>
-                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-readability-default</code> starts the subagent, saves its report in the task, then asks which proposals to apply.</p>
+                        <p>Subagent: <code>vscode-workflow:code-readability</code>. Reviews clarity and maintainability and proposes numbered, focused improvements. It never edits code.</p>
+                        <p class="quick-reference-skills">Skills: <code>/vscode-workflow:code-readability-default</code> starts the subagent, saves its report in the task, then asks which proposals to add to the TODO list under <strong>Code Readability</strong>. <code>/vscode-workflow:implement</code> implements them.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Document</h3>

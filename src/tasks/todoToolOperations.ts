@@ -9,6 +9,12 @@ export const todoToolNames = {
     syncReadability: 'sync_code_readability_todos',
 } as const;
 
+/** TODO group that holds the confirmed logic-review findings. */
+export const logicReviewTodoGroup = 'Logic Review';
+
+/** TODO group that holds the readability proposals the user selected for implementation. */
+export const codeReadabilityTodoGroup = 'Code Readability';
+
 export interface TodoToolContext {
     repositoryRoot: string;
     taskId: string;
@@ -85,12 +91,12 @@ export const manageTodos: TodoToolOperation<ManageTodoInput> = async (repository
 
 export const syncLogicReviewTodos: TodoToolOperation<ReviewTodoInput> = (repository, activeTask, input) => {
     const items = input.items.map((item) => ({ ...item, source: 'logic-review' as const, done: false }));
-    return repository.syncReviewTodos(activeTask.repositoryRoot, activeTask.taskId, 'logic-review', 'Logic Review', items);
+    return repository.syncReviewTodos(activeTask.repositoryRoot, activeTask.taskId, 'logic-review', logicReviewTodoGroup, items);
 };
 
 export const syncReadabilityTodos: TodoToolOperation<ReviewTodoInput> = (repository, activeTask, input) => {
     const items = input.items.map((item) => ({ ...item, source: 'code-readability' as const }));
-    return repository.syncReviewTodos(activeTask.repositoryRoot, activeTask.taskId, 'code-readability', 'Readability', items);
+    return repository.syncReviewTodos(activeTask.repositoryRoot, activeTask.taskId, 'code-readability', codeReadabilityTodoGroup, items);
 };
 
 /** Resolves the single active task for a repository path without any editor API. */
