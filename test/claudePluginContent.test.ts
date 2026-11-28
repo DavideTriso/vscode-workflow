@@ -130,6 +130,24 @@ describe('Claude Code plugin content', () => {
         expect(JSON.parse(await read('.claude-plugin', 'plugin.json')).name).toBe(claudePluginName);
     });
 
+    it('makes debug and implement keep one report per problem or change', async () => {
+        const debug = await read('skills', 'debug', 'SKILL.md');
+        const implement = await read('skills', 'implement', 'SKILL.md');
+        expect(debug).toContain('Keep one report per problem.');
+        expect(debug).toContain('list the `debug-*.md` files in the task folder');
+        expect(debug).toContain('`debug-<UTC timestamp>-<short name>.md`');
+        expect(debug).toContain('starting with a `Problem:` line');
+        expect(implement).toContain('Keep one record per change.');
+        expect(implement).toContain('list the `implement-*.md` files in the task folder');
+        expect(implement).toContain('`implement-<UTC timestamp>-<short name>.md`');
+        expect(implement).toContain('starting with a `Change:` line');
+        for (const skill of [debug, implement]) {
+            expect(skill).toContain('Otherwise, and when you are not sure, create a new');
+        }
+        expect(debug).not.toContain('create or update `debug-report.md`');
+        expect(implement).not.toContain('<random suffix>');
+    });
+
     it('keeps upstream attribution for the adapted debug skill', async () => {
         expect(await read('skills', 'debug', 'SKILL.md')).toContain('github/awesome-copilot/blob/main/agents/debug.agent.md');
         const notices = await readFile(path.resolve(__dirname, '..', 'THIRD_PARTY_NOTICES.md'), 'utf8');

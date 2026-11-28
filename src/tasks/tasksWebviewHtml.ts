@@ -143,7 +143,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Implement</h3>
-                        <p>Skill: <code>/vscode-workflow:implement</code>. Implements the selected work, maintains the task TODOs, and runs functional and end-to-end checks. Changes documentation only when <code>AGENTS.md</code> says so; otherwise suggests updating it. Follows <code>AGENTS.md</code> and <code>docs/coding-standard.md</code>, and offers to add general rules from your prompt to it. At the end, offers to run the logic and readability reviews.</p>
+                        <p>Skill: <code>/vscode-workflow:implement</code>. Implements the selected work, maintains the task TODOs, and runs functional and end-to-end checks. Keeps one record per change, listed under <strong>Implementation summaries</strong>. Changes documentation only when <code>AGENTS.md</code> says so; otherwise suggests updating it. Follows <code>AGENTS.md</code> and <code>docs/coding-standard.md</code>, and offers to add general rules from your prompt to it. At the end, offers to run the logic and readability reviews.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Logic Review</h3>
@@ -167,7 +167,7 @@ export function getTasksWebviewHtml(webview: vscode.Webview, extensionUri: vscod
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Debug</h3>
-                        <p>Skill: <code>/vscode-workflow:debug</code>. Reproduces a bug, investigates its root cause, applies a minimal fix when requested, and verifies it. Follows <code>docs/coding-standard.md</code>. Changes documentation only when <code>AGENTS.md</code> says so; otherwise suggests updating it.</p>
+                        <p>Skill: <code>/vscode-workflow:debug</code>. Reproduces a bug, investigates its root cause, applies a minimal fix when requested, and verifies it. Keeps one report per problem, listed under <strong>Debug</strong>. Follows <code>docs/coding-standard.md</code>. Changes documentation only when <code>AGENTS.md</code> says so; otherwise suggests updating it.</p>
                     </section>
                     <section class="quick-reference-agent">
                         <h3>Commit Message</h3>

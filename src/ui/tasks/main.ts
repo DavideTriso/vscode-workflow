@@ -1,9 +1,10 @@
 import { buildAssigneeOptions, filterTasks, getUserEmail, isSameRelatedTask, validateTaskInput } from '../../tasks/taskModel';
 import { describeImplementationTodoItem } from '../../tasks/implementationTodo';
-import { outputAgents } from '../../tasks/taskProtocol';
+import { isListOutputAgent, outputAgents } from '../../tasks/taskProtocol';
 import { isHistoryEncryptionNotice, type HistoryEncryptionNotice } from '../../crypt/historyEncryptionMessages';
 import { initHistoryEncryptionView } from './historyEncryptionView';
 import type {
+    AgentOutputFile,
     AgentOutputGroup,
     CreateTaskInput,
     ExtensionToWebviewMessage,
@@ -578,6 +579,12 @@ function createAgentOutputAccordion(group: AgentOutputGroup): HTMLElement {
             expandedOutputAgents.delete(group.id);
         }
     });
+    if (isListOutputAgent(group.id)) {
+        content.append(createAgentOutputList(group));
+        header.append(toggle);
+        section.append(header, content);
+        return section;
+    }
 
     const viewButton = document.createElement('button');
     viewButton.type = 'button';
@@ -688,6 +695,36 @@ function createAgentOutputAccordion(group: AgentOutputGroup): HTMLElement {
     }
     section.append(header, content);
     return section;
+}
+
+function createAgentOutputList(group: AgentOutputGroup): HTMLUListElement {
+    const list = document.createElement('ul');
+    list.className = 'agent-output-list';
+    list.append(...group.files.map((file) => createAgentOutputRow(file)));
+    return list;
+}
+
+function createAgentOutputRow(file: AgentOutputFile): HTMLLIElement {
+    const row = document.createElement('li');
+    row.className = 'agent-output-row';
+    row.dataset.fileName = file.fileName;
+    const summary = document.createElement('p');
+    summary.className = 'agent-output-row-summary';
+    summary.textContent = file.summary || 'No summary available.';
+    summary.title = summary.textContent;
+    const viewButton = document.createElement('button');
+    viewButton.type = 'button';
+    viewButton.className = 'agent-output-view agent-output-row-view task-action';
+    viewButton.innerHTML = actionIcons.view;
+    viewButton.title = `Preview ${file.fileName}`;
+    viewButton.setAttribute('aria-label', viewButton.title);
+    viewButton.addEventListener('click', () => {
+        if (selectedTask) {
+            vscode.postMessage({ type: 'viewAgentOutput', taskId: selectedTask.id, fileName: file.fileName });
+        }
+    });
+    row.append(summary, viewButton);
+    return row;
 }
 
 function formatTodoCounter(group: AgentOutputGroup | undefined): string {

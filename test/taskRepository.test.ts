@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, symlink, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -41,6 +41,7 @@ describe('task repository', () => {
         const groups = await repository.listAgentOutputs(repositoryRoot, 'task.json');
         expect(groups.map((group) => group.name)).toEqual([
             'Analyze and Plan', 'Logic Review', 'Code Readability', 'Document', 'Debug', 'Implementation TODOs',
+            'Implementation summaries',
         ]);
         expect(groups.every((group) => group.files.length === 0)).toBe(true);
     });
@@ -64,7 +65,8 @@ describe('task repository', () => {
         expect(groups.find((group) => group.id === 'debug')?.files).toEqual([
             { fileName: 'debug-report.md', summary: 'Fixed the reproduced failure.' },
         ]);
-        expect(groups.flatMap((group) => group.files).some((file) => file.fileName.startsWith('implement-'))).toBe(false);
+        expect(groups.find((group) => group.id === 'implement-summary')?.files.map((file) => file.fileName).sort())
+            .toEqual(['implement-first.md', 'implement-second.md']);
         expect(groups.find((group) => group.id === 'logic-review')?.files).toEqual([]);
         expect(await repository.getAgentOutputPath(repositoryRoot, 'task.json', 'implementation-plan.md'))
             .toBe(path.join(directory, 'implementation-plan.md'));
@@ -72,7 +74,45 @@ describe('task repository', () => {
             .toBe(path.join(directory, 'debug-report.md'));
         expect(await repository.getAgentOutputPath(repositoryRoot, 'task.json', 'implementation-todo.json'))
             .toBe(path.join(directory, 'implementation-todo.json'));
-        await expect(repository.getAgentOutputPath(repositoryRoot, 'task.json', 'implement-first.md')).rejects.toThrow('Invalid agent');
+        expect(await repository.getAgentOutputPath(repositoryRoot, 'task.json', 'implement-first.md'))
+            .toBe(path.join(directory, 'implement-first.md'));
+    });
+
+    it('lists every debug report and implementation summary newest first', async () => {
+        const directory = path.join(repositoryRoot, '.history', 'agents', 'task.json');
+        await mkdir(directory, { recursive: true });
+        const reports = [
+            { fileName: 'debug-report.md', summary: 'Legacy report.', modified: 1 },
+            { fileName: 'debug-20261128-041200-commit-button-crash.md', summary: 'Newest bug.', modified: 3 },
+            { fileName: 'debug-20261127-090000-slow-list.md', summary: 'Older bug.', modified: 2 },
+            { fileName: 'implement-20261127-090000-first-change.md', summary: 'First change.', modified: 1 },
+            { fileName: 'implement-20261128-041200-second-change.md', summary: 'Second change.', modified: 2 },
+        ];
+        await Promise.all(reports.map(async (report) => {
+            const filePath = path.join(directory, report.fileName);
+            await writeFile(filePath, `# Report\n\n## Summary\n${report.summary}\n\n## Full Report\nProblem: details.`);
+            await utimes(filePath, report.modified * 1000, report.modified * 1000);
+        }));
+        await writeFile(path.join(directory, 'debug-notes.txt'), 'Not a report.');
+        await writeFile(path.join(directory, 'debug-.md'), 'No name after the prefix.');
+
+        const groups = await repository.listAgentOutputs(repositoryRoot, 'task.json');
+
+        expect(groups.find((group) => group.id === 'debug')?.files).toEqual([
+            { fileName: 'debug-20261128-041200-commit-button-crash.md', summary: 'Newest bug.' },
+            { fileName: 'debug-20261127-090000-slow-list.md', summary: 'Older bug.' },
+            { fileName: 'debug-report.md', summary: 'Legacy report.' },
+        ]);
+        expect(groups.find((group) => group.id === 'implement-summary')?.files).toEqual([
+            { fileName: 'implement-20261128-041200-second-change.md', summary: 'Second change.' },
+            { fileName: 'implement-20261127-090000-first-change.md', summary: 'First change.' },
+        ]);
+        expect(groups.find((group) => group.id === 'implement')?.files).toEqual([]);
+        expect(await repository.getAgentOutputPath(repositoryRoot, 'task.json', 'debug-20261127-090000-slow-list.md'))
+            .toBe(path.join(directory, 'debug-20261127-090000-slow-list.md'));
+        for (const fileName of ['debug-notes.txt', 'debug-.md', '../debug-a.md', 'implement-a.json', 'notes-debug-a.md']) {
+            await expect(repository.getAgentOutputPath(repositoryRoot, 'task.json', fileName)).rejects.toThrow('Invalid agent');
+        }
     });
 
     it('sets and clears user TODO status while preserving group and item order', async () => {

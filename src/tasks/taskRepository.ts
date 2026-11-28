@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 import { compareTasksNewestFirst, createOpenTaskSummary, createTaskSummary, formatUser, readRelatedTasks } from './taskModel';
 import { listLinkableRepositories, resolveRelatedRepository, type LinkableRepository } from './repositoryGroups';
 import { parseImplementationTodo, renderImplementationTodoMarkdown, serializeImplementationTodo, summarizeImplementationTodo } from './implementationTodo';
-import { outputAgents, type AgentOutputGroup, type CreateTaskInput, type ImplementationTodoDocument, type ImplementationTodoGroup, type ImplementationTodoGroupOrder, type ImplementationTodoItem, type ImplementationTodoItemDraft, type ImplementationTodoSource, type RelatedTaskCandidate, type RelatedTaskReference, type RepositoryGroup, type TaskStatus, type TaskSummary, type TimeTrackingEntry, type UserIdentity } from './taskProtocol';
+import { isAgentOutputFile, outputAgents, type AgentOutputGroup, type CreateTaskInput, type ImplementationTodoDocument, type ImplementationTodoGroup, type ImplementationTodoGroupOrder, type ImplementationTodoItem, type ImplementationTodoItemDraft, type ImplementationTodoSource, type RelatedTaskCandidate, type RelatedTaskReference, type RepositoryGroup, type TaskStatus, type TaskSummary, type TimeTrackingEntry, type UserIdentity } from './taskProtocol';
 
 const execFileAsync = promisify(execFile);
 export type UserIdentityProvider = (repositoryRoot: string) => Promise<UserIdentity | undefined>;
@@ -893,7 +893,7 @@ async function realpathIfPresent(filePath: string): Promise<string | undefined> 
 
 function matchesAgentOutput(agentId: AgentOutputGroup['id'], fileName: string): boolean {
     const agent = outputAgents.find((candidate) => candidate.id === agentId);
-    return agent?.fileName === fileName;
+    return agent !== undefined && isAgentOutputFile(agent, fileName);
 }
 
 function extractOutputSummary(content: string): string {

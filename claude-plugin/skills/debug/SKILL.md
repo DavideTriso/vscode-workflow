@@ -54,9 +54,11 @@ Change documentation (`README.md`, the `docs/` folder, and other guides for read
 
 ## Required report before responding
 
-With exactly one marker, before you give a substantive diagnosis, ask for missing details, or report a fix, create or update `debug-report.md` in the task folder. This applies even when waiting for information or when you cannot fix the bug, and it is allowed in diagnosis-only mode.
+With exactly one marker, before you give a substantive diagnosis, ask for missing details, or report a fix, create or update the debug report for the current problem in the task folder. This applies even when waiting for information or when you cannot fix the bug, and it is allowed in diagnosis-only mode.
 
-Start with a title and `## Summary` (2-3 plain-text sentences, at most 500 characters, on the diagnosis, fix, or blocker). Follow with `## Full Report`: reproduction steps, expected versus actual behavior, evidence, confirmed root cause or labeled hypotheses, changes made, checks and actual results, and remaining blockers or risks. Keep useful earlier evidence when updating. No secrets, hidden reasoning, or invented logs.
+Keep one report per problem. Before you write, list the `debug-*.md` files in the task folder (older tasks can have `debug-report.md`) and read the `## Summary` and the `Problem:` line of each. If a report clearly describes the same problem, update that report. Otherwise, and when you are not sure, create a new report named `debug-<UTC timestamp>-<short name>.md`, for example `debug-20261128-041200-commit-button-crash.md`; the short name is a few lowercase words joined by hyphens. Name the report you used in your response.
+
+Start with a title and `## Summary` (2-3 plain-text sentences, at most 500 characters, on the diagnosis, fix, or blocker). Follow with `## Full Report`, starting with a `Problem:` line that states the problem in one sentence, then reproduction steps, expected versus actual behavior, evidence, confirmed root cause or labeled hypotheses, changes made, checks and actual results, and remaining blockers or risks. Keep useful earlier evidence when updating. No secrets, hidden reasoning, or invented logs.
 
 Read the file back to verify path and both sections. If the write or check fails, say the report was not saved and give the path and error. In chat, summarize the outcome and verification limits, and link the verified report. After a fix, end with the documentation suggestion from **Documentation** when it applies.
 

@@ -115,14 +115,47 @@ export interface ImplementationTodoDocument {
     groups: ImplementationTodoGroup[];
 }
 
+/** An agent whose output files the Tasks view shows in one accordion. */
+export interface OutputAgentDefinition {
+    id: string;
+    name: string;
+    /** The exact file name of a single-file output, or of a legacy file of a multi-file output. */
+    fileName?: string;
+    /** The prefix of a multi-file output, for example `debug-` for `debug-<timestamp>-<name>.md` reports. */
+    filePrefix?: string;
+    /** `list` shows one row with a summary and a view button per file. */
+    layout?: 'list';
+}
+
 export const outputAgents = [
     { id: 'analyze-and-plan', name: 'Analyze and Plan', fileName: 'implementation-plan.md' },
     { id: 'logic-review', name: 'Logic Review', fileName: 'logic-review.md' },
     { id: 'code-readability', name: 'Code Readability', fileName: 'readability-review.md' },
     { id: 'document', name: 'Document', fileName: 'documentation-update.md' },
-    { id: 'debug', name: 'Debug', fileName: 'debug-report.md' },
+    { id: 'debug', name: 'Debug', fileName: 'debug-report.md', filePrefix: 'debug-', layout: 'list' },
     { id: 'implement', name: 'Implementation TODOs', fileName: 'implementation-todo.json' },
-] as const;
+    { id: 'implement-summary', name: 'Implementation summaries', filePrefix: 'implement-', layout: 'list' },
+] as const satisfies readonly OutputAgentDefinition[];
+
+/**
+ * Returns true when a plain file name is an output of the agent: its exact `fileName`, or its
+ * `filePrefix` followed by letters, digits, dots, hyphens or underscores and `.md`.
+ */
+export function isAgentOutputFile(agent: OutputAgentDefinition, fileName: string): boolean {
+    if (agent.fileName === fileName) {
+        return true;
+    }
+    if (!agent.filePrefix || !fileName.startsWith(agent.filePrefix)) {
+        return false;
+    }
+    return /^[A-Za-z0-9][A-Za-z0-9._-]*\.md$/.test(fileName.slice(agent.filePrefix.length));
+}
+
+/** Returns true when the accordion of the output agent lists its files as rows. */
+export function isListOutputAgent(agentId: string): boolean {
+    const agent: OutputAgentDefinition | undefined = outputAgents.find((candidate) => candidate.id === agentId);
+    return agent?.layout === 'list';
+}
 
 export interface AgentOutputFile {
     fileName: string;

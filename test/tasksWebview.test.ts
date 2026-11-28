@@ -313,6 +313,50 @@ describe('task webview TODO interactions', () => {
         expect(postMessage).toHaveBeenLastCalledWith({ type: 'viewAgentOutput', taskId: task.id, fileName: 'implementation-todo.json' });
     });
 
+    it('lists debug reports and implementation summaries as rows that each preview their own file', () => {
+        send({
+            type: 'agentOutputs', taskId: task.id, groups: [
+                ...groups,
+                {
+                    id: 'debug', name: 'Debug', files: [
+                        { fileName: 'debug-20261128-041200-crash.md', summary: 'Fixed the crash.\nLine two.\nLine three.\nLine four.' },
+                        { fileName: 'debug-report.md', summary: '' },
+                    ],
+                },
+                { id: 'implement-summary', name: 'Implementation summaries', files: [{ fileName: 'implement-20261128-041200-list.md', summary: 'Added the list.' }] },
+            ],
+        });
+        const style = document.createElement('style');
+        style.textContent = readFileSync(path.resolve('media/tasks.css'), 'utf8');
+        document.head.append(style);
+
+        const sectionIds = [...document.querySelectorAll('.agent-output-content')].map((content) => content.id);
+        expect(sectionIds.slice(-3)).toEqual(['agent-output-debug', 'agent-output-implement', 'agent-output-implement-summary']);
+        const debugSection = document.querySelector('#agent-output-debug')!.closest('.agent-output-accordion')!;
+        expect(debugSection.querySelector('.agent-output-header .agent-output-view')).toBeNull();
+        expect(debugSection.querySelector('select')).toBeNull();
+        const rows = [...debugSection.querySelectorAll<HTMLElement>('.agent-output-row')];
+        expect(rows.map((row) => row.dataset.fileName)).toEqual(['debug-20261128-041200-crash.md', 'debug-report.md']);
+        const summary = rows[0]!.querySelector<HTMLElement>('.agent-output-row-summary')!;
+        expect(summary.title).toBe('Fixed the crash.\nLine two.\nLine three.\nLine four.');
+        expect(dom.window.getComputedStyle(summary).getPropertyValue('-webkit-line-clamp')).toBe('3');
+        expect(dom.window.getComputedStyle(summary).overflow).toBe('hidden');
+        expect(rows[1]!.querySelector('.agent-output-row-summary')?.textContent).toBe('No summary available.');
+
+        click('.agent-output-row[data-file-name="debug-report.md"] .agent-output-row-view');
+        expect(postMessage).toHaveBeenLastCalledWith({ type: 'viewAgentOutput', taskId: task.id, fileName: 'debug-report.md' });
+        click('#agent-output-implement-summary .agent-output-row-view');
+        expect(postMessage).toHaveBeenLastCalledWith({ type: 'viewAgentOutput', taskId: task.id, fileName: 'implement-20261128-041200-list.md' });
+    });
+
+    it('disables the Debug and Implementation summaries accordions when they have no files', () => {
+        for (const id of ['debug', 'implement-summary']) {
+            const toggle = document.querySelector<HTMLButtonElement>(`[aria-controls="agent-output-${id}"]`)!;
+            expect(toggle.disabled).toBe(true);
+            expect(document.querySelectorAll(`#agent-output-${id} .agent-output-row`)).toHaveLength(0);
+        }
+    });
+
     it('uses the boolean for checkbox state and rollback', () => {
         const checkboxes = document.querySelectorAll<HTMLInputElement>('.implementation-todo-checkbox');
         expect([...checkboxes].map((checkbox) => checkbox.checked)).toEqual([false, true]);
