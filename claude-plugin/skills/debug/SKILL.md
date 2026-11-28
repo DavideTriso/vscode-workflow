@@ -1,6 +1,6 @@
 ---
 name: debug
-description: Reproduce a bug, find its evidence-backed root cause, apply a minimal fix (or diagnose only), verify it, and save a debug report in the active task folder.
+description: Reproduces a bug, finds its evidence-backed root cause, applies a minimal fix (or diagnoses only), verifies it, and saves a debug report in the active task folder. Use when the user reports a bug, an error, or a failing test.
 argument-hint: "<bug description, error, or failing test>"
 disable-model-invocation: true
 ---
@@ -39,14 +39,13 @@ If `docs/coding-standard.md` exists, read it before you write code and make the 
 ## 3. Resolve
 
 - When a fix is requested, make the smallest change that addresses the verified root cause. Follow neighboring code and conventions, preserve user edits, and avoid unrelated cleanup or speculative defensive code.
-- Avoid `else` and `else if` when guard clauses or early returns are clearer. Never use `continue` or `break` in loops.
 - Add or update a regression test that reproduces the original defect where practical. Remove only temporary diagnostics you added; never revert the user's changes.
 - Do not run destructive commands, change production data, disable safeguards, or reveal secrets to get a reproducer. Ask before anything that expands the agreed scope.
 
 ## 4. Verify
 
 - After a fix, run the narrow failing check, repeat the original reproduction, then run adjacent tests and the required repository gates.
-- If a check disproves the hypothesis, go back to the code path instead of stacking speculative fixes. Test one hypothesis at a time.
+- If a check disproves the hypothesis, go back to the code path and test the next hypothesis on its own; stacked speculative fixes hide the real cause.
 - Record commands and actual outcomes, including failures and unavailable checks. If verification is incomplete, label the fix unverified.
 
 ## Documentation

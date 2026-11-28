@@ -1,6 +1,6 @@
 ---
 name: documentation-update-default
-description: Keep repository documentation aligned with material code, configuration, and workflow changes by running the document subagent, which saves documentation-update.md in the active task folder.
+description: Updates repository documentation to match material code, configuration, and workflow changes through the document subagent, which saves documentation-update.md in the active task folder. Use when the user asks to update the documentation after a change.
 ---
 
 # Documentation Updates
@@ -12,7 +12,7 @@ The standards live in `documentation-standards.md` in the `documentation-create-
 1. Your first action is one `Agent` tool call with `subagent_type` set to `vscode-workflow:document`. The subagent cannot see this conversation, so the prompt must contain:
    - the user's request and any arguments given to this skill;
    - what changed and why, from the conversation (say so if it is unknown);
-   - the absolute path of `documentation-standards.md`, built from this skill's base directory and that relative path;
+   - the absolute path of `documentation-standards.md`, built from this skill's base directory and that relative path. The subagent reads the file from the plugin folder first and uses this path as a fallback;
    - any table of contents or answer the user already approved.
 2. If the subagent cannot be started, tell the user and suggest running `/reload-plugins`. Do not edit the documentation in this conversation instead.
 3. When the subagent returns, relay a summary of the documentation changes, the checks it ran, and the path of the saved `documentation-update.md`. If it reports a blocker, such as a missing active task, relay that and stop.

@@ -1,7 +1,6 @@
 ---
 name: code-comment-review
-description: Review code comments for low value, stale or inaccurate claims, and missing explanations of intent by running the code-comments subagent in review mode; report without editing files.
-user-invocable: true
+description: Reviews code comments for low value, stale or inaccurate claims, and missing explanations of intent through the code-comments subagent, and reports without editing files. Use when the user asks to check or review code comments.
 ---
 
 # Code Comment Review

@@ -1,6 +1,6 @@
 ---
 name: commit-message
-description: Propose a commit message for the current changes from the diff, the active task name and description, and the task's report files. Only proposes text; it never stages or commits.
+description: Proposes a commit message for the current changes from the diff, the active task name and description, and the task's report files. Only proposes text and never stages or commits. Use when the user asks for a commit message.
 disable-model-invocation: true
 ---
 

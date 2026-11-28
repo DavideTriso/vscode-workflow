@@ -1,6 +1,6 @@
 ---
 name: logic-review-default
-description: Review the changed code for confirmed behavioral defects by running the logic-review subagent, which saves logic-review.md in the active task folder.
+description: Reviews the changed code for confirmed behavioral defects through the logic-review subagent, which saves logic-review.md in the active task folder. Use when the user asks to check their changes for bugs, regressions, or logic errors.
 ---
 
 # Logic Review

@@ -1,9 +1,9 @@
 ---
 name: implement
-description: Implement a requested change by first finding repository patterns, following established architecture, tracking work in the task TODO list, and saving a run record.
+description: Implements a requested change by following repository patterns and established architecture, tracks the work in the task TODO list, and saves a run record. Use when the user asks to implement a change or a selected plan.
 argument-hint: "<change to implement>"
 disable-model-invocation: true
-allowed-tools: mcp__plugin_vscode-workflow_todos__read_implementation_todos mcp__plugin_vscode-workflow_todos__manage_implementation_todos mcp__plugin_vscode-workflow_todos__sync_logic_review_todos mcp__plugin_vscode-workflow_todos__sync_code_readability_todos
+allowed-tools: Skill mcp__plugin_vscode-workflow_todos__read_implementation_todos mcp__plugin_vscode-workflow_todos__manage_implementation_todos mcp__plugin_vscode-workflow_todos__sync_logic_review_todos mcp__plugin_vscode-workflow_todos__sync_code_readability_todos
 ---
 
 # Implement
@@ -35,13 +35,12 @@ If `docs/coding-standard.md` exists, read it before you write code and make the 
 
 ## Implementation rules
 
-- Keep changes focused, readable, testable, and consistent with existing public APIs unless the request requires a change.
-- Do not add unrelated cleanup, dependencies, or abstractions.
-- Add or update tests for behavior changes. Run the narrowest relevant checks first, then the required project checks.
-- Cover the common workflows the change affects with functional tests: the main success path, validation and expected failures, and cancellation, retry, or repeated-action behavior where they apply. Do not rely on unit tests alone.
-- Add end-to-end tests when an affected user workflow crosses UI, service, or persistence boundaries. Assert observable outcomes, not only mocked calls. Reuse the repository's test framework, fixtures, and helpers.
-- Run the relevant functional and end-to-end tests before delivery. If the framework or environment is unavailable, report the missing coverage and the blocker in the run record and final response. Ask before adding infrastructure that expands the agreed scope.
-- Do not claim tests or behavior were verified unless you ran them.
+- Keep changes focused and consistent with existing public APIs unless the request requires a change. Leave out unrelated cleanup, dependencies, and abstractions, because they make the change harder to review.
+- Add or update tests for behavior changes, with the repository's test framework, fixtures, and helpers:
+  - functional tests for the common workflows the change affects: the main success path, validation and expected failures, and cancellation, retry, or repeated actions where they apply;
+  - end-to-end tests when a workflow crosses UI, service, or persistence boundaries, asserting observable outcomes rather than only mocked calls.
+- Run the narrowest relevant checks first, then the functional, end-to-end, and required project checks. If a framework or environment is unavailable, report the missing coverage and the blocker in the run record and final response. Ask before adding infrastructure that expands the agreed scope.
+- Claim only the tests and behavior you verified by running them.
 
 ## Documentation
 
@@ -49,17 +48,19 @@ Change documentation (`README.md`, the `docs/` folder, and other guides for read
 
 ## TODO list
 
-Read `todo-contract.md`, located next to this SKILL.md, before you touch the TODO list. It defines the schema and rules. Access the list only through the `read_implementation_todos`, `manage_implementation_todos`, `sync_logic_review_todos`, and `sync_code_readability_todos` tools; never read or write `implementation-todo.json` with file tools or shell commands.
+Read `todo-contract.md`, located next to this SKILL.md, before you touch the TODO list. It defines the schema, the tools to use, and the rules for ownership, completion, and review items.
 
-If the list is absent when implementation begins, create it from the selected plan, the request, and the task JSON, and say in its summary that Analyze and Plan did not create it. Never silently omit it. Before the final response, read it back and verify schema, ordering, statuses, and summary. Report any failure with the exact path.
+If the list is absent when implementation begins, create it from the selected plan, the request, and the task JSON, and say in its summary that Analyze and Plan did not create it. Before the final response, read it back and verify schema, ordering, statuses, and summary. Report any failure with the exact path.
 
 ## Delivery
 
-After implementation and verification, write one new Markdown run record in the task folder. Use a unique name such as `implement-<UTC timestamp>-<random suffix>.md`; never overwrite an earlier run. Start with a title and `## Summary` (2-3 plain-text sentences, at most 500 characters, on the changes and verification outcome), then `## Full Record` with the user request, implementation summary, files changed, checks run and results, and remaining risks. Do not include hidden reasoning. Read the file back to verify both sections; if the write or check fails, report the path and the failure.
+After implementation and verification, write one new Markdown run record in the task folder. Use a unique name such as `implement-<UTC timestamp>-<random suffix>.md`, so earlier runs stay intact. Start with a title and `## Summary` (2-3 plain-text sentences, at most 500 characters, on the changes and verification outcome), then `## Full Record` with the user request, implementation summary, files changed, checks run and results, and remaining risks. Leave out hidden reasoning. Read the file back to verify both sections; if the write or check fails, report the path and the failure.
 
 If the repository has an `AGENTS.md`, look for general rules in the user's messages for this task and ask about them, as `agents-md-rules.md` describes. Add a rule only after the user approves it. If there is no `AGENTS.md`, skip this step.
 
-In the final response, summarize what changed, where, and which checks passed. Name any rules you added to `AGENTS.md`. Link the verified record and `implementation-todo.json`, list open items including deferred work, and state any limitation plainly. When it fits, suggest running the `logic-review` and `code-readability` subagents next. End with the documentation suggestion from **Documentation** when it applies.
+Offer the reviews: when code changed, ask once whether to run the logic review and the readability review now, in the same message as the `AGENTS.md` rule question if there is one. On yes, run the `vscode-workflow:logic-review-default` skill and then the `vscode-workflow:code-readability-default` skill with the Skill tool, or only the one the user picks, so their reports are saved and the readability proposals go through the usual selection. On no, or without an answer, run neither and do not ask again in this run.
+
+In the final response, summarize what changed, where, and which checks passed. Name any rules you added to `AGENTS.md`. Link the verified record and `implementation-todo.json`, list open items including deferred work, and state any limitation plainly. End with the documentation suggestion from **Documentation** when it applies.
 
 ## Response style
 

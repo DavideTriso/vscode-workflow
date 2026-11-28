@@ -1,7 +1,7 @@
 ---
 name: documentation-create-default
-description: Initialize a repository's documentation (README.md and a flat docs/ directory with developer and user documentation and a coding standard) after the user approves a proposed table of contents.
-user-invocable: true
+description: Initializes a repository's documentation (README.md and a flat docs/ directory with developer and user documentation and a coding standard) after the user approves a proposed table of contents. Use when a repository has no documentation yet, or its documentation should move into the standard structure.
+disable-model-invocation: true
 ---
 
 # Documentation Creation

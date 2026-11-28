@@ -1,10 +1,16 @@
 # Implementation TODO contract
 
-The single source of truth is `implementation-todo.json` beside the active `.current` marker. Do not create or maintain a Markdown copy. The task-view extension parses this JSON, displays groups and items in file order, lets the user mark an item done or undone, and renders a Markdown preview from the JSON. Use only `read_implementation_todos` and `manage_implementation_todos` tools to access or change the file; never use edit, execute, or another file-writing method on the TODO JSON.
+`implementation-todo.json`, beside the active `.current` marker, is the single source of truth for the task's TODO list. The Tasks view shows its groups and items in file order, lets the user tick items done or undone, and renders a Markdown preview from it, so keep no Markdown copy.
 
-Every item has `createdBy: "agent"` or `createdBy: "user"`. Agent tools reject updates and removals of user-created items and preserve them during reorder and review sync. The user can edit, remove, and reorder any item in the task view.
+## Access
 
-Use this schema and no priority or weight field:
+- Read and change the list only through the TODO tools (`read_implementation_todos`, `manage_implementation_todos`, `sync_logic_review_todos`, `sync_code_readability_todos`). They serialize writes, validate the schema, keep concurrent user changes, and return the updated list. A file tool or shell command on the JSON can overwrite the user's ticks.
+- Call `read_implementation_todos` at the start of every work turn and right before each batch of changes. Keep no raw JSON copy between calls.
+- After each completed batch of code edits, update the list before you start the next item.
+
+## Schema
+
+Use this schema, with no priority, weight, or status field:
 
 ```json
 {
@@ -39,13 +45,35 @@ Use this schema and no priority or weight field:
 }
 ```
 
-TODOs have only two states: open (`done: false`) and done (`done: true`). Do not emit a status field. Valid sources are `plan`, `request`, `user-note`, `logic-review`, and `code-readability`. IDs are unique across all groups. Group and item order in the JSON is the display order; choose a useful logical order and never sort by priority. Each item preserves its source reference, rationale, files, decisions, acceptance criteria, evidence, remaining work, and alert. Text fields may contain concise Markdown.
+- An item is open (`done: false`) or done (`done: true`).
+- Valid sources: `plan`, `request`, `user-note`, `logic-review`, `code-readability`.
+- IDs are unique across all groups.
+- JSON order is display order. Choose a useful logical order; do not sort by priority.
+- Keep every field of an item filled in as work goes on. Text fields may contain concise Markdown.
 
-Read the current JSON through `read_implementation_todos` at the start of every work turn and immediately before each logical mutation batch. Use the management tools for read-modify-write; they serialize writes, validate the schema, preserve concurrent user changes, and return updated data. Never maintain a raw JSON copy. After every completed code edit batch, update the TODO through the tools before starting another item.
+## Ownership and completion
 
-During normal implementation work, preserve completion the user set (`updatedBy: "user"`). A user tick sets `done: true`; an un-tick sets `done: false`. If code evidence shows a user-completed item is missing or broken, do not change its completion: add an `alert`, explain the evidence in `remaining`, and tell the user. For agent-owned items, set `done: true` only after the change and its stated verification pass; otherwise keep `done: false` and explain what remains. Deferred or unapproved work stays open, with the deferral or approval requirement recorded in `remaining`; do not implement it until the user asks or approves.
+- Every item has `createdBy: "agent"` or `createdBy: "user"`. The tools reject changes to user-created items and keep them in place during reorder and sync. Leave them as they are; the user edits them in the Tasks view.
+- Keep completion the user set (`updatedBy: "user"`) during normal work. If the code shows that a user-completed item is missing or broken, leave `done` as it is, add an `alert`, explain the evidence in `remaining`, and tell the user.
+- Set `done: true` on an agent item only after the change and its stated verification pass. Otherwise keep it open and say in `remaining` what is left.
+- Deferred or unapproved work stays open, with the deferral or approval need in `remaining`. Implement it only when the user asks or approves.
 
-When the user changes the plan, reconcile agent-created TODOs freely, including statuses previously changed by the user: add, remove, update, regroup, reorder, tick, or un-tick them to match the newly selected plan and current implementation. Preserve every user-created TODO without editing, removing, or reordering it. Use the `reconcile` action only during an explicit plan revision when changing a user-set status on an agent-created item. Record material reconciliation decisions in the summary and item details. When a plan changes during implementation, stop the current sequence, reconcile through the tools, then continue from its new order.
+## Plan changes
 
-Read `logic-review.md` and `readability-review.md` at the start of each turn and before reconciliation. Add confirmed logic-review findings as open items grouped under `Logic Review`, ordered by severity. Items in the `Code Readability` group are readability proposals the user selected, so implement them like other open items; never add proposals from `readability-review.md` that are not in the list. When you mark readability items done, call `sync_code_readability_todos` with every agent-created item with `source: "code-readability"` in the `Code Readability` group, because the tool removes the ones missing from the call. Never send items from other groups: the tool adds them to `Code Readability` as copies. To mark done an item that sits in another group, use `manage_implementation_todos` `update`. Use the source-specific sync tools and stable `sourceRef` values such as `logic-review.md#finding-2` to avoid duplicates and remove stale agent-owned findings. Recheck source files before marking review items done. When the user asks to keep something in mind, add an open item immediately with source `user-note`, their words, and enough context to act later; record that it is deferred in `remaining`.
+- When the user changes the plan, reconcile agent-created items freely to match the new plan and the current code: add, remove, update, regroup, reorder, tick, or un-tick them, including statuses the user set. Leave user-created items untouched.
+- Use the `reconcile` action only during an explicit plan revision, to change a user-set status on an agent-created item.
+- Record material reconciliation decisions in the summary and the item details.
+- If the plan changes during implementation, stop, reconcile through the tools, and continue in the new order.
 
+## Review items
+
+- Read `logic-review.md` and `readability-review.md` at the start of each turn and before reconciliation.
+- Confirmed logic-review findings are open items in the `Logic Review` group, ordered by severity.
+- Items in the `Code Readability` group are proposals the user selected; implement them like other open items. Add no proposals from `readability-review.md` that are not in the list, because the user chose which ones to keep.
+- When you mark readability items done, call `sync_code_readability_todos` with every agent-created item with `source: "code-readability"` in the `Code Readability` group, because the tool removes the ones missing from the call. Never send items from other groups: the tool adds them to `Code Readability` as copies. To mark done an item in another group, use `manage_implementation_todos` `update`.
+- Use the source-specific sync tools and stable `sourceRef` values such as `logic-review.md#finding-2`, so findings are not duplicated and stale ones are removed.
+- Recheck the source files before you mark a review item done.
+
+## User notes
+
+When the user asks you to keep something in mind, add an open item right away with source `user-note`, their words, and enough context to act later. Record in `remaining` that it is deferred.

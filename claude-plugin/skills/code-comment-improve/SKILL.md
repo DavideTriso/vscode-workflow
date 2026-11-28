@@ -1,7 +1,7 @@
 ---
 name: code-comment-improve
-description: Improve low-value, inaccurate, or missing code comments without changing executable code, by running the code-comments subagent in improve mode.
-user-invocable: true
+description: Improves low-value, inaccurate, or missing code comments without changing executable code, through the code-comments subagent in improve mode. Use when the user asks to fix, clean up, or add code comments.
+disable-model-invocation: true
 ---
 
 # Code Comment Improvement

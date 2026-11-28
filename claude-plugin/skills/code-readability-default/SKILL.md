@@ -1,6 +1,6 @@
 ---
 name: code-readability-default
-description: Review the changed code for clarity and maintainability by running the code-readability subagent, which saves readability-review.md in the active task folder, then add the proposals the user selects to the TODO list under Code Readability.
+description: Reviews the changed code for clarity and maintainability through the code-readability subagent, which saves readability-review.md in the active task folder, then adds the proposals the user selects to the TODO list under Code Readability. Use when the user asks for a readability, clarity, or maintainability review of their changes.
 allowed-tools: mcp__plugin_vscode-workflow_todos__read_implementation_todos mcp__plugin_vscode-workflow_todos__sync_code_readability_todos
 ---
 

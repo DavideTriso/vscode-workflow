@@ -34,10 +34,25 @@ describe('Claude Code plugin content', () => {
     });
 
     it('ships the interactive workflows as user-invoked skills, not subagents', async () => {
-        for (const name of ['implement', 'analyze-and-plan', 'debug', 'commit-message', 'install-git-crypt', 'agents-md']) {
+        for (const name of ['implement', 'analyze-and-plan', 'debug', 'commit-message', 'install-git-crypt', 'agents-md', 'documentation-create-default', 'code-comment-improve']) {
             const meta = frontmatter(await read('skills', name, 'SKILL.md'));
             expect(meta.name).toBe(name);
             expect(meta['disable-model-invocation']).toBe('true');
+        }
+    });
+
+    it('describes every skill and subagent in the third person with when to use it', async () => {
+        const files = [
+            ...(await readdir(path.join(pluginRoot, 'skills'))).map((name) => ['skills', name, 'SKILL.md']),
+            ...(await readdir(path.join(pluginRoot, 'agents'))).map((file) => ['agents', file]),
+        ];
+        for (const file of files) {
+            const meta = frontmatter(await read(...file));
+            expect(meta.description, file.join('/')).toMatch(/^[A-Z][a-z]+s\b/);
+            expect(meta.description, file.join('/')).toContain('Use when');
+            expect(meta.description, file.join('/')).not.toMatch(/proactively/i);
+            expect(meta.description!.length, file.join('/')).toBeLessThanOrEqual(1024);
+            expect(meta['user-invocable'], file.join('/')).toBeUndefined();
         }
     });
 
@@ -66,11 +81,25 @@ describe('Claude Code plugin content', () => {
         const readability = frontmatter(readabilityAgent).tools;
         expect(readability).toContain(`${mcpPrefix}read_implementation_todos`);
         expect(readability).not.toContain('sync_');
+        expect(readability.split(',').map((tool) => tool.trim())).not.toContain('Edit');
         expect(readabilityAgent).not.toContain('sync_code_readability_todos');
         expect(readabilityAgent).toContain('Number your proposals from `N+1`');
         const logic = frontmatter(await read('agents', 'logic-review.md')).tools;
         expect(logic).toContain(`${mcpPrefix}sync_logic_review_todos`);
         expect(logic).not.toContain('sync_code_readability_todos');
+        expect(logic.split(',').map((tool) => tool.trim())).not.toContain('Edit');
+    });
+
+    it('makes implement offer the logic and readability reviews once instead of running them on its own', async () => {
+        const implement = await read('skills', 'implement', 'SKILL.md');
+        expect(implement).toContain('ask once whether to run the logic review and the readability review now');
+        expect(implement).toContain('`vscode-workflow:logic-review-default`');
+        expect(implement).toContain('`vscode-workflow:code-readability-default`');
+        expect(implement).toContain('On no, or without an answer, run neither');
+        expect(implement).not.toContain('suggest running the `logic-review` and `code-readability` subagents');
+        for (const skill of ['logic-review-default', 'code-readability-default']) {
+            expect(frontmatter(await read('skills', skill, 'SKILL.md'))['disable-model-invocation'], skill).toBeUndefined();
+        }
     });
 
     it('lets the readability launcher add only the selected proposals to Code Readability', async () => {
@@ -261,7 +290,9 @@ describe('Claude Code plugin content', () => {
         expect(skill).toContain('the absolute path of `documentation-standards.md`');
         expect(skill).toContain('Status: Awaiting Confirmation');
         const agent = await read('agents', 'document.md');
-        expect(agent).toContain('at the absolute path given in your brief');
+        expect(agent).toContain('Read `${CLAUDE_PLUGIN_ROOT}/skills/documentation-create-default/documentation-standards.md`.');
+        expect(agent).toContain('If that path cannot be read, read `documentation-standards.md` at the absolute path given in your brief.');
+        await expect(read('skills', 'documentation-create-default', 'documentation-standards.md')).resolves.toContain('# Documentation Standards');
     });
 
     it('ships the commit-message skill with rules that name every prefix and the detail format', async () => {

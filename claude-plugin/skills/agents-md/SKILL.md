@@ -1,6 +1,6 @@
 ---
 name: agents-md
-description: Create or update the repository's AGENTS.md (build and test commands, architecture, conventions, and rules) after the user approves the proposal, and offer to import it from CLAUDE.md.
+description: Creates or updates the repository's AGENTS.md (build and test commands, architecture, conventions, and rules) after the user approves a proposal, and offers to import it from CLAUDE.md. Use when the user asks to set up, refresh, or fix AGENTS.md or the agent instructions of the repository.
 argument-hint: "[what to add or change]"
 disable-model-invocation: true
 ---

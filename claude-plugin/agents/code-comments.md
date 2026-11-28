@@ -1,6 +1,6 @@
 ---
 name: code-comments
-description: Reviews code comments for usefulness, accuracy, and missing intent, and reports findings. Edits comments only when the brief explicitly asks for comment improvements. Never changes executable code.
+description: Reviews code comments for usefulness, accuracy, and missing intent, and reports findings. Edits comment text only when the brief explicitly asks for comment improvements, and never changes executable code. Use when asked to review or improve code comments.
 tools: Read, Grep, Glob, Edit, Bash
 model: inherit
 ---

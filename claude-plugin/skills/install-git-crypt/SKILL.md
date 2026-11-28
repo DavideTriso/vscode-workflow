@@ -1,6 +1,6 @@
 ---
 name: install-git-crypt
-description: Guide the user, one step at a time, through installing git-crypt and GPG, creating a GPG key, enabling .history encryption, and sharing access with teammates. Checks the operating system and package versions first.
+description: Guides the user, one step at a time, through installing git-crypt and GPG, creating a GPG key, enabling .history encryption, and sharing access with teammates, after checking the operating system and package versions. Use when the user wants to set up or join .history encryption.
 disable-model-invocation: true
 ---
 
